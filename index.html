@@ -2599,18 +2599,42 @@
       triggerConfetti();
     }
 
-    /* Keyboard & Touch Steering for Arcade */
+    /* Keyboard Shortcuts (Arcade steering & Sandbox hotkeys) */
     window.addEventListener('keydown', (e) => {
-      if (!arcadeRunning) return;
-      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
-        arcadeTargetX = Math.max(-2.2, arcadeTargetX - 1.8);
-      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
-        arcadeTargetX = Math.min(2.2, arcadeTargetX + 1.8);
-      } else if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
-        if (arcadeJumpY === 0) {
-          arcadeJumpVel = 0.45;
-          audio.playBoing();
+      // In Arcade Mode:
+      if (arcadeRunning) {
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+          arcadeTargetX = Math.max(-2.2, arcadeTargetX - 1.8);
+        } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+          arcadeTargetX = Math.min(2.2, arcadeTargetX + 1.8);
+        } else if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+          if (arcadeJumpY === 0) {
+            arcadeJumpVel = 0.45;
+            audio.playBoing();
+          }
         }
+        return;
+      }
+
+      // In Sandbox Mode:
+      // Number shortcuts 1-9 to swap between all 9 Eeveelutions
+      const formKeys = ['eevee', 'vaporeon', 'jolteon', 'flareon', 'espeon', 'umbreon', 'leafeon', 'glaceon', 'sylveon'];
+      const num = parseInt(e.key, 10);
+      if (num >= 1 && num <= 9) {
+        selectEeveelution(formKeys[num - 1]);
+      } else if (e.key === 's' || e.key === 'S') {
+        toggleShinyMode();
+      } else if (e.key === 'd' || e.key === 'D') {
+        triggerDiscoDance();
+      } else if (e.key === 'l' || e.key === 'L') {
+        triggerLoafMode();
+      } else if (e.key === 'p' || e.key === 'P') {
+        triggerDerpMode();
+      } else if (e.key === ' ') {
+        // Space in sandbox mode: Eevee hops with a joyful boing!
+        audio.playBoing();
+        petSquishFactor = 1.35;
+        if (eeveeRig) eeveeRig.position.y = 0.8;
       }
     });
 
