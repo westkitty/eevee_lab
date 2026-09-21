@@ -21,9 +21,21 @@ An interactive 3D Three.js experience dedicated to Pokémon's most versatile, lo
   - 🍓 **Feed Oran Berry**: Launches a 3D berry that Eevee tracks in mid-air and snaps up with a comical crunch!
   - 🧁 **Poke-Puff (Chonky)**: Triggers **Gigantamax Floof Mode**—Eevee puffs up like a giant round fluffy cloud!
 - **🪩 Disco Fever**: Lowers a sparkling 3D disco ball with rotating multi-colored spotlights, kickstarting a groovy chiptune dance party where Eevee shows off silly dance steps!
-- **🍞 Bread Loaf Mode**: Paws are tucked away in a 10/10 golden loaf!
+- **🍞 Bread Loaf Mode (`L`)**: Paws are tucked away in a 10/10 golden loaf!
+- **🤪 Derp Face Mode (`P`)**: Eevee's eyes wander in opposite directions with silly tongue blep!
+- **🍌 Banana Peel Slip**: Eevee slips on a banana peel, launching into a comical 360-degree cartoon wipeout with boing sound effects!
 - **🚨 The Roomba Alarm**: Unleash Eevee's arch-nemesis—a runaway robotic vacuum cleaner with glowing red headlights! Eevee gets spiral panic eyes and dashes around in chaotic circles!
 - **📸 Goofy Photo Mode**: Freezes the action, triggers a screen flash, and automatically downloads a high-resolution PNG snapshot (`eevee_goofy_moment.png`).
+
+### ⌨️ Sandbox Hotkeys
+| Key | Action |
+|:---|:---|
+| `1` - `9` | Instant morph between Eevee and all 8 Evolutions |
+| `S` | Toggle Shiny Mode |
+| `D` | Toggle Disco Dance Party |
+| `L` | Toggle Bread Loaf Mode |
+| `P` | Trigger Derp Mode |
+| `Space` | Joyful Hop / Boing |
 
 ---
 
