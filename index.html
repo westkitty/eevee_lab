@@ -1,0 +1,2935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Eevee's Silly Evolution Disco & Arcade 🌟</title>
+  
+  <!-- Playful Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Fredoka:wght@400;600;700&family=Sniglet:wght@800&display=swap" rel="stylesheet">
+
+  <!-- External CDNs: Three.js r128, OrbitControls, Canvas Confetti -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    :root {
+      --primary-eevee: #C59B63;
+      --bg-gradient: linear-gradient(135deg, #ffd1dc 0%, #ffe4b5 40%, #c4f0ff 80%, #e2d4f0 100%);
+      --glass-bg: rgba(255, 255, 255, 0.75);
+      --glass-border: rgba(255, 255, 255, 0.85);
+      --shadow-soft: 0 12px 36px rgba(100, 70, 90, 0.18);
+      --font-display: 'Bungee', cursive;
+      --font-body: 'Fredoka', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: var(--font-body);
+      background: var(--bg-gradient);
+      color: #332418;
+    }
+
+    #webgl-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      display: block;
+      outline: none;
+      cursor: grab;
+    }
+    #webgl-canvas:active {
+      cursor: grabbing;
+    }
+
+    /* UI Overlay Containers */
+    .ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px;
+    }
+
+    .interactive {
+      pointer-events: auto;
+    }
+
+    /* Top Navigation Bar */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .brand-pill {
+      background: var(--glass-bg);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 2px solid var(--glass-border);
+      padding: 8px 20px;
+      border-radius: 40px;
+      box-shadow: var(--shadow-soft);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: gentle-bob 4s ease-in-out infinite;
+    }
+
+    .brand-title {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      color: #7b4f2c;
+      letter-spacing: 0.5px;
+      text-shadow: 1px 1px 0px #fff;
+    }
+
+    .mode-badge {
+      background: #ff7597;
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 10px rgba(255, 117, 151, 0.4);
+    }
+
+    .top-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-icon {
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      border: 2px solid var(--glass-border);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      cursor: pointer;
+      box-shadow: var(--shadow-soft);
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .btn-icon:hover {
+      transform: scale(1.15) rotate(5deg);
+      background: #ffffff;
+    }
+    .btn-icon:active {
+      transform: scale(0.95);
+    }
+
+    /* Mode Switcher Buttons */
+    .mode-switch-group {
+      background: var(--glass-bg);
+      backdrop-filter: blur(14px);
+      border: 2px solid var(--glass-border);
+      border-radius: 30px;
+      padding: 4px;
+      display: flex;
+      gap: 4px;
+      box-shadow: var(--shadow-soft);
+    }
+    .mode-btn {
+      border: none;
+      background: transparent;
+      padding: 8px 16px;
+      border-radius: 24px;
+      font-family: var(--font-body);
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      color: #6a4a35;
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .mode-btn.active {
+      background: #ffb834;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(255, 184, 52, 0.45);
+      transform: scale(1.02);
+    }
+
+    /* Side Action Panel (Petting & Toys) */
+    .side-toy-panel {
+      position: absolute;
+      right: 16px;
+      top: 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 12;
+    }
+
+    .toy-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      border: 2px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      box-shadow: var(--shadow-soft);
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #55341c;
+      width: 175px;
+    }
+    .toy-card:hover {
+      transform: translateX(-8px) scale(1.04);
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(255, 150, 180, 0.3);
+    }
+    .toy-card:active {
+      transform: scale(0.96);
+    }
+    .toy-icon {
+      font-size: 1.6rem;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+    }
+    .toy-danger {
+      border-color: #ff8585;
+      background: rgba(255, 235, 235, 0.9);
+      color: #b71c1c;
+    }
+    .toy-danger:hover {
+      background: #ffe6e6;
+      box-shadow: 0 10px 24px rgba(255, 60, 60, 0.35);
+    }
+
+    /* Floating Speech & Reaction Bubble */
+    .speech-bubble {
+      position: absolute;
+      top: 15%;
+      left: 50%;
+      transform: translateX(-50%) scale(0);
+      background: #ffffff;
+      border: 3px solid #633e21;
+      padding: 12px 24px;
+      border-radius: 24px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+      font-family: var(--font-body);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #533219;
+      pointer-events: none;
+      z-index: 20;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+      opacity: 0;
+      text-align: center;
+      max-width: 320px;
+    }
+    .speech-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 14px 12px 0;
+      border-style: solid;
+      border-color: #633e21 transparent transparent;
+      display: block;
+      width: 0;
+    }
+    .speech-bubble.visible {
+      transform: translateX(-50%) scale(1);
+      opacity: 1;
+    }
+
+    /* Bottom Dock: Eeveelution Selector */
+    .bottom-dock {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .evolution-scroll-bar {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      max-width: 95vw;
+      padding: 10px 14px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      border: 2px solid var(--glass-border);
+      border-radius: 36px;
+      box-shadow: var(--shadow-soft);
+      scrollbar-width: none;
+    }
+    .evolution-scroll-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .evo-pill {
+      background: #ffffff;
+      border: 2px solid transparent;
+      padding: 8px 16px;
+      border-radius: 26px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #4a3424;
+      white-space: nowrap;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+    }
+    .evo-pill:hover {
+      transform: translateY(-4px) scale(1.06);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+    }
+    .evo-pill.active {
+      border-color: #332418;
+      transform: translateY(-4px) scale(1.08);
+      box-shadow: 0 10px 22px rgba(0,0,0,0.2);
+    }
+
+    /* Color Accents for Eeveelutions */
+    .evo-pill[data-form="eevee"].active { background: #e0b47a; color: #4a2c0c; }
+    .evo-pill[data-form="vaporeon"].active { background: #68c3ef; color: #083c5d; }
+    .evo-pill[data-form="jolteon"].active { background: #ffe644; color: #5a4b00; }
+    .evo-pill[data-form="flareon"].active { background: #ff7844; color: #571600; }
+    .evo-pill[data-form="espeon"].active { background: #d09cf5; color: #401460; }
+    .evo-pill[data-form="umbreon"].active { background: #3c424e; color: #ffe644; }
+    .evo-pill[data-form="leafeon"].active { background: #9bd770; color: #234d0b; }
+    .evo-pill[data-form="glaceon"].active { background: #a2e8f5; color: #114a57; }
+    .evo-pill[data-form="sylveon"].active { background: #ffb7df; color: #6a1a47; }
+
+    /* Shiny Toggle Button */
+    .shiny-btn {
+      background: linear-gradient(135deg, #fff7ad, #ffa9f9);
+      border: 2px solid #fff;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-weight: 800;
+      font-size: 0.75rem;
+      cursor: pointer;
+      color: #6a1a47;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(255, 170, 240, 0.4);
+      transition: transform 0.2s ease;
+    }
+    .shiny-btn:hover {
+      transform: scale(1.08);
+    }
+    .shiny-btn.is-shiny {
+      background: linear-gradient(135deg, #81fbb8, #28c76f);
+      color: #064019;
+      box-shadow: 0 0 18px rgba(40, 199, 111, 0.6);
+    }
+
+    /* Fact & Lore Drawer */
+    .fact-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      border: 2px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 14px 20px;
+      max-width: 600px;
+      width: 90%;
+      box-shadow: var(--shadow-soft);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    .fact-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .fact-title {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      color: #6e4624;
+    }
+    .fact-text {
+      font-size: 0.9rem;
+      line-height: 1.35;
+      color: #3f2a1b;
+    }
+    .fact-quote {
+      font-style: italic;
+      color: #b73966;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    .btn-shuffle-fact {
+      background: #ff8ab6;
+      border: none;
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .btn-shuffle-fact:hover {
+      transform: scale(1.1);
+    }
+
+    /* ARCADE RUNNER HUD */
+    .arcade-hud {
+      position: absolute;
+      top: 80px;
+      left: 16px;
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 15;
+    }
+    .arcade-score-card {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(14px);
+      border: 3px solid #ffaa00;
+      border-radius: 20px;
+      padding: 12px 18px;
+      box-shadow: 0 8px 24px rgba(255, 170, 0, 0.35);
+      min-width: 170px;
+    }
+    .arcade-label {
+      font-family: var(--font-display);
+      font-size: 0.75rem;
+      color: #8c5300;
+      letter-spacing: 0.5px;
+    }
+    .arcade-value {
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      color: #d86900;
+      line-height: 1.1;
+    }
+    .arcade-hearts {
+      display: flex;
+      gap: 6px;
+      font-size: 1.4rem;
+      margin-top: 4px;
+    }
+    .arcade-powerup-bar {
+      background: #fff;
+      border: 2px solid #5a3cff;
+      border-radius: 14px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #4a28cc;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      animation: pulse-glow 1s infinite alternate;
+    }
+
+    /* Arcade Instructions Overlay */
+    .arcade-help-banner {
+      position: absolute;
+      bottom: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.7);
+      color: #fff;
+      padding: 8px 20px;
+      border-radius: 30px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      pointer-events: none;
+      display: none;
+      letter-spacing: 0.5px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      z-index: 15;
+    }
+
+    /* Game Over Modal */
+    .gameover-modal {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      background: #ffffff;
+      border: 4px solid #ff4477;
+      border-radius: 32px;
+      padding: 30px 40px;
+      box-shadow: 0 20px 60px rgba(255, 68, 119, 0.4);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      z-index: 50;
+      text-align: center;
+    }
+    .gameover-title {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      color: #ff3366;
+    }
+    .gameover-score {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #442a19;
+    }
+    .btn-restart {
+      background: linear-gradient(135deg, #ff6b8b, #ff8e53);
+      border: none;
+      color: #fff;
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      padding: 12px 28px;
+      border-radius: 28px;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(255, 107, 139, 0.4);
+      transition: transform 0.2s ease;
+    }
+    .btn-restart:hover {
+      transform: scale(1.08);
+    }
+
+    /* Click-to-start audio banner */
+    .audio-prompt-banner {
+      position: absolute;
+      top: 75px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ffea79;
+      border: 2px solid #d49800;
+      color: #573e00;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      z-index: 25;
+      animation: pulse-glow 2s infinite alternate;
+    }
+
+    /* Animations */
+    @keyframes gentle-bob {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-4px); }
+    }
+    @keyframes pulse-glow {
+      0% { transform: scale(1); filter: brightness(1); }
+      100% { transform: scale(1.03); filter: brightness(1.15); }
+    }
+
+    /* Mobile Responsive Tweaks */
+    @media (max-width: 768px) {
+      .brand-title { font-size: 0.95rem; }
+      .side-toy-panel { top: auto; bottom: 170px; right: 12px; gap: 6px; }
+      .toy-card { width: 140px; padding: 6px 10px; font-size: 0.75rem; }
+      .toy-icon { font-size: 1.3rem; }
+      .fact-card { padding: 10px 14px; }
+      .fact-title { font-size: 0.85rem; }
+      .fact-text { font-size: 0.8rem; }
+      .arcade-hud { top: 70px; left: 10px; }
+      .arcade-value { font-size: 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 3D Canvas -->
+  <canvas id="webgl-canvas"></canvas>
+
+  <!-- UI Overlay Layer -->
+  <div class="ui-layer">
+    
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <div class="brand-pill interactive">
+        <span style="font-size: 1.5rem;">✨</span>
+        <div>
+          <div class="brand-title">EEVEE WONDERLAND</div>
+          <div style="font-size: 0.7rem; color: #8e623a; font-weight: 700;">THE ULTIMATE DERPY 3D EVOLUTION CARNIVAL</div>
+        </div>
+        <span class="mode-badge" id="current-mode-label">PLAYGROUND</span>
+      </div>
+
+      <!-- Mode Switcher (Playground vs Arcade Runner) -->
+      <div class="mode-switch-group interactive">
+        <button class="mode-btn active" id="btn-mode-sandbox" onclick="switchGameMode('sandbox')">
+          <span>🧸</span> Pet & Toybox
+        </button>
+        <button class="mode-btn" id="btn-mode-arcade" onclick="switchGameMode('arcade')">
+          <span>🎮</span> Stone Dash
+        </button>
+      </div>
+
+      <!-- Audio & Silly Action Controls -->
+      <div class="top-controls interactive">
+        <button class="btn-icon" id="btn-music" title="Toggle Disco Chiptune BGM" onclick="toggleMusic()">🎵</button>
+        <button class="btn-icon" id="btn-sound" title="Toggle Sound FX" onclick="toggleSFX()">🔊</button>
+        <button class="btn-icon" id="btn-photo" title="Snap Silly Photo (Downloads PNG)" onclick="snapSillyPhoto()">📸</button>
+      </div>
+    </div>
+
+    <!-- Click To Enable Audio Prompt -->
+    <div class="audio-prompt-banner interactive" id="audio-prompt" onclick="initAudioUserGesture()">
+      <span>🎵</span> Click here to enable Funky Disco Chiptunes & Boing SFX!
+    </div>
+
+    <!-- Speech / Reaction Bubble -->
+    <div class="speech-bubble" id="speech-bubble">
+      "Eev-vee! *happy ear wiggles*"
+    </div>
+
+    <!-- Arcade Runner HUD (Active in Arcade Mode) -->
+    <div class="arcade-hud" id="arcade-hud">
+      <div class="arcade-score-card">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 16px;">
+          <div>
+            <div class="arcade-label">SCORE</div>
+            <div class="arcade-value" id="arcade-score">0000</div>
+          </div>
+          <div style="text-align: right;">
+            <div class="arcade-label" style="color: #9c6000;">BEST</div>
+            <div style="font-family: var(--font-display); font-size: 1.25rem; color: #9c6000;" id="arcade-best-score">0000</div>
+          </div>
+        </div>
+        <div class="arcade-hearts" id="arcade-lives">❤️❤️❤️</div>
+      </div>
+      <div class="arcade-powerup-bar" id="arcade-powerup-badge">
+        <span id="powerup-icon">⚡</span> <span id="powerup-desc">SUPER JOLTEON SPEED!</span>
+      </div>
+    </div>
+
+    <div class="arcade-help-banner" id="arcade-help">
+      Use ⬅️ ➡️ Keys or Drag Mouse / Touch to steer • Space to Jump! Catch Stones!
+    </div>
+
+    <!-- Game Over Screen -->
+    <div class="gameover-modal interactive" id="gameover-modal">
+      <div class="gameover-title">SPECTACULAR SPLAT! 🍌</div>
+      <p style="color: #6a4425; font-weight: 600;">Eevee did a goofy triple-flip into a pile of fluffy pillows!</p>
+      <div class="gameover-score" id="gameover-final-score">Score: 0</div>
+      <button class="btn-restart" onclick="restartArcadeGame()">PLAY AGAIN! 🚀</button>
+    </div>
+
+    <!-- Side Toybox / Petting Panel (Active in Sandbox Mode) -->
+    <div class="side-toy-panel interactive" id="side-toy-panel">
+      <div class="toy-card" onclick="feedTreat('berry')">
+        <span class="toy-icon">🍓</span>
+        <div>
+          <div>Feed Oran Berry</div>
+          <div style="font-size: 0.68rem; color:#888;">Nom nom chomp!</div>
+        </div>
+      </div>
+      <div class="toy-card" onclick="feedTreat('puff')">
+        <span class="toy-icon">🧁</span>
+        <div>
+          <div>Poke-Puff (Chonky)</div>
+          <div style="font-size: 0.68rem; color:#888;">Instant gigantamax floof!</div>
+        </div>
+      </div>
+      <div class="toy-card" onclick="triggerDiscoDance()">
+        <span class="toy-icon">🪩</span>
+        <div>
+          <div>Disco Fever!</div>
+          <div style="font-size: 0.68rem; color:#888;">Groovy dance moves</div>
+        </div>
+      </div>
+      <div class="toy-card" onclick="triggerLoafMode()">
+        <span class="toy-icon">🍞</span>
+        <div>
+          <div>Loaf Mode</div>
+          <div style="font-size: 0.68rem; color:#888;">Tuck in the paws!</div>
+        </div>
+      </div>
+      <div class="toy-card toy-danger" onclick="summonVacuum()">
+        <span class="toy-icon">🚨</span>
+        <div>
+          <div>THE ROOMBA!</div>
+          <div style="font-size: 0.68rem; color:#b71c1c;">MAXIMUM PANIC!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Dock: Evolution Selector + Fact Sheet -->
+    <div class="bottom-dock interactive">
+      
+      <!-- Fact / Lore Sheet -->
+      <div class="fact-card" id="fact-card">
+        <div class="fact-header">
+          <div class="fact-title" id="fact-form-name">🌟 EEVEE (The Evolution Pokémon)</div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="shiny-btn" id="btn-shiny" onclick="toggleShinyMode()">
+              <span>✨</span> Shiny Mode
+            </button>
+            <button class="btn-shuffle-fact" onclick="shuffleRandomFact()">Random Fact 🎲</button>
+          </div>
+        </div>
+        <div class="fact-text" id="fact-text-main">
+          Eevee's genetic code is so notoriously unstable that urban radiation, rocks, or simply high friendship can cause it to mutate into 8 completely different species!
+        </div>
+        <div class="fact-quote" id="fact-silly-quote">
+          "Basically a furry Swiss Army knife that runs on cuddles and treats."
+        </div>
+      </div>
+
+      <!-- Evolution Selector Bar -->
+      <div class="evolution-scroll-bar">
+        <div class="evo-pill active" data-form="eevee" onclick="selectEeveelution('eevee')">
+          <span>🦊</span> Eevee (Normal)
+        </div>
+        <div class="evo-pill" data-form="vaporeon" onclick="selectEeveelution('vaporeon')">
+          <span>🧜‍♂️</span> Vaporeon (Water)
+        </div>
+        <div class="evo-pill" data-form="jolteon" onclick="selectEeveelution('jolteon')">
+          <span>⚡</span> Jolteon (Electric)
+        </div>
+        <div class="evo-pill" data-form="flareon" onclick="selectEeveelution('flareon')">
+          <span>🔥</span> Flareon (Fire)
+        </div>
+        <div class="evo-pill" data-form="espeon" onclick="selectEeveelution('espeon')">
+          <span>🔮</span> Espeon (Psychic)
+        </div>
+        <div class="evo-pill" data-form="umbreon" onclick="selectEeveelution('umbreon')">
+          <span>🌙</span> Umbreon (Dark)
+        </div>
+        <div class="evo-pill" data-form="leafeon" onclick="selectEeveelution('leafeon')">
+          <span>🍃</span> Leafeon (Grass)
+        </div>
+        <div class="evo-pill" data-form="glaceon" onclick="selectEeveelution('glaceon')">
+          <span>❄️</span> Glaceon (Ice)
+        </div>
+        <div class="evo-pill" data-form="sylveon" onclick="selectEeveelution('sylveon')">
+          <span>🎀</span> Sylveon (Fairy)
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- MAIN THREE.JS APPLICATION JAVASCRIPT -->
+  <script>
+    /* ==========================================================================
+       1. POKEMON LORE & GOOFY TRIVIA DATABASE
+       ========================================================================== */
+    const EEVEELUTION_DATA = {
+      eevee: {
+        name: "EEVEE (The Evolution Pokémon)",
+        type: "Normal",
+        colorNormal: 0xC59B63,
+        colorRuff: 0xF7E7CE,
+        colorShiny: 0xDCD6C8,
+        colorShinyRuff: 0xFFFFFF,
+        facts: [
+          "Eevee's genetic makeup is so profoundly unstable that its DNA literally restructures based on the ambient vibes of its environment!",
+          "In early generation beta concepts, Eevee was originally named 'Eon' (the suffix shared by all its evolutions).",
+          "Eevee has the highest number of branched evolutions of any Pokémon in the entire franchise (a whopping 8!).",
+          "According to Pokémon lore, an Eevee's face will actually start slowly morphing to look like its beloved trainer over time!",
+          "Eevee is one of the only non-starter Pokémon with its own dedicated signature Z-Move: 'Extreme Evoboost', which summons all 8 evolutions for a team cuddle boost!",
+          "Scientists in the Pokémon world believe Eevee's chaotic genome is an evolutionary adaptation allowing it to thrive in any climate on Earth."
+        ],
+        sillyQuotes: [
+          "\"100% floof, 0% genetic stability. A walking cloud of possibilities.\"",
+          "\"Science still cannot explain how 14 lbs of fluff can demand so many snacks.\"",
+          "\"Bread loaf mode engaged: 10/10 crust, zero bones detected.\"",
+          "\"Why pick one career path when you can have eight? Eevee is the millennial icon.\""
+        ]
+      },
+      vaporeon: {
+        name: "VAPOREON (The Bubble Jet Pokémon)",
+        type: "Water",
+        colorNormal: 0x49B2E8,
+        colorRuff: 0xFFFFFF,
+        colorShiny: 0xEE72C7,
+        colorShinyRuff: 0xFDF6C7,
+        facts: [
+          "Vaporeon's cellular composition is virtually identical to water molecules! When it takes a swim, it can literally melt invisibly into water.",
+          "It has gills hidden beneath its ruffled neck fin, allowing it to snooze peacefully on the ocean floor for weeks.",
+          "When its fin begins to vibrate with a subtle frequency, it predicts that rain will fall within hours.",
+          "Vaporeon can control and reshape water currents using its powerful dolphin-like caudal fin fluke.",
+          "Despite being a quadruped on land, in water it swims faster than a Gyarados cruising through a rapids."
+        ],
+        sillyQuotes: [
+          "\"Warning: If left in a glass of water, Vaporeon may become the glass of water.\"",
+          "\"Water Doggo: 80% mermaid, 20% liquid mischief.\"",
+          "\"Cats hate water, but Vaporeon IS water. Paradox unlocked.\""
+        ]
+      },
+      jolteon: {
+        name: "JOLTEON (The Lightning Pokémon)",
+        type: "Electric",
+        colorNormal: 0xFEE033,
+        colorRuff: 0xFFFFFF,
+        colorShiny: 0x98E040,
+        colorShinyRuff: 0xFFFFFF,
+        facts: [
+          "Jolteon generates over 10,000 volts of static electricity in its fur! Every single strand of fur can harden into razor-sharp needle missiles.",
+          "Because its lungs and cells are supercharged with negative ions, it emits a constant, high-speed crackling hum.",
+          "It has virtually no tail—just a spiky electric lightning puff capable of zapping nearby electronics.",
+          "Jolteon's base Speed stat of 130 made it a legendary speed demon in competitive Gen 1 tournaments.",
+          "When it gets startled, every quill on its body stands on end like an electrified porcupine hedgehog!"
+        ],
+        sillyQuotes: [
+          "\"What happens when a puppy drinks 40 double-shot espressos. High speed jitterbug.\"",
+          "\"Touching this doggo will charge your iPhone in 0.003 seconds (do not attempt).\"",
+          "\"Perpetual motion machine fueled entirely by static electricity and mischief.\""
+        ]
+      },
+      flareon: {
+        name: "FLAREON (The Flame Pokémon)",
+        type: "Fire",
+        colorNormal: 0xF76835,
+        colorRuff: 0xFFE082,
+        colorShiny: 0xF5A642,
+        colorShinyRuff: 0xFFF2A6,
+        facts: [
+          "Flareon has an internal flame sac that reaches scorching temperatures of 1,650°F (900°C) before battle!",
+          "It puffs out its massive neck collar and tail to cool down its internal body heat, acting like a giant furry radiator.",
+          "Despite being a walking furnace, it is canonically one of the most docile, cuddle-prone Pokémon in existence.",
+          "It stores thermal energy inside its dense woolly collar, keeping its trainer warm through blizzard winters.",
+          "Historically famous for having an absurdly high 130 Base Attack stat in early gens with no physical moves to use it with (the 'No Moves' meme!)."
+        ],
+        sillyQuotes: [
+          "\"Basically a toasted golden marshmallow equipped with dragon breath.\"",
+          "\"You could legitimately bake a pepperoni pizza by placing it on Flareon's collar.\"",
+          "\"Walking heated electric blanket with ears.\""
+        ]
+      },
+      espeon: {
+        name: "ESPEON (The Sun Pokémon)",
+        type: "Psychic",
+        colorNormal: 0xC68FED,
+        colorRuff: 0xB17CE0,
+        colorShiny: 0x64DE64,
+        colorShinyRuff: 0x48BA48,
+        facts: [
+          "Espeon's ultra-fine fur has the texture of premium velvet and is sensitive enough to read air currents and predict the weather or enemy moves.",
+          "The red ruby gem on its forehead glows brightly when it channels telekinetic psychic waves.",
+          "Its tail bifurcates (splits into two tips) which quiver in harmony whenever it senses psychic energy.",
+          "It evolves from Eevee when leveled up with maximum friendship during the radiant daytime.",
+          "It was famously introduced as Red's signature partner in Pokémon Gold/Silver on Mt. Silver!"
+        ],
+        sillyQuotes: [
+          "\"Knows what you're thinking right now: 'Wow, what a majestic psychic cat-fox'.\"",
+          "\"Shiny Espeon turns radioactive alien-green for reasons nobody can explain.\"",
+          "\"Can predict tomorrow's stock market and whether you're about to give it a snack.\""
+        ]
+      },
+      umbreon: {
+        name: "UMBREON (The Moonlight Pokémon)",
+        type: "Dark",
+        colorNormal: 0x2A2E35,
+        colorRuff: 0x1E2126,
+        colorRing: 0xFCE029,
+        colorShiny: 0x1F2228,
+        colorShinyRing: 0x00E5FF,
+        facts: [
+          "When exposed to full moonlight, the mysterious circular patterns on Umbreon's body glow with faint, eerie bioluminescence.",
+          "When agitated or hunting in the dark, it can secrete a poisonous sweat from its pores to ward off enemies.",
+          "Umbreon is famously one of the most durable defensive wall Pokémon in competitive battle history.",
+          "Its shiny form features glowing neon cyan rings, making it universally voted one of the coolest shiny Pokémon ever designed.",
+          "It lurks silently in deep shadows waiting for prey, its scarlet eyes piercing total darkness."
+        ],
+        sillyQuotes: [
+          "\"It's not just a phase, Mom. The neon glow rings are my true identity.\"",
+          "\"The ultimate nocturnal shadow guard dog. 10/10 stealth rating.\"",
+          "\"Will sit on your lap at 3 AM glowing like a futuristic gaming keyboard.\""
+        ]
+      },
+      leafeon: {
+        name: "LEAFEON (The Verdant Pokémon)",
+        type: "Grass",
+        colorNormal: 0xEDDEB2,
+        colorRuff: 0x76B852,
+        colorShiny: 0xFAF0CD,
+        colorShinyRuff: 0x8CD663,
+        facts: [
+          "Leafeon's cellular structure is literally closer to a leafy green plant than an animal—it undergoes genuine photosynthesis!",
+          "As a result of producing fresh clean oxygen through its leaves, the air around a sleeping Leafeon always smells like fresh forest pine.",
+          "Its tail is as sharp as a finely sharpened blade, capable of slicing through large trees with a graceful swish.",
+          "Originally evolved exclusively by leveling up near the ancient Moss Rock in the Eterna Forest.",
+          "It is a pacifist that prefers basking in sunbeams all day rather than engaging in aggressive battles."
+        ],
+        sillyQuotes: [
+          "\"Photosynthetic doggo. Does not require food, only sunlight, water, and head pats.\"",
+          "\"Salad ears with genuine chlorophyll power!\"",
+          "\"A walking houseplant that loves belly rubs.\""
+        ]
+      },
+      glaceon: {
+        name: "GLACEON (The Fresh Snow Pokémon)",
+        type: "Ice",
+        colorNormal: 0x8BE5F5,
+        colorRuff: 0x367F9E,
+        colorShiny: 0xB5F7FF,
+        colorShinyRuff: 0x48A0C2,
+        facts: [
+          "Glaceon can instantaneously drop its body temperature down to -75°F (-60°C), freezing moisture in the air into glittering diamond dust.",
+          "It wears dangling ice crystal head bangs that clink together like frozen chimes when it prances.",
+          "It creates miniature blizzards simply by kicking its hind legs!",
+          "Its body hairs freeze into rigid diamond needles that it can fire like icicle darts at intruders.",
+          "Originally required training near the mystical Ice Rock in Route 217 in the Sinnoh region to evolve."
+        ],
+        sillyQuotes: [
+          "\"The coolest Eeveelution—literally. Please do not lick its frozen ears.\"",
+          "\"Glides effortlessly on ice like an Olympic figure skater.\"",
+          "\"Natural air conditioner for hot summer afternoons.\""
+        ]
+      },
+      sylveon: {
+        name: "SYLVEON (The Intertwining Pokémon)",
+        type: "Fairy",
+        colorNormal: 0xFDF4E7,
+        colorRuff: 0xFFAEC9,
+        colorShiny: 0xE2F4FD,
+        colorShinyRuff: 0x70CBF5,
+        facts: [
+          "Sylveon wraps its silky ribbon-like feelers around its trainer's arm to read their heartbeat and soothe any negative emotions.",
+          "Despite its adorable pastel butterfly bow aesthetic, it is canonically known as the ferocious 'Dragon Slayer' in Pokémon battles!",
+          "It emits a calming aura from its ribbons that neutralizes hostility, making opponents lower their guard before it unleashes Fairy Wind.",
+          "It was the grand ambassador introduced to reveal the brand new Fairy type in Gen VI (Pokemon X & Y).",
+          "Eevee evolves into Sylveon when it has high affection and learns a Fairy-type move like Baby-Doll Eyes or Charm."
+        ],
+        sillyQuotes: [
+          "\"Pretty in pink, armed with ribbons, and capable of erasing giant dragons from existence.\"",
+          "\"100% pastel magical girl energy.\"",
+          "\"Look at these cute ribbons! Also, beware: I have eradicated entire dragon clans.\""
+        ]
+      }
+    };
+
+    /* ==========================================================================
+       2. PROCEDURAL WEB AUDIO SYNTHESIZER ENGINE
+       ========================================================================== */
+    class RetroAudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.isMusicPlaying = false;
+        this.isSFXEnabled = true;
+        this.bgmTimer = null;
+        this.step = 0;
+
+        // Funky catchy bass & melody notes (frequencies in Hz)
+        this.bassline = [130.81, 130.81, 164.81, 196.00, 174.61, 174.61, 196.00, 220.00];
+        this.melody = [
+          523.25, 0, 659.25, 783.99, 880.00, 783.99, 659.25, 587.33,
+          523.25, 659.25, 0, 783.99, 1046.50, 880.00, 783.99, 659.25
+        ];
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContextClass();
+        }
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      startBGM() {
+        this.init();
+        if (this.isMusicPlaying) return;
+        this.isMusicPlaying = true;
+        this.step = 0;
+
+        const tempo = 128; // BPM
+        const interval = (60 / tempo) / 2 * 1000; // 8th note interval in ms
+
+        this.bgmTimer = setInterval(() => {
+          if (!this.isMusicPlaying) return;
+          this.playBGMStep(this.step);
+          this.step = (this.step + 1) % 16;
+        }, interval);
+      }
+
+      stopBGM() {
+        this.isMusicPlaying = false;
+        if (this.bgmTimer) {
+          clearInterval(this.bgmTimer);
+          this.bgmTimer = null;
+        }
+      }
+
+      playBGMStep(step) {
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+
+        // Kick Drum (every 4 steps: 0, 4, 8, 12)
+        if (step % 4 === 0) {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.frequency.setValueAtTime(140, now);
+          osc.frequency.exponentialRampToValueAtTime(32, now + 0.12);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        }
+
+        // Snare / Clap (steps 4, 12)
+        if (step % 8 === 4) {
+          this.playSnare(now);
+        }
+
+        // Hi-Hat (every odd step)
+        if (step % 2 === 1) {
+          this.playHiHat(now);
+        }
+
+        // Bassline Synth
+        const bassFreq = this.bassline[Math.floor(step / 2) % this.bassline.length];
+        if (bassFreq > 0) {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const filter = this.ctx.createBiquadFilter();
+
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(bassFreq, now);
+
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(450, now);
+
+          gain.gain.setValueAtTime(0.18, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.ctx.destination);
+
+          osc.start(now);
+          osc.stop(now + 0.2);
+        }
+
+        // Catchy Disco Arpeggio Melody
+        const noteFreq = this.melody[step % this.melody.length];
+        if (noteFreq > 0) {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(noteFreq, now);
+
+          gain.gain.setValueAtTime(0.06, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+
+          osc.start(now);
+          osc.stop(now + 0.15);
+        }
+      }
+
+      playHiHat(t) {
+        if (!this.ctx) return;
+        const bufferSize = this.ctx.sampleRate * 0.04;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'highpass';
+        filter.frequency.setValueAtTime(7000, t);
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.05, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        noise.start(t);
+      }
+
+      playSnare(t) {
+        if (!this.ctx) return;
+        const bufferSize = this.ctx.sampleRate * 0.1;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * 0.8;
+        }
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(1200, t);
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.18, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        noise.start(t);
+      }
+
+      // Playful SFX
+      playBoing() {
+        if (!this.isSFXEnabled) return;
+        this.init();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(750, now + 0.25);
+
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      }
+
+      playChomp() {
+        if (!this.isSFXEnabled) return;
+        this.init();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(380, now);
+        osc.frequency.exponentialRampToValueAtTime(140, now + 0.12);
+
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.16);
+      }
+
+      playSparkle() {
+        if (!this.isSFXEnabled) return;
+        this.init();
+        const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
+        const now = this.ctx.currentTime;
+
+        notes.forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const t = now + idx * 0.05;
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, t);
+
+          gain.gain.setValueAtTime(0.2, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.25);
+        });
+      }
+
+      playPurr() {
+        if (!this.isSFXEnabled) return;
+        this.init();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(60, now);
+        osc.frequency.linearRampToValueAtTime(75, now + 0.1);
+        osc.frequency.linearRampToValueAtTime(55, now + 0.2);
+
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.26);
+      }
+
+      playPanicVacuum() {
+        if (!this.isSFXEnabled) return;
+        this.init();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.linearRampToValueAtTime(260, now + 0.4);
+
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.46);
+      }
+
+      playZap() {
+        if (!this.isSFXEnabled) return;
+        this.init();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(1400, now);
+        osc.frequency.exponentialRampToValueAtTime(200, now + 0.18);
+
+        gain.gain.setValueAtTime(0.28, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.21);
+      }
+
+      playSplat() {
+        if (!this.isSFXEnabled) return;
+        this.init();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(70, now + 0.3);
+
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.36);
+      }
+    }
+
+    const audio = new RetroAudioEngine();
+
+    /* ==========================================================================
+       3. THREE.JS PROCEDURAL EEVEE 3D RIG & ANIMATION ENGINE
+       ========================================================================== */
+    let scene, camera, renderer, controls;
+    let eeveeRig = null;
+    let discoBall = null;
+    let vacuumBot = null;
+    let treats = [];
+    let environmentDecor = [];
+    let sandboxFloor = null;
+
+    // Animation States
+    let currentForm = 'eevee';
+    let isShiny = false;
+    let activeGameMode = 'sandbox'; // 'sandbox' or 'arcade'
+    let clock = new THREE.Clock();
+
+    // Expression & Pose States
+    let currentEmotion = 'happy'; // 'happy', 'derp', 'hearts', 'shocked'
+    let isLoafMode = false;
+    let isDiscoMode = false;
+    let isVacuumPanicking = false;
+    let petSquishFactor = 1.0;
+    let treatHungerAngle = 0;
+
+    // Face Texture Generator
+    let faceCanvas, faceCtx, faceTexture;
+
+    function initFaceTexture() {
+      faceCanvas = document.createElement('canvas');
+      faceCanvas.width = 512;
+      faceCanvas.height = 512;
+      faceCtx = faceCanvas.getContext('2d');
+      faceTexture = new THREE.CanvasTexture(faceCanvas);
+      faceTexture.needsUpdate = true;
+      updateFaceExpression('happy');
+    }
+
+    function updateFaceExpression(emotion) {
+      currentEmotion = emotion;
+      if (!faceCtx) return;
+
+      faceCtx.clearRect(0, 0, 512, 512);
+
+      // Cute Blushing Cheeks
+      faceCtx.fillStyle = 'rgba(255, 120, 150, 0.45)';
+      faceCtx.beginPath();
+      faceCtx.arc(140, 310, 36, 0, Math.PI * 2);
+      faceCtx.arc(372, 310, 36, 0, Math.PI * 2);
+      faceCtx.fill();
+
+      if (emotion === 'happy') {
+        // Big sparkly anime eyes
+        drawAnimeEye(170, 240, 50, false);
+        drawAnimeEye(342, 240, 50, false);
+
+        // Cute W-mouth (Pokemon cat-mouth)
+        faceCtx.strokeStyle = '#432616';
+        faceCtx.lineWidth = 9;
+        faceCtx.lineCap = 'round';
+        faceCtx.beginPath();
+        // Left curve
+        faceCtx.arc(235, 335, 22, 0.2, Math.PI - 0.2);
+        // Right curve
+        faceCtx.arc(277, 335, 22, 0.2, Math.PI - 0.2);
+        faceCtx.stroke();
+
+      } else if (emotion === 'hearts') {
+        // Beaming pink Heart Eyes!
+        drawHeartEye(170, 240, 56);
+        drawHeartEye(342, 240, 56);
+
+        // Open joyful happy smile
+        faceCtx.fillStyle = '#D94D68';
+        faceCtx.strokeStyle = '#432616';
+        faceCtx.lineWidth = 8;
+        faceCtx.beginPath();
+        faceCtx.arc(256, 330, 32, 0, Math.PI);
+        faceCtx.closePath();
+        faceCtx.fill();
+        faceCtx.stroke();
+
+      } else if (emotion === 'derp') {
+        // Googly mismatched crazy eyes!
+        drawGooglyEye(170, 240, 55, -15, -15);
+        drawGooglyEye(342, 240, 42, 12, 10);
+
+        // Derp tongue sticking out (:P)
+        faceCtx.strokeStyle = '#432616';
+        faceCtx.lineWidth = 8;
+        faceCtx.beginPath();
+        faceCtx.arc(256, 325, 20, 0, Math.PI);
+        faceCtx.stroke();
+
+        // Pink floppy tongue
+        faceCtx.fillStyle = '#FF6B8B';
+        faceCtx.beginPath();
+        faceCtx.arc(268, 355, 18, 0, Math.PI * 2);
+        faceCtx.fill();
+        faceCtx.strokeStyle = '#432616';
+        faceCtx.lineWidth = 4;
+        faceCtx.stroke();
+
+      } else if (emotion === 'shocked') {
+        // Tiny white dot eyes with crazy vibration
+        faceCtx.fillStyle = '#FFFFFF';
+        faceCtx.strokeStyle = '#432616';
+        faceCtx.lineWidth = 6;
+
+        faceCtx.beginPath();
+        faceCtx.arc(170, 240, 48, 0, Math.PI * 2);
+        faceCtx.arc(342, 240, 48, 0, Math.PI * 2);
+        faceCtx.fill();
+        faceCtx.stroke();
+
+        // Tiny pinpoint pupils
+        faceCtx.fillStyle = '#000000';
+        faceCtx.beginPath();
+        faceCtx.arc(170, 240, 10, 0, Math.PI * 2);
+        faceCtx.arc(342, 240, 10, 0, Math.PI * 2);
+        faceCtx.fill();
+
+        // O-shaped gasp mouth
+        faceCtx.fillStyle = '#30180B';
+        faceCtx.beginPath();
+        faceCtx.ellipse(256, 350, 24, 38, 0, 0, Math.PI * 2);
+        faceCtx.fill();
+      }
+
+      // Cute black button nose
+      faceCtx.fillStyle = '#26140A';
+      faceCtx.beginPath();
+      faceCtx.moveTo(256, 298);
+      faceCtx.lineTo(246, 286);
+      faceCtx.lineTo(266, 286);
+      faceCtx.closePath();
+      faceCtx.fill();
+
+      faceTexture.needsUpdate = true;
+    }
+
+    function drawAnimeEye(x, y, radius, isClosed) {
+      faceCtx.save();
+      // Outer brown/amber Iris
+      faceCtx.fillStyle = '#48250F';
+      faceCtx.beginPath();
+      faceCtx.ellipse(x, y, radius * 0.75, radius, 0, 0, Math.PI * 2);
+      faceCtx.fill();
+
+      // Lower warm amber glow
+      faceCtx.fillStyle = '#B86F36';
+      faceCtx.beginPath();
+      faceCtx.ellipse(x, y + 14, radius * 0.55, radius * 0.45, 0, 0, Math.PI * 2);
+      faceCtx.fill();
+
+      // Deep dark pupil
+      faceCtx.fillStyle = '#1D0E05';
+      faceCtx.beginPath();
+      faceCtx.ellipse(x, y - 2, radius * 0.4, radius * 0.55, 0, 0, Math.PI * 2);
+      faceCtx.fill();
+
+      // Big Sparkle Specular Highlight
+      faceCtx.fillStyle = '#FFFFFF';
+      faceCtx.beginPath();
+      faceCtx.arc(x - 12, y - 16, radius * 0.32, 0, Math.PI * 2);
+      faceCtx.fill();
+
+      // Secondary small highlight
+      faceCtx.beginPath();
+      faceCtx.arc(x + 10, y + 18, radius * 0.16, 0, Math.PI * 2);
+      faceCtx.fill();
+
+      faceCtx.restore();
+    }
+
+    function drawHeartEye(x, y, size) {
+      faceCtx.save();
+      faceCtx.fillStyle = '#FF2B6D';
+      faceCtx.beginPath();
+      const topCurveHeight = size * 0.3;
+      faceCtx.moveTo(x, y + topCurveHeight);
+      // top left curve
+      faceCtx.bezierCurveTo(x, y, x - size / 2, y, x - size / 2, y + topCurveHeight);
+      // bottom left curve
+      faceCtx.bezierCurveTo(x - size / 2, y + (size + topCurveHeight) / 2, x, y + (size + topCurveHeight) / 1.4, x, y + size);
+      // bottom right curve
+      faceCtx.bezierCurveTo(x, y + (size + topCurveHeight) / 1.4, x + size / 2, y + (size + topCurveHeight) / 2, x + size / 2, y + topCurveHeight);
+      // top right curve
+      faceCtx.bezierCurveTo(x + size / 2, y, x, y, x, y + topCurveHeight);
+      faceCtx.closePath();
+      faceCtx.fill();
+
+      // Sparkle on heart
+      faceCtx.fillStyle = '#FFF';
+      faceCtx.beginPath();
+      faceCtx.arc(x - size * 0.2, y + size * 0.2, 5, 0, Math.PI * 2);
+      faceCtx.fill();
+      faceCtx.restore();
+    }
+
+    function drawGooglyEye(x, y, radius, pupilOffsetX, pupilOffsetY) {
+      faceCtx.save();
+      // White sclera
+      faceCtx.fillStyle = '#FFFFFF';
+      faceCtx.strokeStyle = '#432616';
+      faceCtx.lineWidth = 6;
+      faceCtx.beginPath();
+      faceCtx.arc(x, y, radius, 0, Math.PI * 2);
+      faceCtx.fill();
+      faceCtx.stroke();
+
+      // Googly Black Pupil
+      faceCtx.fillStyle = '#1D0E05';
+      faceCtx.beginPath();
+      faceCtx.arc(x + pupilOffsetX, y + pupilOffsetY, radius * 0.45, 0, Math.PI * 2);
+      faceCtx.fill();
+
+      // Tiny white reflection
+      faceCtx.fillStyle = '#FFFFFF';
+      faceCtx.beginPath();
+      faceCtx.arc(x + pupilOffsetX - 5, y + pupilOffsetY - 5, 4, 0, Math.PI * 2);
+      faceCtx.fill();
+      faceCtx.restore();
+    }
+
+    /* ==========================================================================
+       4. BUILD PROCEDURAL 3D EEVEE & EEVEELUTIONS
+       ========================================================================== */
+    function createEeveeRig() {
+      const rig = new THREE.Group();
+      rig.name = "EeveeRig";
+
+      // Common Toon / Soft Cartoon Material
+      const baseMat = new THREE.MeshToonMaterial({
+        color: EEVEELUTION_DATA.eevee.colorNormal,
+        roughness: 0.6
+      });
+      const ruffMat = new THREE.MeshToonMaterial({
+        color: EEVEELUTION_DATA.eevee.colorRuff,
+        roughness: 0.8
+      });
+      const innerEarMat = new THREE.MeshToonMaterial({
+        color: 0x5C361E,
+        roughness: 0.7
+      });
+
+      // 1. Torso / Body Group
+      const bodyGroup = new THREE.Group();
+      bodyGroup.name = "BodyGroup";
+
+      // Rounded Torso (Plump, cute puppy shape)
+      const torsoGeo = new THREE.SphereGeometry(1.05, 32, 24);
+      torsoGeo.scale(0.9, 0.85, 1.25);
+      const torsoMesh = new THREE.Mesh(torsoGeo, baseMat);
+      torsoMesh.castShadow = true;
+      torsoMesh.receiveShadow = true;
+      torsoMesh.position.y = 1.1;
+      bodyGroup.add(torsoMesh);
+
+      // 2. Head Group (Positioned at front top of torso)
+      const headGroup = new THREE.Group();
+      headGroup.name = "HeadGroup";
+      headGroup.position.set(0, 1.85, 0.85);
+
+      // Head Skull
+      const skullGeo = new THREE.SphereGeometry(1.02, 32, 28);
+      skullGeo.scale(1.05, 0.95, 1.0);
+      const skullMesh = new THREE.Mesh(skullGeo, baseMat);
+      skullMesh.castShadow = true;
+      headGroup.add(skullMesh);
+
+      // Cute Snout / Muzzle
+      const snoutGeo = new THREE.ConeGeometry(0.48, 0.55, 20);
+      snoutGeo.rotateX(Math.PI / 2);
+      const snoutMesh = new THREE.Mesh(snoutGeo, baseMat);
+      snoutMesh.position.set(0, -0.15, 0.95);
+      headGroup.add(snoutMesh);
+
+      // Dynamic Face Plane (Curved mesh on front of head)
+      const faceGeo = new THREE.PlaneGeometry(1.5, 1.5);
+      const faceMaterial = new THREE.MeshBasicMaterial({
+        map: faceTexture,
+        transparent: true,
+        side: THREE.DoubleSide
+      });
+      const faceMesh = new THREE.Mesh(faceGeo, faceMaterial);
+      faceMesh.name = "FaceMesh";
+      faceMesh.position.set(0, 0.05, 0.96);
+      faceMesh.rotation.x = -0.05;
+      headGroup.add(faceMesh);
+
+      // 3. Floppy Big Ears
+      const earGroupLeft = new THREE.Group();
+      earGroupLeft.name = "EarLeft";
+      earGroupLeft.position.set(-0.75, 0.72, 0.0);
+      earGroupLeft.rotation.set(-0.1, -0.15, 0.55);
+
+      const earGroupRight = new THREE.Group();
+      earGroupRight.name = "EarRight";
+      earGroupRight.position.set(0.75, 0.72, 0.0);
+      earGroupRight.rotation.set(-0.1, 0.15, -0.55);
+
+      // Ear Geometry (Fluffy, pointed leaf/fox ear)
+      const earGeo = new THREE.ConeGeometry(0.5, 2.3, 24);
+      earGeo.scale(1.0, 1.0, 0.35); // Flatten ear
+      earGeo.translate(0, 1.1, 0);
+
+      const earMeshLeft = new THREE.Mesh(earGeo, baseMat);
+      earMeshLeft.castShadow = true;
+      const innerEarGeo = new THREE.ConeGeometry(0.32, 1.8, 20);
+      innerEarGeo.scale(1.0, 1.0, 0.3);
+      innerEarGeo.translate(0, 0.95, 0.08);
+      const innerEarMeshLeft = new THREE.Mesh(innerEarGeo, innerEarMat);
+      earGroupLeft.add(earMeshLeft);
+      earGroupLeft.add(innerEarMeshLeft);
+
+      const earMeshRight = new THREE.Mesh(earGeo, baseMat);
+      earMeshRight.castShadow = true;
+      const innerEarMeshRight = new THREE.Mesh(innerEarGeo, innerEarMat);
+      earGroupRight.add(earMeshRight);
+      earGroupRight.add(innerEarMeshRight);
+
+      headGroup.add(earGroupLeft);
+      headGroup.add(earGroupRight);
+
+      // Head Floof Tuft
+      const tuftGeo = new THREE.ConeGeometry(0.25, 0.6, 12);
+      tuftGeo.rotateZ(0.2);
+      const tuftMesh = new THREE.Mesh(tuftGeo, ruffMat);
+      tuftMesh.name = "HeadTuft";
+      tuftMesh.position.set(0, 0.95, 0.35);
+      headGroup.add(tuftMesh);
+
+      // 4. Giant Fluffy Neck Ruff (Multiple overlapping cloud spheres)
+      const ruffGroup = new THREE.Group();
+      ruffGroup.name = "RuffGroup";
+      ruffGroup.position.set(0, 1.45, 0.65);
+
+      const ruffCount = 10;
+      for (let i = 0; i < ruffCount; i++) {
+        const angle = (i / ruffCount) * Math.PI * 2;
+        const puffRadius = 0.42 + (i % 2) * 0.12;
+        const puffGeo = new THREE.SphereGeometry(puffRadius, 16, 14);
+        const puffMesh = new THREE.Mesh(puffGeo, ruffMat);
+        puffMesh.position.set(
+          Math.cos(angle) * 0.85,
+          (Math.sin(angle * 2) * 0.12) - 0.1,
+          Math.sin(angle) * 0.85
+        );
+        puffMesh.castShadow = true;
+        ruffGroup.add(puffMesh);
+      }
+      bodyGroup.add(ruffGroup);
+
+      // 5. Giant Bushy Tail (Articulated chain)
+      const tailGroup = new THREE.Group();
+      tailGroup.name = "TailGroup";
+      tailGroup.position.set(0, 1.25, -1.05);
+
+      const tailBase = new THREE.Group();
+      tailBase.name = "TailBase";
+      const tailBaseGeo = new THREE.SphereGeometry(0.65, 20, 16);
+      tailBaseGeo.scale(1, 1.2, 1.4);
+      tailBaseGeo.translate(0, 0.3, -0.4);
+      const tailBaseMesh = new THREE.Mesh(tailBaseGeo, baseMat);
+      tailBaseMesh.castShadow = true;
+      tailBase.add(tailBaseMesh);
+
+      // Tail Tip (Zig-zag fluffy cream tip)
+      const tailTipGeo = new THREE.ConeGeometry(0.6, 1.4, 20);
+      tailTipGeo.rotateX(-Math.PI / 3.2);
+      tailTipGeo.translate(0, 1.1, -1.0);
+      const tailTipMesh = new THREE.Mesh(tailTipGeo, ruffMat);
+      tailTipMesh.name = "TailTipMesh";
+      tailTipMesh.castShadow = true;
+      tailBase.add(tailTipMesh);
+
+      tailGroup.add(tailBase);
+      bodyGroup.add(tailGroup);
+
+      // 6. Cute Little Paws (4 legs)
+      const paws = [];
+      const pawPositions = [
+        { name: "PawFL", x: -0.55, y: 0.65, z: 0.75 },
+        { name: "PawFR", x: 0.55, y: 0.65, z: 0.75 },
+        { name: "PawBL", x: -0.58, y: 0.65, z: -0.65 },
+        { name: "PawBR", x: 0.58, y: 0.65, z: -0.65 }
+      ];
+
+      pawPositions.forEach(p => {
+        const legGroup = new THREE.Group();
+        legGroup.name = p.name;
+        legGroup.position.set(p.x, p.y, p.z);
+
+        const legGeo = new THREE.CylinderGeometry(0.24, 0.28, 0.75, 16);
+        legGeo.translate(0, -0.15, 0);
+        const legMesh = new THREE.Mesh(legGeo, baseMat);
+        legMesh.castShadow = true;
+        legGroup.add(legMesh);
+
+        // Rounded foot / paw
+        const footGeo = new THREE.SphereGeometry(0.3, 16, 14);
+        footGeo.scale(1.0, 0.6, 1.3);
+        footGeo.translate(0, -0.45, 0.1);
+        const footMesh = new THREE.Mesh(footGeo, baseMat);
+        footMesh.castShadow = true;
+        legGroup.add(footMesh);
+
+        bodyGroup.add(legGroup);
+        paws.push(legGroup);
+      });
+
+      // 7. Special Evolution Attachment Anchors
+      // Vaporeon Aquatic Fin & Fluke
+      const vaporeonFinGroup = new THREE.Group();
+      vaporeonFinGroup.name = "VaporeonFins";
+      vaporeonFinGroup.visible = false;
+      const finGeo = new THREE.ConeGeometry(0.55, 1.6, 16);
+      finGeo.scale(0.12, 1, 1);
+      const finMat = new THREE.MeshToonMaterial({ color: 0xFFF275 });
+      const topFin = new THREE.Mesh(finGeo, finMat);
+      topFin.position.set(0, 0.85, 0.1);
+      topFin.rotation.x = -0.3;
+      vaporeonFinGroup.add(topFin);
+
+      // Webbed side ear fins
+      const webFinGeo = new THREE.ConeGeometry(0.5, 1.2, 12);
+      webFinGeo.scale(0.1, 1, 0.8);
+      const webFinL = new THREE.Mesh(webFinGeo, finMat);
+      webFinL.position.set(-0.95, 0.4, 0.1);
+      webFinL.rotation.set(0.1, 0, 1.1);
+      const webFinR = new THREE.Mesh(webFinGeo, finMat);
+      webFinR.position.set(0.95, 0.4, 0.1);
+      webFinR.rotation.set(0.1, 0, -1.1);
+      vaporeonFinGroup.add(webFinL);
+      vaporeonFinGroup.add(webFinR);
+      headGroup.add(vaporeonFinGroup);
+
+      // Jolteon Spiky Needle Quills Group
+      const jolteonSpikesGroup = new THREE.Group();
+      jolteonSpikesGroup.name = "JolteonSpikes";
+      jolteonSpikesGroup.visible = false;
+      const spikeMat = new THREE.MeshToonMaterial({ color: 0xFFFFFF });
+      const spikeGeo = new THREE.ConeGeometry(0.25, 1.1, 10);
+      for (let s = 0; s < 8; s++) {
+        const sp = new THREE.Mesh(spikeGeo, spikeMat);
+        const ang = (s / 8) * Math.PI * 2;
+        sp.position.set(Math.cos(ang) * 0.95, 0.1, Math.sin(ang) * 0.95);
+        sp.rotation.set(Math.sin(ang) * 0.8, 0, -Math.cos(ang) * 0.8);
+        jolteonSpikesGroup.add(sp);
+      }
+      ruffGroup.add(jolteonSpikesGroup);
+
+      // Espeon Psychic Gem
+      const gemGeo = new THREE.SphereGeometry(0.2, 16, 16);
+      const gemMat = new THREE.MeshStandardMaterial({
+        color: 0xFF1144,
+        emissive: 0xCC0022,
+        roughness: 0.1,
+        metalness: 0.9
+      });
+      const psychicGem = new THREE.Mesh(gemGeo, gemMat);
+      psychicGem.name = "PsychicGem";
+      psychicGem.position.set(0, 0.45, 0.94);
+      psychicGem.visible = false;
+      headGroup.add(psychicGem);
+
+      // Glaceon Dangling Diamond Ice Bangs & Headpiece
+      const glaceonIceGroup = new THREE.Group();
+      glaceonIceGroup.name = "GlaceonIce";
+      glaceonIceGroup.visible = false;
+      const iceMat = new THREE.MeshStandardMaterial({
+        color: 0x337799,
+        roughness: 0.2,
+        metalness: 0.3
+      });
+      const bangGeo = new THREE.ConeGeometry(0.22, 1.4, 6);
+      bangGeo.scale(1, 1, 0.4);
+      const bangL = new THREE.Mesh(bangGeo, iceMat);
+      bangL.position.set(-0.6, -0.4, 0.85);
+      bangL.rotation.z = 0.15;
+      const bangR = new THREE.Mesh(bangGeo, iceMat);
+      bangR.position.set(0.6, -0.4, 0.85);
+      bangR.rotation.z = -0.15;
+      glaceonIceGroup.add(bangL);
+      glaceonIceGroup.add(bangR);
+      headGroup.add(glaceonIceGroup);
+
+      // Leafeon Sprout Leaves
+      const leafeonSproutGroup = new THREE.Group();
+      leafeonSproutGroup.name = "LeafeonSprouts";
+      leafeonSproutGroup.visible = false;
+      const leafMat = new THREE.MeshToonMaterial({ color: 0x76B852 });
+      const leafGeo = new THREE.ConeGeometry(0.26, 1.2, 8);
+      leafGeo.scale(1, 1, 0.2);
+      const leafForehead = new THREE.Mesh(leafGeo, leafMat);
+      leafForehead.position.set(0, 0.85, 0.5);
+      leafForehead.rotation.set(-0.3, 0, 0.2);
+      leafeonSproutGroup.add(leafForehead);
+      headGroup.add(leafeonSproutGroup);
+
+      // Sylveon Butterfly Bows & Ribbons
+      const sylveonBowGroup = new THREE.Group();
+      sylveonBowGroup.name = "SylveonBows";
+      sylveonBowGroup.visible = false;
+      const bowMat = new THREE.MeshToonMaterial({ color: 0xFFAEC9 });
+      const ribbonCyanMat = new THREE.MeshToonMaterial({ color: 0x70CBF5 });
+
+      // Left Ear Bow
+      const bowLeft = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 12), bowMat);
+      bowLeft.scale.set(1.6, 0.8, 0.5);
+      bowLeft.position.set(-0.75, 0.6, 0.4);
+      sylveonBowGroup.add(bowLeft);
+
+      // Flowing Ribbons
+      const ribbonGeo = new THREE.CylinderGeometry(0.08, 0.14, 2.2, 8);
+      const ribbon1 = new THREE.Mesh(ribbonGeo, ribbonCyanMat);
+      ribbon1.position.set(-0.9, -0.4, 0.3);
+      ribbon1.rotation.set(0.2, 0, 0.35);
+      sylveonBowGroup.add(ribbon1);
+
+      const ribbon2 = new THREE.Mesh(ribbonGeo, bowMat);
+      ribbon2.position.set(-0.6, -0.5, 0.2);
+      ribbon2.rotation.set(0.1, 0, -0.2);
+      sylveonBowGroup.add(ribbon2);
+      headGroup.add(sylveonBowGroup);
+
+      // Umbreon Glowing Ring (Forehead)
+      const ringGeo = new THREE.TorusGeometry(0.24, 0.05, 12, 24);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0xFCE029 });
+      const umbreonRing = new THREE.Mesh(ringGeo, ringMat);
+      umbreonRing.name = "UmbreonRing";
+      umbreonRing.position.set(0, 0.48, 0.94);
+      umbreonRing.visible = false;
+      headGroup.add(umbreonRing);
+
+      bodyGroup.add(headGroup);
+      rig.add(bodyGroup);
+
+      // Store references for animation updates
+      rig.userData = {
+        bodyGroup,
+        headGroup,
+        ruffGroup,
+        tailGroup,
+        tailBase,
+        tailTipMesh,
+        earGroupLeft,
+        earGroupRight,
+        paws,
+        tuftMesh,
+        vaporeonFinGroup,
+        jolteonSpikesGroup,
+        psychicGem,
+        glaceonIceGroup,
+        leafeonSproutGroup,
+        sylveonBowGroup,
+        umbreonRing,
+        baseMat,
+        ruffMat,
+        innerEarMat,
+        earMeshLeft,
+        earMeshRight,
+        initialY: 0
+      };
+
+      return rig;
+    }
+
+    /* ==========================================================================
+       5. MORPH TO ANY EEVEELUTION (THE MAGIC ANIME TRANSFORMATION)
+       ========================================================================== */
+    function applyFormVisuals(formKey, shiny = false) {
+      if (!eeveeRig) return;
+      const data = EEVEELUTION_DATA[formKey];
+      if (!data) return;
+
+      const u = eeveeRig.userData;
+      const mainColor = shiny ? data.colorShiny : data.colorNormal;
+      const ruffColor = shiny ? data.colorShinyRuff : data.colorRuff;
+
+      u.baseMat.color.setHex(mainColor);
+      u.ruffMat.color.setHex(ruffColor);
+
+      // Reset attachment visibility
+      u.vaporeonFinGroup.visible = (formKey === 'vaporeon');
+      u.jolteonSpikesGroup.visible = (formKey === 'jolteon');
+      u.psychicGem.visible = (formKey === 'espeon');
+      u.glaceonIceGroup.visible = (formKey === 'glaceon');
+      u.leafeonSproutGroup.visible = (formKey === 'leafeon');
+      u.sylveonBowGroup.visible = (formKey === 'sylveon');
+      u.umbreonRing.visible = (formKey === 'umbreon');
+
+      if (formKey === 'umbreon') {
+        const ringCol = shiny ? data.colorShinyRing : data.colorRing;
+        u.umbreonRing.material.color.setHex(ringCol);
+      }
+
+      // Dynamic Form Geometry Modifications:
+      if (formKey === 'flareon') {
+        // Flareon gets 200% mega floof ruff & tail
+        u.ruffGroup.scale.set(1.5, 1.4, 1.5);
+        u.tailGroup.scale.set(1.45, 1.45, 1.45);
+        u.earGroupLeft.scale.set(1.0, 1.0, 1.0);
+      } else if (formKey === 'jolteon') {
+        // Jolteon gets spiky slender look & lightning tail
+        u.ruffGroup.scale.set(1.2, 0.95, 1.2);
+        u.tailGroup.scale.set(0.6, 0.6, 0.6);
+        u.earGroupLeft.scale.set(0.85, 1.3, 0.85);
+      } else if (formKey === 'espeon') {
+        // Sleek velvet lilac body, slender ears, split tail
+        u.ruffGroup.scale.set(0.65, 0.45, 0.65);
+        u.tailGroup.scale.set(0.55, 1.3, 0.55);
+        u.earGroupLeft.scale.set(0.95, 1.25, 0.9);
+      } else if (formKey === 'vaporeon') {
+        // Aquatic ruff fin & mermaid tail
+        u.ruffGroup.scale.set(1.15, 1.15, 1.15);
+        u.tailGroup.scale.set(1.3, 0.85, 1.6);
+        u.earGroupLeft.scale.set(0.85, 0.9, 0.85);
+      } else if (formKey === 'leafeon') {
+        // Leafy ears and tail
+        u.ruffGroup.scale.set(0.9, 0.8, 0.9);
+        u.tailGroup.scale.set(0.8, 1.4, 0.8);
+        u.earGroupLeft.scale.set(1.1, 1.2, 0.7);
+      } else if (formKey === 'glaceon') {
+        // Diamond ice bangs and sleek tail
+        u.ruffGroup.scale.set(0.85, 0.85, 0.85);
+        u.tailGroup.scale.set(0.75, 1.2, 0.75);
+        u.earGroupLeft.scale.set(0.9, 1.15, 0.8);
+      } else if (formKey === 'sylveon') {
+        // Fairy ribbons and petite tail
+        u.ruffGroup.scale.set(0.95, 0.9, 0.95);
+        u.tailGroup.scale.set(0.7, 0.8, 0.7);
+        u.earGroupLeft.scale.set(1.0, 1.2, 0.9);
+      } else {
+        // Standard Eevee dimensions
+        u.ruffGroup.scale.set(1, 1, 1);
+        u.tailGroup.scale.set(1, 1, 1);
+        u.earGroupLeft.scale.set(1, 1, 1);
+      }
+
+      // Ear geometry mirroring
+      u.earGroupRight.scale.copy(u.earGroupLeft.scale);
+    }
+
+    function selectEeveelution(formKey) {
+      if (formKey === currentForm && !isShiny) return;
+      currentForm = formKey;
+
+      // Highlight active UI Pill
+      document.querySelectorAll('.evo-pill').forEach(pill => {
+        pill.classList.toggle('active', pill.getAttribute('data-form') === formKey);
+      });
+
+      // Update Fact Sheet
+      updateFactSheet(formKey);
+
+      // Trigger Anime Evolution Fanfare
+      audio.playSparkle();
+      triggerConfetti();
+      triggerEvolutionVortex();
+
+      // Show silly speech bubble
+      showSpeech(getRandomSillyCry(formKey));
+
+      // Apply 3D Morph
+      applyFormVisuals(formKey, isShiny);
+
+      // Squash and stretch jump animation
+      if (eeveeRig) {
+        eeveeRig.position.y = 1.6;
+        petSquishFactor = 1.35;
+      }
+    }
+
+    function toggleShinyMode() {
+      isShiny = !isShiny;
+      const btn = document.getElementById('btn-shiny');
+      btn.classList.toggle('is-shiny', isShiny);
+      btn.innerHTML = isShiny ? "<span>🌟</span> SHINY ACTIVE!" : "<span>✨</span> Shiny Mode";
+
+      audio.playSparkle();
+      triggerConfetti();
+      applyFormVisuals(currentForm, isShiny);
+      showSpeech(isShiny ? "✨ SHINY SPARKLE TIME! ✨" : "Back to classic fur coat!");
+    }
+
+    function updateFactSheet(formKey) {
+      const data = EEVEELUTION_DATA[formKey];
+      if (!data) return;
+
+      document.getElementById('fact-form-name').textContent = `🌟 ${data.name}`;
+      const randomFact = data.facts[Math.floor(Math.random() * data.facts.length)];
+      document.getElementById('fact-text-main').textContent = randomFact;
+      const randomQuote = data.sillyQuotes[Math.floor(Math.random() * data.sillyQuotes.length)];
+      document.getElementById('fact-silly-quote').textContent = randomQuote;
+    }
+
+    function shuffleRandomFact() {
+      updateFactSheet(currentForm);
+      audio.playBoing();
+    }
+
+    function getRandomSillyCry(formKey) {
+      const cries = {
+        eevee: ["Eev-vee! *happy ear wiggles*", "Bork! *tail wags at lightspeed*", "Poyo! *demands snacks*"],
+        vaporeon: ["*Splish splash!* I'm 90% water now!", "Glub glub! *tail fin splashes*", "Look Ma, I'm swimming in air!"],
+        jolteon: ["BZZZT! *10,000 volt static shock!*", "SPEED IS MY PASSION! *zoomies*", "Zap zap! Hair standing straight up!"],
+        flareon: ["*Toasty warm puff of smoke*", "Internal temp: 1650°F! Ready to bake pizza!", "Maximum floof achieved!"],
+        espeon: ["*Predicts your next thought with psychic laser*", "Purr... the weather will be sunny!", "My ears feel the air currents!"],
+        umbreon: ["*Glowing neon moon ninja mode*", "I am the night! ...and I want chin scratches.", "Bioluminescent glow active!"],
+        leafeon: ["*Photosynthesizing in the sun*", "Crisp fresh forest smell!", "Salad ears, activate!"],
+        glaceon: ["Brrr! *leaves diamond snow trail*", "Ice ice baby! *figure skate spin*", "Chilly paws, warm heart!"],
+        sylveon: ["*Dragon slayer ribbon hugs!*", "Feel the love and sparkles! 💖", "Cute pastel ribbons of pure steel!"]
+      };
+      const list = cries[formKey] || cries.eevee;
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
+    function showSpeech(text) {
+      const el = document.getElementById('speech-bubble');
+      el.textContent = text;
+      el.classList.add('visible');
+      clearTimeout(el.hideTimeout);
+      el.hideTimeout = setTimeout(() => {
+        el.classList.remove('visible');
+      }, 3500);
+    }
+
+    function triggerConfetti() {
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 45,
+          spread: 70,
+          origin: { y: 0.65 }
+        });
+      }
+    }
+
+    /* ==========================================================================
+       6. INTERACTIVE TOYS & GAGS (PETTING, TREATS, DISCO, ROOMBA PANIC)
+       ========================================================================== */
+    function feedTreat(type) {
+      audio.playBoing();
+      updateFaceExpression('hearts');
+      showSpeech(type === 'berry' ? "OM NOM NOM! 🍓 So juicy!" : "MEGA CHONK PUFF! 🧁 Fluff overload!");
+
+      // Slingshot a 3D Treat Projectile into the scene!
+      const treatMesh = new THREE.Mesh(
+        new THREE.DodecahedronGeometry(0.4),
+        new THREE.MeshToonMaterial({ color: type === 'berry' ? 0xFF2D55 : 0xFFB300 })
+      );
+
+      // Spawn directly in front of camera lens regardless of orbit orientation
+      const camDir = new THREE.Vector3();
+      camera.getWorldDirection(camDir);
+      const spawnPos = camera.position.clone().addScaledVector(camDir, 1.2);
+      spawnPos.y += (Math.random() - 0.5) * 0.3;
+      treatMesh.position.copy(spawnPos);
+
+      // Target Eevee's mouth in world space
+      const mouthPos = new THREE.Vector3();
+      if (eeveeRig) {
+        eeveeRig.userData.headGroup.getWorldPosition(mouthPos);
+        mouthPos.y -= 0.1;
+      } else {
+        mouthPos.set(0, 1.8, 1);
+      }
+
+      // Parabolic flight arc
+      const flightTime = 0.85; // seconds
+      const throwDelta = mouthPos.clone().sub(spawnPos);
+      const gravityAcc = 9.8 * 0.55;
+      const vx = throwDelta.x / flightTime;
+      const vz = throwDelta.z / flightTime;
+      const vy = (throwDelta.y + 0.5 * gravityAcc * flightTime * flightTime) / flightTime;
+
+      treatMesh.userData = {
+        velocity: new THREE.Vector3(vx, vy, vz),
+        type: type
+      };
+      scene.add(treatMesh);
+      treats.push(treatMesh);
+
+      // Eevee stretches forward eagerly
+      treatHungerAngle = 0.45;
+    }
+
+    function triggerDiscoDance() {
+      isDiscoMode = !isDiscoMode;
+      audio.init();
+      if (isDiscoMode) {
+        audio.startBGM();
+        document.getElementById('btn-music').textContent = '⏸️';
+        showSpeech("🪩 DISCO FEVER ACTIVATED! Groove time!");
+        updateFaceExpression('happy');
+        createDiscoBall();
+      } else {
+        showSpeech("Phew! Dance break over!");
+        removeDiscoBall();
+      }
+    }
+
+    function createDiscoBall() {
+      if (discoBall) return;
+      discoBall = new THREE.Group();
+      discoBall.position.set(0, 6.2, 0);
+
+      // Mirror sphere
+      const sphereMat = new THREE.MeshStandardMaterial({
+        color: 0xDDDDDD,
+        metalness: 0.95,
+        roughness: 0.1
+      });
+      const sphere = new THREE.Mesh(new THREE.SphereGeometry(1.2, 24, 24), sphereMat);
+      discoBall.add(sphere);
+
+      // Colorful Spotlight
+      const spotLight = new THREE.PointLight(0xFF00AA, 2.5, 20);
+      spotLight.position.set(0, 0, 0);
+      discoBall.add(spotLight);
+      discoBall.userData.spotLight = spotLight;
+
+      scene.add(discoBall);
+    }
+
+    function removeDiscoBall() {
+      if (discoBall) {
+        scene.remove(discoBall);
+        discoBall = null;
+      }
+    }
+
+    function triggerLoafMode() {
+      isLoafMode = !isLoafMode;
+      audio.playPurr();
+      if (isLoafMode) {
+        updateFaceExpression('happy');
+        showSpeech("🍞 Pure Bread Loaf Mode! Paws fully tucked!");
+        petSquishFactor = 0.7;
+      } else {
+        showSpeech("Un-loafing! Paws are back!");
+        petSquishFactor = 1.0;
+      }
+    }
+
+    function summonVacuum() {
+      if (isVacuumPanicking) return;
+      isVacuumPanicking = true;
+      audio.playPanicVacuum();
+      updateFaceExpression('shocked');
+      showSpeech("🚨 AHHHH! THE EVIL NOISY DISC OF DOOM! RUN!");
+
+      // Spawn 3D Vacuum Roomba
+      if (!vacuumBot) {
+        vacuumBot = new THREE.Group();
+        const bodyGeo = new THREE.CylinderGeometry(1.1, 1.1, 0.4, 28);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.3 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 0.2;
+        vacuumBot.add(body);
+
+        // Glowing red evil eyes
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xFF0000 });
+        const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), eyeMat);
+        eyeL.position.set(-0.4, 0.3, 0.9);
+        const eyeR = eyeL.clone();
+        eyeR.position.x = 0.4;
+        vacuumBot.add(eyeL);
+        vacuumBot.add(eyeR);
+
+        vacuumBot.position.set(-8, 0, -4);
+        scene.add(vacuumBot);
+      }
+
+      vacuumBot.visible = true;
+      vacuumBot.position.set(-8, 0, -3);
+
+      setTimeout(() => {
+        isVacuumPanicking = false;
+        updateFaceExpression('happy');
+        if (vacuumBot) vacuumBot.visible = false;
+        showSpeech("Phew... the loud dust monster has vanished!");
+      }, 5500);
+    }
+
+    function snapSillyPhoto() {
+      audio.playBoing();
+      // Flash screen effect
+      const flash = document.createElement('div');
+      flash.style.position = 'fixed';
+      flash.style.top = '0';
+      flash.style.left = '0';
+      flash.style.width = '100vw';
+      flash.style.height = '100vh';
+      flash.style.backgroundColor = '#FFFFFF';
+      flash.style.zIndex = '999';
+      flash.style.transition = 'opacity 0.4s ease';
+      document.body.appendChild(flash);
+
+      setTimeout(() => {
+        flash.style.opacity = '0';
+        setTimeout(() => flash.remove(), 400);
+      }, 50);
+
+      // Render high-res screenshot
+      renderer.render(scene, camera);
+      const dataURL = renderer.domElement.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `eevee_goofy_moment_${currentForm}.png`;
+      link.href = dataURL;
+      link.click();
+
+      showSpeech("📸 Cheeeese! Goofy snapshot saved!");
+    }
+
+    /* ==========================================================================
+       7. ACTIVE ARCADE MINI-GAME: "THE GREAT STONE DASH & MUNCH"
+       ========================================================================== */
+    let arcadeRunning = false;
+    let arcadeScore = 0;
+    let arcadeLives = 3;
+    let arcadeSpeed = 0.28;
+    let arcadeTrackZ = 0;
+    let arcadePlayerX = 0;
+    let arcadeTargetX = 0;
+    let arcadeJumpY = 0;
+    let arcadeJumpVel = 0;
+    let arcadeItems = []; // Falling stones & hazards
+    let arcadeTrackTiles = [];
+    let powerupTimer = 0;
+    let activePowerup = null;
+
+    function switchGameMode(mode) {
+      if (mode === activeGameMode) return;
+      activeGameMode = mode;
+
+      document.getElementById('btn-mode-sandbox').classList.toggle('active', mode === 'sandbox');
+      document.getElementById('btn-mode-arcade').classList.toggle('active', mode === 'arcade');
+      document.getElementById('current-mode-label').textContent = mode === 'sandbox' ? "PLAYGROUND" : "ARCADE DASH";
+
+      const sidePanel = document.getElementById('side-toy-panel');
+      const arcadeHud = document.getElementById('arcade-hud');
+      const arcadeHelp = document.getElementById('arcade-help');
+
+      if (mode === 'arcade') {
+        sidePanel.style.display = 'none';
+        arcadeHud.style.display = 'flex';
+        arcadeHelp.style.display = 'block';
+        startArcadeGame();
+      } else {
+        sidePanel.style.display = 'flex';
+        arcadeHud.style.display = 'none';
+        arcadeHelp.style.display = 'none';
+        stopArcadeGame();
+      }
+    }
+
+    let arcadeHighScore = parseInt(localStorage.getItem('eevee_dash_highscore') || '0', 10);
+
+    function startArcadeGame() {
+      arcadeRunning = true;
+      arcadeScore = 0;
+      arcadeLives = 3;
+      arcadePlayerX = 0;
+      arcadeTargetX = 0;
+      arcadeJumpY = 0;
+      arcadeJumpVel = 0;
+      arcadeSpeed = 0.32;
+      powerupTimer = 0;
+      activePowerup = null;
+
+      // Clear any leftover arcade items to prevent spawn traps
+      arcadeItems.forEach(item => scene.remove(item.mesh));
+      arcadeItems = [];
+
+      document.getElementById('gameover-modal').style.display = 'none';
+      updateArcadeHUD();
+
+      audio.startBGM();
+      document.getElementById('btn-music').textContent = '⏸️';
+
+      // Reset controls & set camera to 3rd person chase camera
+      controls.enabled = false;
+      camera.position.set(0, 3.8, 6.5);
+      camera.lookAt(0, 1.5, -2);
+
+      // Build Endless Bouncy Track
+      if (sandboxFloor) sandboxFloor.visible = false;
+      setupArcadeTrack();
+    }
+
+    function stopArcadeGame() {
+      arcadeRunning = false;
+      controls.enabled = true;
+      camera.position.set(0, 2.5, 6);
+      controls.target.set(0, 1.2, 0);
+
+      // Restore sandbox platform floor
+      if (sandboxFloor) sandboxFloor.visible = true;
+
+      // Clear arcade items
+      arcadeItems.forEach(item => scene.remove(item.mesh));
+      arcadeItems = [];
+      arcadeTrackTiles.forEach(tile => scene.remove(tile));
+      arcadeTrackTiles = [];
+
+      if (eeveeRig) {
+        eeveeRig.position.set(0, 0, 0);
+        eeveeRig.rotation.set(0, 0, 0);
+      }
+    }
+
+    function setupArcadeTrack() {
+      // Clear existing
+      arcadeTrackTiles.forEach(tile => scene.remove(tile));
+      arcadeTrackTiles = [];
+
+      // Create 24 repeating floating rainbow tiles
+      for (let i = 0; i < 24; i++) {
+        const tileGeo = new THREE.BoxGeometry(6.5, 0.4, 4);
+        const hue = (i * 15) % 360;
+        const tileMat = new THREE.MeshToonMaterial({
+          color: new THREE.Color(`hsl(${hue}, 85%, 72%)`)
+        });
+        const tile = new THREE.Mesh(tileGeo, tileMat);
+        tile.position.set(0, -0.2, -i * 4);
+        tile.receiveShadow = true;
+        scene.add(tile);
+        arcadeTrackTiles.push(tile);
+      }
+    }
+
+    function restartArcadeGame() {
+      document.getElementById('gameover-modal').style.display = 'none';
+      startArcadeGame();
+    }
+
+    function updateArcadeHUD() {
+      document.getElementById('arcade-score').textContent = String(Math.floor(arcadeScore)).padStart(4, '0');
+      const bestEl = document.getElementById('arcade-best-score');
+      if (bestEl) {
+        bestEl.textContent = String(Math.max(arcadeHighScore, Math.floor(arcadeScore))).padStart(4, '0');
+      }
+
+      let heartsStr = "";
+      for (let i = 0; i < 3; i++) {
+        heartsStr += (i < arcadeLives) ? "❤️" : "🖤";
+      }
+      document.getElementById('arcade-lives').textContent = heartsStr;
+
+      const powerupBadge = document.getElementById('arcade-powerup-badge');
+      if (powerupTimer > 0 && activePowerup) {
+        powerupBadge.style.display = 'flex';
+        document.getElementById('powerup-desc').textContent = `${activePowerup.toUpperCase()} POWER ACTIVE! (${Math.ceil(powerupTimer)}s)`;
+      } else {
+        powerupBadge.style.display = 'none';
+      }
+    }
+
+    function spawnArcadeItem() {
+      if (!arcadeRunning) return;
+
+      const isHazard = Math.random() < 0.45;
+      const laneX = (Math.floor(Math.random() * 3) - 1) * 1.8; // -1.8, 0, 1.8
+
+      if (isHazard) {
+        // Banana Peel or Voltorb Hazard
+        const isBanana = Math.random() < 0.5;
+        let hazardMesh;
+        if (isBanana) {
+          hazardMesh = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.1, 0.35, 0.6, 8),
+            new THREE.MeshToonMaterial({ color: 0xFFDE00 })
+          );
+          hazardMesh.rotation.x = Math.PI / 2.5;
+        } else {
+          // Rolling Voltorb ball
+          hazardMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(0.4, 16, 16),
+            new THREE.MeshToonMaterial({ color: 0xFF2222 })
+          );
+        }
+        hazardMesh.position.set(laneX, 0.35, -45);
+        scene.add(hazardMesh);
+
+        arcadeItems.push({
+          mesh: hazardMesh,
+          isHazard: true,
+          type: isBanana ? 'banana' : 'voltorb'
+        });
+
+      } else {
+        // Evolution Stone!
+        const stones = ['water', 'thunder', 'fire', 'leaf', 'ice', 'sun', 'moon', 'ribbon'];
+        const stoneType = stones[Math.floor(Math.random() * stones.length)];
+        const stoneColors = {
+          water: 0x33A6FF,
+          thunder: 0xFFDD00,
+          fire: 0xFF5522,
+          leaf: 0x55DD33,
+          ice: 0x88EEFF,
+          sun: 0xFFAA11,
+          moon: 0x333344,
+          ribbon: 0xFFAACC
+        };
+
+        const stoneMesh = new THREE.Mesh(
+          new THREE.OctahedronGeometry(0.48),
+          new THREE.MeshStandardMaterial({
+            color: stoneColors[stoneType],
+            emissive: stoneColors[stoneType],
+            emissiveIntensity: 0.4,
+            roughness: 0.2
+          })
+        );
+        stoneMesh.position.set(laneX, 0.8, -45);
+        scene.add(stoneMesh);
+
+        arcadeItems.push({
+          mesh: stoneMesh,
+          isHazard: false,
+          type: stoneType
+        });
+      }
+    }
+
+    function updateArcadePhysics(dt) {
+      if (!arcadeRunning) return;
+
+      // Delta-time scale normalized to 60fps
+      const frameScale = Math.min(2.5, dt * 60);
+      const moveStep = arcadeSpeed * frameScale;
+
+      // Score grows with distance traveled
+      arcadeScore += dt * 45;
+      arcadeSpeed = Math.min(0.65, 0.32 + (arcadeScore / 8000));
+
+      // Steer Eevee smoothly (framerate-independent damping)
+      arcadePlayerX += (arcadeTargetX - arcadePlayerX) * (1 - Math.exp(-12 * dt));
+
+      // Jump Physics
+      if (arcadeJumpY > 0 || arcadeJumpVel > 0) {
+        arcadeJumpY += arcadeJumpVel * frameScale;
+        arcadeJumpVel -= 0.038 * frameScale;
+        if (arcadeJumpY <= 0) {
+          arcadeJumpY = 0;
+          arcadeJumpVel = 0;
+        }
+      }
+
+      if (eeveeRig) {
+        eeveeRig.position.x = arcadePlayerX;
+        eeveeRig.position.y = arcadeJumpY;
+        eeveeRig.position.z = 0;
+        // Bouncy running wobble
+        eeveeRig.rotation.z = Math.sin(clock.getElapsedTime() * 14) * 0.08;
+        eeveeRig.rotation.y = (arcadeTargetX - arcadePlayerX) * -0.3;
+      }
+
+      // Camera follows player smoothly
+      camera.position.x = arcadePlayerX * 0.4;
+
+      // Move Track Tiles (Infinite conveyor)
+      arcadeTrackTiles.forEach(tile => {
+        tile.position.z += moveStep;
+        if (tile.position.z > 8) {
+          tile.position.z -= 24 * 4;
+        }
+      });
+
+      // Spawn items periodically
+      if (Math.random() < 0.045) {
+        spawnArcadeItem();
+      }
+
+      // Update Active Power-up Timer
+      if (powerupTimer > 0) {
+        powerupTimer -= dt;
+        if (powerupTimer <= 0) {
+          activePowerup = null;
+        }
+      }
+
+      // Move Items & Collision Detection
+      for (let i = arcadeItems.length - 1; i >= 0; i--) {
+        const item = arcadeItems[i];
+        item.mesh.position.z += moveStep;
+        item.mesh.rotation.y += 0.05 * frameScale;
+
+        // Collision Check with Eevee
+        const dx = Math.abs(item.mesh.position.x - arcadePlayerX);
+        const dz = Math.abs(item.mesh.position.z - 0);
+        const dy = Math.abs(item.mesh.position.y - (arcadeJumpY + 0.5));
+
+        if (dx < 0.9 && dz < 0.9 && dy < 0.9) {
+          // HIT!
+          if (item.isHazard) {
+            if (activePowerup) {
+              // Shield / Invincibility destroys hazard
+              audio.playZap();
+              triggerConfetti();
+              arcadeScore += 150;
+            } else {
+              // Player takes damage!
+              audio.playSplat();
+              arcadeLives--;
+              petSquishFactor = 0.6;
+              showSpeech("OUCH! Banana slip! 🍌");
+
+              if (arcadeLives <= 0) {
+                // Game Over!
+                endArcadeGame();
+                return;
+              }
+            }
+          } else {
+            // Collected Evolution Stone!
+            audio.playSparkle();
+            triggerConfetti();
+            arcadeScore += 250;
+
+            // Trigger mid-dash evolution!
+            const formMap = {
+              water: 'vaporeon',
+              thunder: 'jolteon',
+              fire: 'flareon',
+              leaf: 'leafeon',
+              ice: 'glaceon',
+              sun: 'espeon',
+              moon: 'umbreon',
+              ribbon: 'sylveon'
+            };
+            const newForm = formMap[item.type] || 'jolteon';
+            selectEeveelution(newForm);
+
+            // Grant Super Powerup
+            activePowerup = newForm;
+            powerupTimer = 6.0;
+          }
+
+          // Remove item mesh
+          scene.remove(item.mesh);
+          arcadeItems.splice(i, 1);
+          continue;
+        }
+
+        // Clean up items that passed behind player
+        if (item.mesh.position.z > 6) {
+          scene.remove(item.mesh);
+          arcadeItems.splice(i, 1);
+        }
+      }
+
+      updateArcadeHUD();
+    }
+
+    function endArcadeGame() {
+      arcadeRunning = false;
+      audio.playSplat();
+      const finalScore = Math.floor(arcadeScore);
+      let isNewRecord = false;
+      if (finalScore > arcadeHighScore) {
+        arcadeHighScore = finalScore;
+        localStorage.setItem('eevee_dash_highscore', arcadeHighScore.toString());
+        isNewRecord = true;
+      }
+      document.getElementById('gameover-final-score').innerHTML = `Final Score: ${finalScore}` + 
+        (isNewRecord ? `<br><span style="color:#d86900; font-size:1.15rem; font-weight:800;">🎉 NEW PERSONAL BEST! 🎉</span>` : `<br><span style="font-size:0.85rem; color:#888;">Personal Best: ${arcadeHighScore}</span>`);
+      document.getElementById('gameover-modal').style.display = 'flex';
+      triggerConfetti();
+    }
+
+    /* Keyboard & Touch Steering for Arcade */
+    window.addEventListener('keydown', (e) => {
+      if (!arcadeRunning) return;
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        arcadeTargetX = Math.max(-2.2, arcadeTargetX - 1.8);
+      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        arcadeTargetX = Math.min(2.2, arcadeTargetX + 1.8);
+      } else if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+        if (arcadeJumpY === 0) {
+          arcadeJumpVel = 0.45;
+          audio.playBoing();
+        }
+      }
+    });
+
+    // Touch / Mouse dragging for Arcade Mode with swipe-jump
+    let isMouseDown = false;
+    let pointerStartY = 0;
+    window.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('.interactive')) return;
+      isMouseDown = true;
+      pointerStartY = e.clientY;
+      if (arcadeRunning) {
+        const normX = (e.clientX / window.innerWidth) * 2 - 1;
+        arcadeTargetX = normX * 2.5;
+      }
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (arcadeRunning && isMouseDown) {
+        if (e.target.closest('.interactive')) return;
+        const normX = (e.clientX / window.innerWidth) * 2 - 1;
+        arcadeTargetX = normX * 2.5;
+
+        // Swipe up gesture detection to jump
+        if (pointerStartY - e.clientY > 45 && arcadeJumpY === 0) {
+          arcadeJumpVel = 0.45;
+          audio.playBoing();
+          pointerStartY = e.clientY;
+        }
+      }
+    });
+
+    window.addEventListener('pointerup', () => { isMouseDown = false; });
+
+    /* ==========================================================================
+       8. INITIALIZE THREE.JS SCENE, LIGHTS & ENVIRONMENT
+       ========================================================================== */
+    function initThreeScene() {
+      const canvas = document.getElementById('webgl-canvas');
+      scene = new THREE.Scene();
+      scene.background = null; // transparent to allow rich CSS background gradient
+
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+      camera.position.set(0, 2.5, 6);
+
+      renderer = new THREE.WebGLRenderer({
+        canvas: canvas,
+        antialias: true,
+        alpha: true,
+        preserveDrawingBuffer: true
+      });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+      // Orbit Controls (Sandbox Mode)
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.06;
+      controls.maxPolarAngle = Math.PI / 2 + 0.05;
+      controls.minDistance = 3.5;
+      controls.maxDistance = 12;
+      controls.target.set(0, 1.2, 0);
+
+      // Soft Warm Studio Lighting
+      const ambientLight = new THREE.AmbientLight(0xFFF6EE, 0.95);
+      scene.add(ambientLight);
+
+      const mainSun = new THREE.DirectionalLight(0xFFFAF0, 1.1);
+      mainSun.position.set(5, 10, 6);
+      mainSun.castShadow = true;
+      mainSun.shadow.mapSize.width = 2048;
+      mainSun.shadow.mapSize.height = 2048;
+      mainSun.shadow.camera.near = 0.5;
+      mainSun.shadow.camera.far = 25;
+      mainSun.shadow.bias = -0.0005;
+      scene.add(mainSun);
+
+      const softRimLight = new THREE.DirectionalLight(0xAED8F2, 0.6);
+      softRimLight.position.set(-6, 4, -4);
+      scene.add(softRimLight);
+
+      // Floor Platform (Floating pastel disc in Sandbox mode)
+      const floorGeo = new THREE.CylinderGeometry(5.2, 5.5, 0.4, 48);
+      const floorMat = new THREE.MeshToonMaterial({
+        color: 0xFFF9F2,
+        roughness: 0.9
+      });
+      const floorMesh = new THREE.Mesh(floorGeo, floorMat);
+      floorMesh.position.y = -0.2;
+      floorMesh.receiveShadow = true;
+      scene.add(floorMesh);
+      environmentDecor.push(floorMesh);
+      sandboxFloor = floorMesh;
+
+      // Decorative Floating Clouds
+      for (let i = 0; i < 6; i++) {
+        const cloud = createStylizedCloud();
+        cloud.position.set(
+          (Math.random() - 0.5) * 16,
+          3.5 + Math.random() * 3,
+          -4 - Math.random() * 8
+        );
+        scene.add(cloud);
+        environmentDecor.push(cloud);
+      }
+
+      // Initialize Face Texture & Character Rig
+      initFaceTexture();
+      eeveeRig = createEeveeRig();
+      scene.add(eeveeRig);
+
+      // Click/Petting Raycaster on Eevee
+      setupPettingInteraction(canvas);
+
+      // Handle Window Resize
+      window.addEventListener('resize', onWindowResize);
+    }
+
+    function createStylizedCloud() {
+      const cloudGroup = new THREE.Group();
+      const cloudMat = new THREE.MeshBasicMaterial({
+        color: 0xFFFFFF,
+        transparent: true,
+        opacity: 0.75
+      });
+      const puffCount = 4 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < puffCount; i++) {
+        const r = 0.5 + Math.random() * 0.6;
+        const puff = new THREE.Mesh(new THREE.SphereGeometry(r, 14, 14), cloudMat);
+        puff.position.set((i - puffCount / 2) * 0.7, Math.random() * 0.3, Math.random() * 0.3);
+        cloudGroup.add(puff);
+      }
+      return cloudGroup;
+    }
+
+    function setupPettingInteraction(canvas) {
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+      let isPetting = false;
+      let lastPurrTime = 0;
+
+      canvas.addEventListener('pointerdown', (e) => {
+        if (activeGameMode !== 'sandbox') return;
+
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+
+        const intersects = raycaster.intersectObjects(eeveeRig.children, true);
+        if (intersects.length > 0) {
+          // Petting triggered!
+          isPetting = true;
+          controls.enabled = false; // Pause OrbitControls so user can rub/tickle without camera rotating
+          audio.playPurr();
+          petSquishFactor = 0.78; // Squish down
+          updateFaceExpression('hearts');
+
+          const petResponses = [
+            "*Happy purrs and tail wags!* 🥰",
+            "Right behind the ears! Perfect spot!",
+            "Eevee loved that! Friendship +10! ✨",
+            "*Soft puppy snuffles*",
+            "Tickle tickle tickle! *ear wiggles*",
+            "*Borb squish mode activated!*"
+          ];
+          showSpeech(petResponses[Math.floor(Math.random() * petResponses.length)]);
+          triggerConfetti();
+        }
+      });
+
+      window.addEventListener('pointermove', (e) => {
+        if (isPetting && activeGameMode === 'sandbox') {
+          // Dynamic stroking jiggle
+          petSquishFactor = 0.78 + Math.sin(Date.now() * 0.03) * 0.12;
+          const now = Date.now();
+          if (now - lastPurrTime > 380) {
+            audio.playPurr();
+            lastPurrTime = now;
+          }
+        }
+      });
+
+      window.addEventListener('pointerup', () => {
+        if (isPetting) {
+          isPetting = false;
+          controls.enabled = true; // Restore camera orbit controls
+        }
+      });
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    /* ==========================================================================
+       9. MASTER ANIMATION & RENDER LOOP
+       ========================================================================== */
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const dt = clock.getDelta();
+      const elapsed = clock.getElapsedTime();
+
+      // Target squish factor (bread loaf mode vs normal)
+      const targetSquish = isLoafMode ? 0.65 : 1.0;
+      petSquishFactor += (targetSquish - petSquishFactor) * 0.12;
+
+      // 1. Sandbox Mode Procedural Animations
+      if (activeGameMode === 'sandbox' && eeveeRig) {
+        const u = eeveeRig.userData;
+
+        // Dynamic Idle Breathing & Squish
+        const breath = Math.sin(elapsed * 2.8) * 0.035;
+        u.bodyGroup.scale.set(
+          1.0 / petSquishFactor + breath * 0.5,
+          petSquishFactor + breath,
+          1.0 / petSquishFactor + breath * 0.5
+        );
+
+        // Loaf mode tucks paws inwards and upwards underneath fluff
+        u.paws.forEach((paw) => {
+          const baseY = 0.65;
+          paw.position.y = baseY + (isLoafMode ? 0.28 : 0);
+          const pScale = isLoafMode ? 0.35 : 1.0;
+          paw.scale.set(pScale, pScale, pScale);
+        });
+
+        // Floppy Ear Spring Physics (Gentle bob + twitch)
+        const earBob = Math.sin(elapsed * 3.5) * 0.08;
+        u.earGroupLeft.rotation.z = 0.55 + earBob + (Math.sin(elapsed * 7) > 0.95 ? 0.2 : 0);
+        u.earGroupRight.rotation.z = -0.55 - earBob - (Math.sin(elapsed * 7.5) > 0.95 ? 0.2 : 0);
+
+        // Sinusoidal Tail Wag
+        const wagSpeed = isDiscoMode ? 16 : (currentEmotion === 'hearts' ? 12 : 5);
+        u.tailGroup.rotation.y = Math.sin(elapsed * wagSpeed) * 0.45;
+        u.tailGroup.rotation.x = 0.1 + Math.sin(elapsed * (wagSpeed * 0.5)) * 0.15;
+
+        // Form-specific dynamic shader & attachment animations
+        if (currentForm === 'espeon' && u.psychicGem && u.psychicGem.visible) {
+          const pulse = (Math.sin(elapsed * 6) + 1) * 0.5;
+          u.psychicGem.material.emissiveIntensity = 0.6 + pulse * 1.5;
+        } else if (currentForm === 'umbreon' && u.umbreonRing && u.umbreonRing.visible) {
+          const ringPulse = (Math.sin(elapsed * 4) + 1) * 0.5;
+          u.umbreonRing.material.color.setHSL(isShiny ? 0.52 : 0.14, 1.0, 0.4 + ringPulse * 0.45);
+        } else if (currentForm === 'jolteon' && u.jolteonSpikesGroup && u.jolteonSpikesGroup.visible) {
+          u.jolteonSpikesGroup.rotation.y = (Math.random() - 0.5) * 0.08;
+        } else if (currentForm === 'sylveon' && u.sylveonBowGroup && u.sylveonBowGroup.visible) {
+          u.sylveonBowGroup.children.forEach((c, idx) => {
+            if (idx > 0) c.rotation.z = Math.sin(elapsed * 4 + idx) * 0.22;
+          });
+        }
+
+        // Head tracking / Treat hunger look
+        if (treatHungerAngle > 0) {
+          treatHungerAngle -= dt * 0.5;
+          u.headGroup.rotation.x = -treatHungerAngle;
+        } else {
+          u.headGroup.rotation.x = Math.sin(elapsed * 1.5) * 0.05;
+        }
+
+        // Disco Dancing Routine
+        if (isDiscoMode) {
+          eeveeRig.position.y = Math.abs(Math.sin(elapsed * 8)) * 0.45;
+          eeveeRig.rotation.y = Math.sin(elapsed * 4) * 0.5;
+          if (discoBall) {
+            discoBall.rotation.y += 0.02;
+            const spot = discoBall.userData.spotLight;
+            if (spot) {
+              spot.color.setHSL((elapsed * 0.3) % 1, 0.9, 0.6);
+            }
+          }
+        } else if (isLoafMode) {
+          eeveeRig.position.y = -0.32;
+        } else if (!isVacuumPanicking) {
+          eeveeRig.rotation.y = Math.sin(elapsed * 0.6) * 0.15;
+          eeveeRig.position.y = 0;
+        }
+
+        // Roomba Panic Run
+        if (isVacuumPanicking && vacuumBot) {
+          vacuumBot.position.x = Math.sin(elapsed * 3) * 3.5;
+          vacuumBot.position.z = Math.cos(elapsed * 2) * 2;
+          vacuumBot.rotation.y = elapsed * 4;
+
+          // Eevee scampers in terror
+          eeveeRig.position.x = -vacuumBot.position.x * 0.7;
+          eeveeRig.position.z = -vacuumBot.position.z * 0.7;
+          eeveeRig.rotation.y = elapsed * 12;
+          eeveeRig.position.y = Math.abs(Math.sin(elapsed * 18)) * 0.5;
+        }
+
+        // Update Flying Treat Projectiles
+        const mouthWorldPos = new THREE.Vector3();
+        u.headGroup.getWorldPosition(mouthWorldPos);
+        mouthWorldPos.y -= 0.15;
+        mouthWorldPos.z += 0.8;
+
+        for (let i = treats.length - 1; i >= 0; i--) {
+          const t = treats[i];
+          t.position.addScaledVector(t.userData.velocity, dt);
+          t.userData.velocity.y -= 9.8 * dt * 0.55; // Gravity
+
+          // Check if treat reached Eevee's mouth
+          if (t.position.distanceTo(mouthWorldPos) < 1.35) {
+            audio.playChomp();
+            triggerConfetti();
+            updateFaceExpression('hearts');
+
+            if (t.userData.type === 'puff') {
+              // Gigantamax floof mode: inflate Eevee!
+              petSquishFactor = 1.9;
+              showSpeech("CHONK! Maximum gigantamax floof unlocked! 🧁");
+            } else {
+              petSquishFactor = 1.35;
+              showSpeech("Munch munch munch! Delicious berry! 🍓");
+            }
+
+            scene.remove(t);
+            treats.splice(i, 1);
+          } else if (t.position.y < -1) {
+            scene.remove(t);
+            treats.splice(i, 1);
+          }
+        }
+
+        controls.update();
+      }
+
+      // 2. Arcade Mode Runner Loop
+      if (activeGameMode === 'arcade') {
+        updateArcadePhysics(dt);
+      }
+
+      // Render Scene
+      renderer.render(scene, camera);
+    }
+
+    /* ==========================================================================
+       10. AUDIO UI CONTROLS & INITIALIZATION
+       ========================================================================== */
+    function initAudioUserGesture() {
+      audio.init();
+      audio.startBGM();
+      document.getElementById('audio-prompt').style.display = 'none';
+      document.getElementById('btn-music').textContent = '⏸️';
+    }
+
+    function toggleMusic() {
+      audio.init();
+      const btn = document.getElementById('btn-music');
+      if (audio.isMusicPlaying) {
+        audio.stopBGM();
+        btn.textContent = '🎵';
+      } else {
+        audio.startBGM();
+        btn.textContent = '⏸️';
+      }
+      document.getElementById('audio-prompt').style.display = 'none';
+    }
+
+    function toggleSFX() {
+      audio.isSFXEnabled = !audio.isSFXEnabled;
+      const btn = document.getElementById('btn-sound');
+      btn.textContent = audio.isSFXEnabled ? '🔊' : '🔇';
+    }
+
+    function triggerEvolutionVortex() {
+      // Fast camera wobble & flash effect
+      if (eeveeRig) {
+        eeveeRig.rotation.y += Math.PI * 2;
+      }
+    }
+
+    // Start Everything when DOM is Ready
+    window.addEventListener('DOMContentLoaded', () => {
+      initThreeScene();
+      animate();
+      updateFactSheet('eevee');
+    });
+  </script>
+</body>
+</html>
