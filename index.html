@@ -1964,7 +1964,12 @@
 
       // Squash and stretch jump animation
       if (eeveeRig) {
-        eeveeRig.position.y = 1.6;
+        if (activeGameMode === 'arcade') {
+          arcadeJumpY = 1.2;
+          arcadeJumpVel = 0.35;
+        } else {
+          eeveeRig.position.y = 1.6;
+        }
         petSquishFactor = 1.35;
       }
     }
@@ -2290,6 +2295,21 @@
       arcadeItems.forEach(item => scene.remove(item.mesh));
       arcadeItems = [];
 
+      // Cleanly reset any active sandbox goofy states
+      if (isLoafMode) {
+        isLoafMode = false;
+        petSquishFactor = 1.0;
+      }
+      if (isDiscoMode) {
+        isDiscoMode = false;
+        removeDiscoBall();
+      }
+      if (isVacuumPanicking) {
+        isVacuumPanicking = false;
+        if (vacuumBot) vacuumBot.visible = false;
+      }
+      updateFaceExpression('happy');
+
       document.getElementById('gameover-modal').style.display = 'none';
       updateArcadeHUD();
 
@@ -2320,6 +2340,12 @@
       arcadeItems = [];
       arcadeTrackTiles.forEach(tile => scene.remove(tile));
       arcadeTrackTiles = [];
+
+      if (isLoafMode) {
+        isLoafMode = false;
+        petSquishFactor = 1.0;
+      }
+      updateFaceExpression('happy');
 
       if (eeveeRig) {
         eeveeRig.position.set(0, 0, 0);
@@ -2601,13 +2627,26 @@
 
     /* Keyboard Shortcuts (Arcade steering & Sandbox hotkeys) */
     window.addEventListener('keydown', (e) => {
+      // If Game Over modal is shown, Space or Enter restarts the arcade run
+      const gameoverModal = document.getElementById('gameover-modal');
+      if (gameoverModal && gameoverModal.style.display === 'flex') {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          restartArcadeGame();
+          return;
+        }
+      }
+
       // In Arcade Mode:
       if (arcadeRunning) {
         if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+          e.preventDefault();
           arcadeTargetX = Math.max(-2.2, arcadeTargetX - 1.8);
         } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+          e.preventDefault();
           arcadeTargetX = Math.min(2.2, arcadeTargetX + 1.8);
         } else if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+          e.preventDefault();
           if (arcadeJumpY === 0) {
             arcadeJumpVel = 0.45;
             audio.playBoing();
@@ -2631,6 +2670,7 @@
       } else if (e.key === 'p' || e.key === 'P') {
         triggerDerpMode();
       } else if (e.key === ' ') {
+        e.preventDefault();
         // Space in sandbox mode: Eevee hops with a joyful boing!
         audio.playBoing();
         petSquishFactor = 1.35;
