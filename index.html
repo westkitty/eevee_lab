@@ -679,6 +679,13 @@
           <div style="font-size: 0.68rem; color:#888;">Tuck in the paws!</div>
         </div>
       </div>
+      <div class="toy-card" onclick="triggerDerpMode()">
+        <span class="toy-icon">🤪</span>
+        <div>
+          <div>Goofy Derp Face</div>
+          <div style="font-size: 0.68rem; color:#888;">Blep! (:P) mode</div>
+        </div>
+      </div>
       <div class="toy-card toy-danger" onclick="summonVacuum()">
         <span class="toy-icon">🚨</span>
         <div>
@@ -967,6 +974,8 @@
 
       startBGM() {
         this.init();
+        const banner = document.getElementById('audio-prompt');
+        if (banner) banner.style.display = 'none';
         if (this.isMusicPlaying) return;
         this.isMusicPlaying = true;
         this.step = 0;
@@ -1258,6 +1267,28 @@
         gain.connect(this.ctx.destination);
         osc.start(now);
         osc.stop(now + 0.36);
+      }
+
+      playDerp() {
+        if (!this.isSFXEnabled) return;
+        this.init();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        // Comical slide whistle wobble
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(340, now);
+        osc.frequency.linearRampToValueAtTime(620, now + 0.12);
+        osc.frequency.linearRampToValueAtTime(210, now + 0.32);
+
+        gain.gain.setValueAtTime(0.26, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.35);
       }
     }
 
@@ -1909,7 +1940,7 @@
     }
 
     function selectEeveelution(formKey) {
-      if (formKey === currentForm && !isShiny) return;
+      if (formKey === currentForm) return;
       currentForm = formKey;
 
       // Highlight active UI Pill
@@ -1920,10 +1951,10 @@
       // Update Fact Sheet
       updateFactSheet(formKey);
 
-      // Trigger Anime Evolution Fanfare
+      // Trigger Anime Evolution Fanfare & 3D Pirouette
       audio.playSparkle();
       triggerConfetti();
-      triggerEvolutionVortex();
+      triggerEvolutionVortex(formKey);
 
       // Show silly speech bubble
       showSpeech(getRandomSillyCry(formKey));
@@ -2102,11 +2133,31 @@
       if (isLoafMode) {
         updateFaceExpression('happy');
         showSpeech("🍞 Pure Bread Loaf Mode! Paws fully tucked!");
-        petSquishFactor = 0.7;
+        petSquishFactor = 0.65;
       } else {
         showSpeech("Un-loafing! Paws are back!");
         petSquishFactor = 1.0;
       }
+    }
+
+    function triggerDerpMode() {
+      audio.playDerp();
+      updateFaceExpression('derp');
+      petSquishFactor = 1.25;
+      const derpQuotes = [
+        "DERP! Blep! No thoughts, head empty! 🤪",
+        "Full silly mode engaged! *bork*",
+        ":P :P :P *tongue wiggles*",
+        "100% goofy energy right here!"
+      ];
+      showSpeech(derpQuotes[Math.floor(Math.random() * derpQuotes.length)]);
+      triggerConfetti();
+
+      setTimeout(() => {
+        if (!isVacuumPanicking && activeGameMode === 'sandbox') {
+          updateFaceExpression('happy');
+        }
+      }, 3500);
     }
 
     function summonVacuum() {
@@ -2468,10 +2519,22 @@
               arcadeScore += 150;
             } else {
               // Player takes damage!
+              audio.playDerp();
               audio.playSplat();
               arcadeLives--;
-              petSquishFactor = 0.6;
-              showSpeech("OUCH! Banana slip! 🍌");
+              petSquishFactor = 0.55;
+              updateFaceExpression('derp');
+              showSpeech("WHOA! 360 BANANA SLIP! 🍌");
+
+              if (eeveeRig) {
+                eeveeRig.rotation.y += Math.PI * 2;
+              }
+
+              setTimeout(() => {
+                if (arcadeRunning && arcadeLives > 0) {
+                  updateFaceExpression('happy');
+                }
+              }, 1400);
 
               if (arcadeLives <= 0) {
                 // Game Over!
@@ -2811,8 +2874,12 @@
           u.headGroup.rotation.x = Math.sin(elapsed * 1.5) * 0.05;
         }
 
-        // Disco Dancing Routine
-        if (isDiscoMode) {
+        // Check if performing 3D Anime Evolution Pirouette
+        if (evolutionSpinTimer > 0) {
+          evolutionSpinTimer -= dt;
+          eeveeRig.rotation.y += dt * 18; // smooth 3D pirouette spin!
+          eeveeRig.position.y = Math.sin((0.65 - evolutionSpinTimer) / 0.65 * Math.PI) * 0.85;
+        } else if (isDiscoMode) {
           eeveeRig.position.y = Math.abs(Math.sin(elapsed * 8)) * 0.45;
           eeveeRig.rotation.y = Math.sin(elapsed * 4) * 0.5;
           if (discoBall) {
@@ -2876,6 +2943,28 @@
           }
         }
 
+        // Update Evolution Burst Particles
+        for (let i = evolutionParticles.length - 1; i >= 0; i--) {
+          const group = evolutionParticles[i];
+          let anyAlive = false;
+          group.children.forEach(p => {
+            p.userData.life -= dt * 1.8;
+            if (p.userData.life > 0) {
+              anyAlive = true;
+              p.position.x += p.userData.vx * dt;
+              p.position.y += p.userData.vy * dt;
+              p.position.z += p.userData.vz * dt;
+              p.scale.setScalar(p.userData.life);
+            } else {
+              p.visible = false;
+            }
+          });
+          if (!anyAlive) {
+            scene.remove(group);
+            evolutionParticles.splice(i, 1);
+          }
+        }
+
         controls.update();
       }
 
@@ -2917,11 +3006,36 @@
       btn.textContent = audio.isSFXEnabled ? '🔊' : '🔇';
     }
 
-    function triggerEvolutionVortex() {
-      // Fast camera wobble & flash effect
-      if (eeveeRig) {
-        eeveeRig.rotation.y += Math.PI * 2;
+    let evolutionSpinTimer = 0;
+    let evolutionParticles = [];
+
+    function spawnEvolutionParticles(formKey) {
+      const data = EEVEELUTION_DATA[formKey];
+      if (!data) return;
+      const col = isShiny ? (data.colorShiny || 0xFFFFFF) : (data.colorNormal || 0xFFDD44);
+      const particleGroup = new THREE.Group();
+      const geo = new THREE.SphereGeometry(0.12, 8, 8);
+      const mat = new THREE.MeshBasicMaterial({ color: col });
+
+      for (let i = 0; i < 22; i++) {
+        const p = new THREE.Mesh(geo, mat);
+        const angle = (i / 22) * Math.PI * 2;
+        p.position.set(Math.cos(angle) * 0.4, 1.3, Math.sin(angle) * 0.4);
+        p.userData = {
+          vx: Math.cos(angle) * 4.2 + (Math.random() - 0.5),
+          vy: 1.5 + Math.random() * 2.5,
+          vz: Math.sin(angle) * 4.2 + (Math.random() - 0.5),
+          life: 1.0
+        };
+        particleGroup.add(p);
       }
+      scene.add(particleGroup);
+      evolutionParticles.push(particleGroup);
+    }
+
+    function triggerEvolutionVortex(formKey) {
+      evolutionSpinTimer = 0.65;
+      spawnEvolutionParticles(formKey || currentForm);
     }
 
     // Start Everything when DOM is Ready
