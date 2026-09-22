@@ -198,6 +198,7 @@
       transition: transform 0.2s ease;
     }
     .wheel-btn:hover { transform: scale(1.08); background: #fff3e0; }
+    .wheel-btn:disabled { opacity: 0.38; cursor: default; transform: none; filter: grayscale(0.5); }
     .wheel-btn.danger { border-color: #ff8585; background: rgba(255,235,235,0.9); }
 
     /* ---- Lore / journal drawer (UX-05) ---- */
@@ -1480,7 +1481,7 @@
       const def = abilitySystem ? abilitySystem.getDefinition(currentForm) : null;
       btn.disabled = !def;
       btn.title = def ? def.label : 'Eevee has no fixed elemental ability';
-      btn.textContent = def ? '⚡' : '◇';
+      btn.textContent = def ? (def.icon || '✦') : '◇';
     }
 
     function useSpeciesAbility() {
