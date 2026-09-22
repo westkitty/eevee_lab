@@ -8,6 +8,55 @@
   'use strict';
   const THREE = global.THREE;
   const FX = global.RenderEffects;
+  const PORTAL_PREVIEW_CACHE = new Map();
+
+  function portalPreviewMaterial(color, label) {
+    if (!global.document || !THREE.CanvasTexture) {
+      return new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.58, side: THREE.DoubleSide });
+    }
+    const key = String(label) + ':' + String(color);
+    if (!PORTAL_PREVIEW_CACHE.has(key)) {
+      const canvas = global.document.createElement('canvas');
+      canvas.width = 128; canvas.height = 160;
+      const ctx = canvas.getContext('2d');
+      const hex = '#' + Number(color || 0xffffff).toString(16).padStart(6, '0');
+      const grad = ctx.createLinearGradient(0, 0, 0, 160);
+      grad.addColorStop(0, '#111826');
+      grad.addColorStop(0.56, hex);
+      grad.addColorStop(1, '#080b12');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 128, 160);
+      ctx.globalAlpha = 0.28;
+      ctx.fillStyle = '#ffffff';
+      for (let i = 0; i < 7; i++) {
+        const x = 14 + ((i * 31 + label.length * 7) % 104);
+        const y = 18 + ((i * 43 + label.length * 11) % 92);
+        ctx.beginPath(); ctx.arc(x, y, 3 + (i % 3), 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 0.85;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(18, 124);
+      ctx.quadraticCurveTo(64, 92 + (label.length % 18), 110, 124);
+      ctx.stroke();
+      ctx.globalAlpha = 0.95;
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(String(label || '').replace(/_/g, ' ').toUpperCase().slice(0, 16), 64, 148);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+      PORTAL_PREVIEW_CACHE.set(key, texture);
+    }
+    return new THREE.MeshBasicMaterial({
+      map: PORTAL_PREVIEW_CACHE.get(key),
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.72,
+      side: THREE.DoubleSide
+    });
+  }
 
   /* --------------------------------------------------------------------
      RoomKit: reusable prop / doorway / material builders (ASSET-11..14)
@@ -43,7 +92,7 @@
       [left, right, top].forEach(m => { m.castShadow = true; m.receiveShadow = true; group.add(m); });
 
       const glowGeo = new THREE.PlaneGeometry(1.4, 1.9);
-      const glowMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
+      const glowMat = portalPreviewMaterial(color, label);
       const glow = new THREE.Mesh(glowGeo, glowMat);
       glow.position.set(0, 1.05, 0.02);
       group.add(glow);
@@ -52,6 +101,33 @@
       light.position.set(0, 1.4, 0.4);
       group.add(light);
       group.userData.glow = glow;
+      group.userData.portalLabel = label;
+      return group;
+    },
+    placeableCushion(color, id) {
+      const mesh = this.cushion(color, 0.46);
+      mesh.name = 'placeable_' + id;
+      mesh.userData.placeableId = id;
+      mesh.userData.directManipulation = {
+        kind: 'furniture',
+        floorY: 0.12,
+        restitution: 0,
+        friction: 1,
+        persistentPlacement: true
+      };
+      return mesh;
+    },
+    narrativeMeter(color) {
+      const group = new THREE.Group();
+      group.name = 'narrative_meter';
+      group.userData.pips = [];
+      for (let i = 0; i < 4; i++) {
+        const mat = FX.Materials.emissiveAccent(color, 0.08);
+        const pip = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 8), mat);
+        pip.position.x = (i - 1.5) * 0.16;
+        group.add(pip);
+        group.userData.pips.push(pip);
+      }
       return group;
     },
     evolutionStone(color, emissive) {
@@ -209,20 +285,42 @@
       const roomOrder = ['eevee', 'vaporeon', 'jolteon', 'flareon', 'espeon', 'umbreon', 'leafeon', 'glaceon', 'sylveon'];
       const colors = { eevee: 0xe0b47a, vaporeon: 0x49b2e8, jolteon: 0xfee033, flareon: 0xf76835, espeon: 0xc68fed, umbreon: 0x8899ff, leafeon: 0x76b852, glaceon: 0x8be5f5, sylveon: 0xffaec9 };
       const interactables = [];
+      const entryPoints = {};
+      const continuationPoints = {};
+      const historyStones = {};
       roomOrder.forEach((rid, i) => {
         const a = (i / roomOrder.length) * Math.PI * 2 - Math.PI / 2;
         const door = RoomKit.doorway(colors[rid], rid);
         door.position.set(Math.cos(a) * 5.3, 0, Math.sin(a) * 5.3);
         door.rotation.y = -a + Math.PI / 2;
         group.add(door);
-        interactables.push(makeInteractable(door, 'door_' + rid, 'door', ctx.roomLabel(rid), () => ctx.goTo(rid)));
+        door.userData.portalTarget = rid;
+        interactables.push(makeInteractable(door, 'door_' + rid, 'door', ctx.roomLabel(rid), () => ctx.requestDoor(rid, door)));
+        const inward = door.position.clone().multiplyScalar(0.78); inward.y = 0;
+        const continueInward = door.position.clone().multiplyScalar(0.58); continueInward.y = 0;
+        entryPoints[rid] = inward;
+        continuationPoints[rid] = continueInward;
 
-        // Suspended evolution stone above each door, hinting at its habitat.
+        // Suspended evolution stone above each door becomes a physical history token.
         const stone = RoomKit.evolutionStone(colors[rid]);
         stone.position.set(Math.cos(a) * 5.3, 2.6, Math.sin(a) * 5.3);
         stone.userData.floatSeed = i;
+        stone.material.emissiveIntensity = 0.12;
+        historyStones[rid] = stone;
         group.add(stone);
       });
+
+      const archiveRing = new THREE.Mesh(
+        new THREE.TorusGeometry(0.78, 0.045, 8, 32),
+        FX.Materials.emissiveAccent(0xbdd7ff, 0.08)
+      );
+      archiveRing.rotation.x = Math.PI / 2;
+      archiveRing.position.set(0, 0.08, -2.6);
+      group.add(archiveRing);
+
+      const studyCushion = RoomKit.placeableCushion(0x9fb6d0, 'conservatory_study_cushion');
+      studyCushion.position.set(1.8, 0.12, 1.2);
+      group.add(studyCushion);
 
       const dust = FX.VFX.dust({ area: [10, 5, 10], baseY: 0.4 });
       group.add(dust.points);
@@ -238,10 +336,39 @@
         group, lights, particleFields: disposables.particleFields, interactables,
         memento: null,
         spawnPoint: new THREE.Vector3(0, 0, 1.4),
+        entryPoints,
+        continuationPoints,
+        topology: {
+          interestPoints: [
+            new THREE.Vector3(0, 0, -2.0),
+            new THREE.Vector3(-2.3, 0, 1.8),
+            new THREE.Vector3(2.3, 0, 1.8)
+          ],
+          sleepSpots: [new THREE.Vector3(1.8, 0, 1.2)],
+          socialSpots: [new THREE.Vector3(0, 0, 0.4)],
+          propSockets: [new THREE.Vector3(1.8, 0.12, 1.2), new THREE.Vector3(-1.8, 0.12, 1.2)]
+        },
         cameraBounds: { minDistance: 1.0, maxDistance: 9, minPolar: 0.2, maxPolar: Math.PI / 2 + 0.05 },
         atmosphereVariants: [{ id: 'day', label: 'Daylight' }],
+        applyHistory(summary) {
+          const visited = new Set(summary && summary.visitedRooms ? summary.visitedRooms : []);
+          Object.keys(historyStones).forEach(rid => {
+            const stone = historyStones[rid];
+            const on = visited.has(rid);
+            stone.material.emissiveIntensity = on ? 1.05 : 0.12;
+            stone.scale.setScalar(on ? 1.16 : 0.9);
+          });
+          const mementos = summary ? summary.mementoCount || 0 : 0;
+          archiveRing.material.emissiveIntensity = Math.min(1.3, 0.08 + mementos * 0.12);
+          archiveRing.scale.setScalar(1 + Math.min(0.35, (summary ? summary.advancedCount || 0 : 0) * 0.035));
+        },
+        applyNarrativeStage(state) {
+          const i = state ? state.stageIndex || 0 : 0;
+          archiveRing.material.emissiveIntensity = Math.max(archiveRing.material.emissiveIntensity, 0.08 + i * 0.28);
+        },
         update(dt, elapsed) {
           group.traverse(c => { if (c.userData && c.userData.floatSeed != null) c.position.y = 2.6 + Math.sin(elapsed + c.userData.floatSeed) * 0.08; });
+          archiveRing.rotation.z += dt * 0.08;
           dust.update(dt, elapsed);
         }
       };
@@ -280,6 +407,8 @@
       });
 
       const toys = [RoomKit.toyBall(0xff6b6b), RoomKit.toyPlush(0x8ecae6), RoomKit.brush()];
+      toys[0].userData.placeableId = 'eevee_ball';
+      toys[1].userData.placeableId = 'eevee_plush';
       toys.forEach((t, i) => { t.position.set(-2.1 + i * 0.5, 0.15, 0.8); group.add(t); });
 
       const returnDoor = commonReturnDoor(0xffffff);
@@ -338,6 +467,7 @@
       }
 
       const toy = RoomKit.toyBall(0xffd166);
+      toy.userData.placeableId = 'vaporeon_ball';
       toy.position.set(1.0, 0.25, 0.6);
       group.add(toy);
       const interactables = [
@@ -385,6 +515,7 @@
       group.add(RoomKit.floor(4.2, 0x2b2f38));
 
       const bulbs = [];
+      let narrativePower = 0;
       const interactables = [];
       for (let i = 0; i < 6; i++) {
         const a = (i / 6) * Math.PI * 2;
@@ -402,7 +533,7 @@
       interactables.push(makeInteractable(relayCore, 'jolteon_relay', 'prop', 'the relay core', () => {
         bulbs.forEach(b => { b.material.emissiveIntensity = 1.6; });
         ctx.onRoomProp('jolteon', { charged: true });
-        setTimeout(() => bulbs.forEach(b => { b.material.emissiveIntensity = 0.0; }), 1400);
+        setTimeout(() => bulbs.forEach(b => { b.material.emissiveIntensity = narrativePower; }), 1400);
       }));
 
       const memento = RoomKit.memento('tag', 0xfff066);
@@ -428,14 +559,19 @@
           { id: 'clear', label: 'Clear' },
           { id: 'blackout', label: 'Blackout + Sparks', hemiIntensity: 0.15, keyIntensity: 0.2 }
         ],
+        applyNarrativeStage(state) {
+          narrativePower = [0, 0.22, 0.72, 1.18][state ? state.stageIndex || 0 : 0];
+          bulbs.forEach(b => { b.material.emissiveIntensity = narrativePower; });
+          relayCore.scale.setScalar(1 + (state ? state.stageIndex || 0 : 0) * 0.08);
+        },
         update(dt, elapsed) {
           sparks.update(dt, elapsed);
           flicker += dt;
           if (flicker > 2 + Math.random() * 3) {
             flicker = 0;
             const b = bulbs[Math.floor(Math.random() * bulbs.length)];
-            b.material.emissiveIntensity = 0.9;
-            setTimeout(() => { b.material.emissiveIntensity = 0.0; }, 120);
+            b.material.emissiveIntensity = Math.max(0.9, narrativePower);
+            setTimeout(() => { b.material.emissiveIntensity = narrativePower; }, 120);
           }
         }
       };
@@ -649,6 +785,7 @@
       group.add(RoomKit.floor(4.2, 0x3c4a2c));
 
       const planters = [];
+      let narrativeGrowth = 0;
       const interactables = [];
       for (let i = 0; i < 5; i++) {
         const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.18, 0.3, 10), FX.Materials.wood(0x6b4a2a));
@@ -692,8 +829,11 @@
           { id: 'goldenmorning', label: 'Golden Morning', keyColor: 0xffd27a, hemiIntensity: 0.65 },
           { id: 'rain', label: 'Soft Rain', hemiIntensity: 0.35 }
         ],
+        applyNarrativeStage(state) {
+          narrativeGrowth = (state ? state.stageIndex || 0 : 0) * 0.13;
+        },
         update(dt, elapsed) {
-          planters.forEach((p, i) => { p.scale.y = 0.6 + Math.sin(elapsed * 0.5 + i) * 0.03 + (p.userData.grown ? 0.4 : 0); });
+          planters.forEach((p, i) => { p.scale.y = 0.6 + narrativeGrowth + Math.sin(elapsed * 0.5 + i) * 0.03 + (p.userData.grown ? 0.18 : 0); });
           pollen.update(dt, elapsed);
         }
       };
@@ -828,6 +968,76 @@
       };
     }
   };
+
+
+  function decorateHabitatRoom(roomId, def, built, ctx) {
+    if (!built || roomId === 'conservatory') return built;
+    const floor = built.group.children.find(obj => obj && obj.isMesh && obj.userData && obj.userData.walkable);
+    const radius = floor && floor.userData ? Number(floor.userData.walkRadius) || 3.3 : 3.3;
+
+    let doorEntry = built.interactables.find(i => i.id === 'door_conservatory');
+    let door = doorEntry ? doorEntry.object3D : null;
+    if (!door) {
+      door = commonReturnDoor(0xffffff);
+      door.position.set(0, 0, -(radius + 0.2));
+      built.group.add(door);
+      doorEntry = makeInteractable(door, 'door_conservatory', 'door', 'Conservatory', () => ctx.requestDoor('conservatory', door));
+      built.interactables.push(doorEntry);
+    } else {
+      const handler = () => ctx.requestDoor('conservatory', door);
+      doorEntry.onActivate = handler;
+      if (door.userData && door.userData.interactable) door.userData.interactable.onActivate = handler;
+    }
+    door.userData.portalTarget = 'conservatory';
+
+    built.entryPoints = built.entryPoints || {};
+    built.continuationPoints = built.continuationPoints || {};
+    built.entryPoints.conservatory = new THREE.Vector3(0, 0, -(radius - 0.75));
+    built.continuationPoints.conservatory = built.spawnPoint.clone();
+
+    const idx = Math.max(0, global.ROOM_ORDER ? global.ROOM_ORDER.indexOf(roomId) : 1);
+    const angle = 0.65 + idx * 0.47;
+    const furniture = RoomKit.placeableCushion(def.doorColor || 0xb9b0a0, roomId + '_cushion');
+    furniture.position.set(Math.cos(angle) * Math.min(2.1, radius * 0.55), 0.12, Math.sin(angle) * Math.min(2.1, radius * 0.55));
+    built.group.add(furniture);
+
+    const meter = RoomKit.narrativeMeter(def.doorColor || 0xffffff);
+    meter.position.set(-0.72, 1.62, -(radius + 0.17));
+    built.group.add(meter);
+    const priorApply = typeof built.applyNarrativeStage === 'function' ? built.applyNarrativeStage.bind(built) : null;
+    built.applyNarrativeStage = state => {
+      const stageIndex = state ? state.stageIndex || 0 : 0;
+      meter.userData.pips.forEach((pip, i) => {
+        pip.material.emissiveIntensity = i <= stageIndex ? 0.95 : 0.08;
+        pip.scale.setScalar(i === stageIndex ? 1.22 : 1);
+      });
+      built.group.userData.narrativeStage = state ? state.stageId : null;
+      if (priorApply) priorApply(state);
+    };
+
+    built.topology = Object.assign({
+      interestPoints: [
+        new THREE.Vector3(Math.cos(angle) * radius * 0.48, 0, Math.sin(angle) * radius * 0.48),
+        new THREE.Vector3(Math.cos(angle + 2.2) * radius * 0.56, 0, Math.sin(angle + 2.2) * radius * 0.56),
+        new THREE.Vector3(0, 0, -radius * 0.45)
+      ],
+      sleepSpots: [furniture.position.clone().setY(0)],
+      socialSpots: [new THREE.Vector3(0.7, 0, 0.45), new THREE.Vector3(-0.7, 0, 0.45)],
+      propSockets: [furniture.position.clone(), new THREE.Vector3(-furniture.position.x, 0.12, furniture.position.z)],
+      portalAnchors: { conservatory: door.position.clone() }
+    }, built.topology || {});
+
+    return built;
+  }
+
+  Object.keys(ROOMS).forEach(roomId => {
+    if (roomId === 'conservatory') return;
+    const def = ROOMS[roomId];
+    const originalBuild = def.build;
+    def.build = function (ctx) {
+      return decorateHabitatRoom(roomId, def, originalBuild.call(def, ctx), ctx);
+    };
+  });
 
   global.RoomKit = RoomKit;
   global.ROOM_DEFINITIONS = ROOMS;
