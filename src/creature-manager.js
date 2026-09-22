@@ -183,10 +183,30 @@
       });
     }
 
+    getCreature(id) {
+      if (this.primary && id === this.primary.id) return this.primary;
+      return this.companions.get(id) || null;
+    }
+
     selectCreature(id) {
-      if (this.primary && id === this.primary.id) { this.selectedId = id; return true; }
-      if (this.companions.has(id)) { this.selectedId = id; return true; }
-      return false;
+      const entry = this.getCreature(id);
+      if (!entry) return false;
+      this.selectedId = entry.id;
+      return true;
+    }
+
+    selectByObject(object) {
+      let cur = object;
+      while (cur) {
+        for (const entry of this.companions.values()) {
+          if (entry.wrapper === cur) {
+            this.selectedId = entry.id;
+            return entry;
+          }
+        }
+        cur = cur.parent;
+      }
+      return null;
     }
 
     getSelected() {
