@@ -11,14 +11,14 @@
   ]);
 
   const ABILITIES = Object.freeze({
-    vaporeon: { id: 'water-shape', targetType: 'water', label: 'Shape Water', color: 0x58c9ff, mutation: 'flooded' },
-    jolteon:  { id: 'relay-charge', targetType: 'power', label: 'Charge Relay', color: 0xffed55, mutation: 'charged' },
-    flareon:  { id: 'hearth-heat', targetType: 'heat', label: 'Kindle Heat', color: 0xff713d, mutation: 'heated' },
-    espeon:   { id: 'psychic-shift', targetType: 'telekinesis', label: 'Shift Matter', color: 0xd48cff, mutation: 'aligned' },
-    umbreon:  { id: 'moon-veil', targetType: 'shadow', label: 'Cast Moon Veil', color: 0x5472ff, mutation: 'veiled' },
-    leafeon:  { id: 'verdant-growth', targetType: 'growth', label: 'Accelerate Growth', color: 0x78ce63, mutation: 'grown' },
-    glaceon:  { id: 'crystal-freeze', targetType: 'freeze', label: 'Crystal Freeze', color: 0x9aeaff, mutation: 'frozen' },
-    sylveon:  { id: 'ribbon-bind', targetType: 'bind', label: 'Ribbon Bind', color: 0xff9bc7, mutation: 'bound' }
+    vaporeon: { id: 'water-shape', targetType: 'water', label: 'Shape Water', icon: '💧', color: 0x58c9ff, mutation: 'flooded' },
+    jolteon:  { id: 'relay-charge', targetType: 'power', label: 'Charge Relay', icon: '⚡', color: 0xffed55, mutation: 'charged' },
+    flareon:  { id: 'hearth-heat', targetType: 'heat', label: 'Kindle Heat', icon: '🔥', color: 0xff713d, mutation: 'heated' },
+    espeon:   { id: 'psychic-shift', targetType: 'telekinesis', label: 'Shift Matter', icon: '✦', color: 0xd48cff, mutation: 'aligned' },
+    umbreon:  { id: 'moon-veil', targetType: 'shadow', label: 'Cast Moon Veil', icon: '◐', color: 0x5472ff, mutation: 'veiled' },
+    leafeon:  { id: 'verdant-growth', targetType: 'growth', label: 'Accelerate Growth', icon: '🌿', color: 0x78ce63, mutation: 'grown' },
+    glaceon:  { id: 'crystal-freeze', targetType: 'freeze', label: 'Crystal Freeze', icon: '❄️', color: 0x9aeaff, mutation: 'frozen' },
+    sylveon:  { id: 'ribbon-bind', targetType: 'bind', label: 'Ribbon Bind', icon: '🎀', color: 0xff9bc7, mutation: 'bound' }
   });
 
   // Explicit profiles replace the old whole-model one-color tint. The keys below
@@ -151,7 +151,11 @@
         return { ok: false, reason: 'incompatible-target', required: def.targetType, targetType: meta.targetType };
       }
 
-      const roomId = meta.roomId || (this.roomManager && this.roomManager.current ? this.roomManager.current.id : null);
+      const currentRoomId = this.roomManager && this.roomManager.current ? this.roomManager.current.id : null;
+      const roomId = meta.roomId || currentRoomId;
+      if (currentRoomId && roomId !== currentRoomId) {
+        return { ok: false, reason: 'stale-target-room', roomId, currentRoomId };
+      }
       const mutation = {
         roomId,
         targetId: meta.id,
