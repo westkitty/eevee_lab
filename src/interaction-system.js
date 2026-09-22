@@ -243,7 +243,11 @@
         const speed = velocity.length();
         if (speed > 5) velocity.multiplyScalar(5 / speed);
       }
-      if (velocity.length() < 0.15) {
+      if (meta.persistentPlacement) {
+        // Furnishings are placement objects, not projectiles. Drag/drop is the interaction.
+        meta.state = 'resting';
+        velocity.set(0, 0, 0);
+      } else if (velocity.length() < 0.15) {
         meta.state = 'resting';
         velocity.set(0, 0, 0);
       } else {
@@ -360,6 +364,7 @@
     getDebugState() {
       return {
         directPropCount: this.props.size,
+        placeableCount: Array.from(this.props).filter(o => o && o.userData && o.userData.placeableId).length,
         dragging: !!this.activeDrag,
         brushActive: this.brushActive,
         navRadius: Number.isFinite(this.navRadius) ? this.navRadius : null
