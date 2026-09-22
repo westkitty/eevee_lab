@@ -527,6 +527,7 @@
   <script src="src/room-manager.js"></script>
   <script src="src/creature-behavior.js"></script>
   <script src="src/creature-actor.js"></script>
+  <script src="src/creature-manager.js"></script>
   <script src="src/interaction-system.js"></script>
   <script src="src/ui-controller.js"></script>
 
@@ -882,6 +883,7 @@
     let cameraController = null;
     let roomManager = null;
     let creatureActor = null;
+    let creatureManager = null;
     let interactionSystem = null;
     let behaviorScheduler = null;
     let toyRetrieval = null;
@@ -1210,6 +1212,8 @@
           };
 
           wrapper.userData.isLoaded = true;
+          wrapper.userData.rawRoot = raw;
+          wrapper.userData.animations = (gltf.animations || []).slice();
           if (creatureActor) creatureActor.registerModel(sp, wrapper, raw, gltf.animations || []);
           if (currentForm === sp) {
             wrapper.userData.updatePalette(isShiny);
@@ -1219,6 +1223,7 @@
 
           loadProgress.loaded++;
           updateLoadingUI();
+          if (sp === 'vaporeon') syncConservatoryCompanion();
         }, undefined, (err) => {
           console.error(`Failed to load ${sp}.glb:`, err);
           loadProgress.loaded++;
@@ -1258,8 +1263,69 @@
       if (activeM.userData.updatePalette) activeM.userData.updatePalette(shiny);
       Object.assign(eeveeRig.userData, activeM.userData);
       if (creatureActor) creatureActor.setActiveSpecies(formKey);
+      if (creatureManager) {
+        creatureManager.setPrimarySpecies(formKey);
+        creatureManager.enforceVisibility();
+      }
       updateFaceExpression(currentEmotion);
       if (cameraController && activeM.userData.isLoaded) cameraController.setModelBounds(activeM);
+    }
+
+    const PHASE4_COMPANION_ID = 'vaporeon-companion';
+
+    function syncConservatoryCompanion() {
+      if (!creatureManager || !eeveeRig || !roomManager || !roomManager.current) return false;
+      const shouldPair = activeGameMode === 'sandbox'
+        && currentForm === 'eevee'
+        && roomManager.current.id === 'conservatory';
+
+      if (!shouldPair) {
+        creatureManager.deactivateAllCompanions();
+        return false;
+      }
+
+      const wrapper = eeveeRig.userData.models && eeveeRig.userData.models.vaporeon;
+      if (!wrapper || !wrapper.userData || !wrapper.userData.isLoaded) return false;
+
+      if (!creatureManager.hasCompanion(PHASE4_COMPANION_ID)) {
+        const spawn = roomManager.current.built && roomManager.current.built.spawnPoint
+          ? roomManager.current.built.spawnPoint.clone()
+          : new THREE.Vector3(0, 0, 0);
+        spawn.x -= 1.35;
+        spawn.z += 0.85;
+        creatureManager.activateCompanionModel({
+          id: PHASE4_COMPANION_ID,
+          species: 'vaporeon',
+          wrapper,
+          rawRoot: wrapper.userData.rawRoot,
+          clips: wrapper.userData.animations || [],
+          parentRoot: eeveeRig,
+          built: roomManager.current.built,
+          spawnPoint: spawn
+        });
+      }
+      creatureManager.enforceVisibility();
+      return creatureManager.hasCompanion(PHASE4_COMPANION_ID);
+    }
+
+    function handleSocialEvent(event) {
+      if (!event) return;
+      const lines = {
+        'companion-joined': "Vaporeon pads into the Conservatory. Eevee is no longer the only thing here.",
+        greet: "*Eevee and Vaporeon meet nose-to-nose, then both decide this is acceptable.*",
+        approach: "*Vaporeon wanders over and settles within conversational distance.*",
+        follow: "*Vaporeon quietly falls in behind Eevee.*",
+        inspect: "*Both of them notice the same thing at exactly the same time.*",
+        'parallel-wander': "*They split up, explore in parallel, then drift back into the same orbit.*",
+        play: "*The quiet room abruptly becomes a two-Eeveelution wrestling problem.*",
+        avoid: "*Vaporeon gives Eevee a little space instead of turning the room into a traffic accident.*",
+        'sit-nearby': "*Vaporeon sits nearby without being asked.*",
+        'nap-together-start': "*Vaporeon notices Eevee settling down and pads closer.*",
+        'nap-together': "*Two Eeveelutions. One synchronized nap. Productivity has ended.*",
+        'toy-race': "*Both sets of eyes lock onto the toy. This has become competitive.*",
+        'toy-contest': "*Vaporeon reaches the toy too. Apparently fetch now has opposition.*"
+      };
+      if (lines[event.type]) showSpeech(lines[event.type]);
     }
 
     /* ==========================================================================
@@ -1267,6 +1333,7 @@
        ========================================================================== */
     function selectEeveelution(formKey) {
       if (formKey === currentForm) return;
+      if (creatureManager) creatureManager.deactivateAllCompanions();
       currentForm = formKey;
       save.set('activeForm', formKey);
       if (roomManager) roomManager.setActiveForm(formKey);
@@ -1281,6 +1348,7 @@
       triggerEvolutionVortex(formKey);
       showSpeech(getRandomSillyCry(formKey));
       applyFormVisuals(formKey, isShiny);
+      syncConservatoryCompanion();
 
       if (eeveeRig) {
         if (activeGameMode === 'arcade') { arcadeJumpY = 1.2; arcadeJumpVel = 0.35; }
@@ -1628,6 +1696,7 @@
         };
         creatureActor.lookAtWorld(release.predictedPoint, 2.0);
         creatureActor.moveTo(release.predictedPoint, { source: 'toy' });
+        if (creatureManager) creatureManager.notifyToyReleased(release.predictedPoint, release.kind, object);
         bondTracker.bump(currentForm, 1);
         showSpeech(release.kind === 'ball' ? "BALL. Moving target. Priorities established." : "*locks onto the plush and gives chase*");
       }
@@ -1814,6 +1883,7 @@
 
     function switchGameMode(mode) {
       if (mode === activeGameMode) return;
+      if (creatureManager && mode === 'arcade') creatureManager.deactivateAllCompanions();
       activeGameMode = mode;
 
       document.getElementById('btn-mode-sandbox').classList.toggle('active', mode === 'sandbox');
@@ -1833,6 +1903,7 @@
         arcadeHud.style.display = 'none';
         arcadeHelp.style.display = 'none';
         stopArcadeGame();
+        syncConservatoryCompanion();
       }
       closeDrawer();
     }
@@ -2364,6 +2435,10 @@
           if (creatureActor) creatureActor.enterRoom(roomId, built);
           if (interactionSystem) interactionSystem.registerRoom(built.group);
           if (behaviorScheduler) behaviorScheduler.enterRoom(roomId);
+          if (creatureManager) {
+            creatureManager.setRoom(roomId, built);
+            syncConservatoryCompanion();
+          }
           showRoomToast(roomId, built);
           renderRoomGrid();
         }
@@ -2377,6 +2452,16 @@
       scene.add(eeveeRig);
       creatureActor = new CreatureActorSystem.CreatureActor({ root: eeveeRig, species: currentForm });
       window.creatureActor = creatureActor;
+      creatureManager = new CreatureManagerSystem.CreatureManager({
+        scene,
+        onSocialEvent: handleSocialEvent
+      });
+      creatureManager.setPrimary(creatureActor, {
+        id: 'primary',
+        species: currentForm,
+        wrapper: eeveeRig.userData.models[currentForm]
+      });
+      window.creatureManager = creatureManager;
       interactionSystem = new EeveeInteractionSystem.DirectInteractionSystem({
         scene,
         reducedMotion: uiChrome.reducedMotion
@@ -2488,6 +2573,23 @@
           }
         }
 
+        if (creatureManager) {
+          const companionHits = raycaster.intersectObjects(creatureManager.getSelectableObjects(), true);
+          if (companionHits.length) {
+            const selected = creatureManager.selectByObject(companionHits[0].object);
+            if (selected) {
+              tapCandidate = null;
+              selected.actor.hold(0.7);
+              selected.actor.lookAtWorld(camera.position, 1.6);
+              const now = performance.now();
+              if (now - lastClickTime < 380) cameraController.focusOnPoint(mouse.x, mouse.y, selected.wrapper);
+              lastClickTime = now;
+              showSpeech("*Vaporeon looks over. Companion focus selected.*");
+              return;
+            }
+          }
+        }
+
         const petHits = raycaster.intersectObjects([activeModel()], true);
         if (petHits.length > 0) {
           tapCandidate = null;
@@ -2579,7 +2681,8 @@
           ndcFromEvent(e);
           raycaster.setFromCamera(mouse, camera);
           const direct = interactionSystem ? interactionSystem.getManipulableObjects() : [];
-          const targets = [activeModel(), ...roomManager.getInteractableMeshes(), ...direct];
+          const companions = creatureManager ? creatureManager.getSelectableObjects() : [];
+          const targets = [activeModel(), ...companions, ...roomManager.getInteractableMeshes(), ...direct];
           const hits = raycaster.intersectObjects(targets, true);
           if (hits.length) {
             reticle.style.left = e.clientX + 'px';
@@ -2755,7 +2858,26 @@
           });
         }
 
-        if (creatureActor) {
+        const userRecentlyActive = performance.now() - lastActivityAt < 2200;
+        if (creatureManager) {
+          creatureManager.update(dt, elapsed, {
+            primary: {
+              suspended: specialActionActive,
+              reducedMotion: !!(uiChrome && uiChrome.reducedMotion),
+              chillMode: isChillMode,
+              cameraPosition: camera ? camera.position : null
+            },
+            companion: {
+              suspended: false,
+              reducedMotion: !!(uiChrome && uiChrome.reducedMotion),
+              chillMode: isChillMode,
+              cameraPosition: null
+            },
+            socialSuspended: specialActionActive || activeGameMode !== 'sandbox',
+            reducedMotion: !!(uiChrome && uiChrome.reducedMotion),
+            userActive: userRecentlyActive
+          });
+        } else if (creatureActor) {
           creatureActor.update(dt, elapsed, {
             suspended: specialActionActive,
             reducedMotion: !!(uiChrome && uiChrome.reducedMotion),
@@ -2852,6 +2974,8 @@
       get cameraController() { return cameraController; },
       get creatureActor() { return creatureActor; },
       get creatureActorState() { return creatureActor ? creatureActor.getDebugState() : null; },
+      get creatureManager() { return creatureManager; },
+      get creatureManagerState() { return creatureManager ? creatureManager.getDebugState() : null; },
       get interactionSystem() { return interactionSystem; },
       get interactionSystemState() { return interactionSystem ? interactionSystem.getDebugState() : null; },
       get behaviorScheduler() { return behaviorScheduler; },
@@ -2868,6 +2992,8 @@
       lookCreatureAt: (x, y, z) => creatureActor && creatureActor.lookAtWorld(new THREE.Vector3(x, y || 0, z), 1.5),
       requestBondGesture: () => behaviorScheduler && behaviorScheduler.requestBondGesture('debug'),
       wakeCreature: () => behaviorScheduler && behaviorScheduler.wake('interaction'),
+      selectCreatureFocus: (id) => creatureManager && creatureManager.selectCreature(id),
+      syncConservatoryCompanion,
       startApp
     };
 
