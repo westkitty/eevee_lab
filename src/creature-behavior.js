@@ -296,9 +296,10 @@
     update(dt, context) {
       context = context || {};
       dt = Math.max(0, Math.min(Number(dt) || 0, 0.25));
-      const quiet = !!context.idle && !context.specialAction && !context.userActive;
+      const userQuiet = !context.specialAction && !context.userActive;
+      const behaviorIdle = !!context.idle;
       this.lastInteractionAgo += dt;
-      this.needs.update(dt, quiet);
+      this.needs.update(dt, userQuiet && behaviorIdle);
       if (!this.sleeping && this.currentMomentTimer > 0) {
         this.currentMomentTimer = Math.max(0, this.currentMomentTimer - dt);
         if (this.currentMomentTimer === 0) this.currentMoment = null;
@@ -310,22 +311,27 @@
         return;
       }
 
-      if (!quiet) {
+      if (!userQuiet) {
         this.quietAccum = 0;
         this.quietRecorded = false;
         return;
       }
 
+      // Quiet companionship persists through the creature's own autonomous wandering.
       this.quietAccum += dt;
       if (!this.quietRecorded && this.quietAccum >= 24) {
         this.memory.noteQuiet(this.species, this.roomId);
         this.quietRecorded = true;
       }
 
+      // Spontaneous poses, initiatives and sleep begin only from a stable idle state.
+      if (!behaviorIdle) return;
+
       this.rareTimer -= dt;
       if (this.rareTimer <= 0 && this.lastInteractionAgo >= 10) {
         this._emitRare();
         this.rareTimer = this._nextRareDelay();
+        return;
       }
 
       const tier = this.familiarityTier();
