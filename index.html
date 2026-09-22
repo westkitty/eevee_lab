@@ -1264,7 +1264,7 @@
       Object.assign(eeveeRig.userData, activeM.userData);
       if (creatureActor) creatureActor.setActiveSpecies(formKey);
       if (creatureManager) {
-        creatureManager.setPrimarySpecies(formKey);
+        creatureManager.setPrimarySpecies(formKey, activeM);
         creatureManager.enforceVisibility();
       }
       updateFaceExpression(currentEmotion);
