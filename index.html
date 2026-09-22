@@ -1375,7 +1375,136 @@
 
     function goToRoomImmediate(id) {
       cancelDoorTravel();
+      if (evolutionController && evolutionController.isActive()) evolutionController.cancel('room-navigation');
       return roomManager && roomManager.goTo(id);
+    }
+
+    function setCurrentFormCore(formKey, bondBoost) {
+      if (!formKey || formKey === currentForm || !eeveeRig || !eeveeRig.userData.models[formKey]) return false;
+      if (creatureManager) creatureManager.deactivateAllCompanions();
+      currentForm = formKey;
+      save.set('activeForm', formKey);
+      if (roomManager) roomManager.setActiveForm(formKey);
+      if (behaviorScheduler) behaviorScheduler.setSpecies(formKey);
+      renderSpeciesStrip();
+      updateFactSheet(formKey);
+      if (bondBoost) bondTracker.bump(formKey, bondBoost);
+      applyFormVisuals(formKey, isShiny);
+      syncConservatoryCompanion();
+      updateAbilityButton();
+      return true;
+    }
+
+    function evolutionFlash(formKey) {
+      const data = EEVEELUTION_DATA[formKey] || EEVEELUTION_DATA.eevee;
+      const col = isShiny ? (data.colorShiny || 0xffffff) : (data.colorNormal || 0xffffff);
+      const flash = document.createElement('div');
+      flash.style.cssText = `position:fixed;inset:0;background:#${new THREE.Color(col).getHexString()};opacity:0.72;pointer-events:none;z-index:950;transition:opacity ${uiChrome && uiChrome.reducedMotion ? 0.08 : 0.32}s ease;`;
+      document.body.appendChild(flash);
+      requestAnimationFrame(() => { flash.style.opacity = '0'; });
+      setTimeout(() => flash.remove(), uiChrome && uiChrome.reducedMotion ? 120 : 380);
+    }
+
+    function handleEvolutionStage(stage, state) {
+      if (stage === 'approach') {
+        showSpeech(`Eevee notices the ${state.targetSpecies} stone and walks over to inspect it.`);
+        return;
+      }
+      if (stage === 'ready') {
+        showSpeech(`The stone is responding. Tap it again to evolve into ${state.targetSpecies}.`);
+        return;
+      }
+      if (stage === 'charge') {
+        evolutionCameraRestore = cameraController ? cameraController.presetKey : null;
+        if (cameraController) cameraController.applyPreset('portrait');
+        evolutionSpinTimer = uiChrome && uiChrome.reducedMotion ? 0.2 : 0.65;
+        spawnEvolutionParticles(state.targetSpecies);
+        audio.playSparkle();
+        return;
+      }
+      if (stage === 'reveal') {
+        evolutionFlash(state.targetSpecies);
+        triggerConfetti();
+        petSquishFactor = 1.35;
+        return;
+      }
+      if (stage === 'complete') {
+        if (cameraController && evolutionCameraRestore) cameraController.applyPreset(evolutionCameraRestore);
+        evolutionCameraRestore = null;
+        showSpeech(getRandomSillyCry(state.targetSpecies));
+        return;
+      }
+      if (stage === 'cancel') {
+        if (cameraController && evolutionCameraRestore) cameraController.applyPreset(evolutionCameraRestore);
+        evolutionCameraRestore = null;
+      }
+    }
+
+    function requestPhysicalEvolution(request) {
+      if (!evolutionController || !request) return false;
+      const result = evolutionController.request(request.targetSpecies, request.stoneObject);
+      if (!result.ok) {
+        if (result.reason === 'requires-eevee') showSpeech('Physical evolution starts from Eevee. The species strip still works as an instant form switch.');
+        else if (result.reason === 'model-not-ready') showSpeech('That evolution model is still loading.');
+        else if (result.reason === 'evolution-busy') showSpeech('One transformation at a time.');
+        return false;
+      }
+      return true;
+    }
+
+    function spawnAbilityBurst(color, target) {
+      if (!scene || !target) return;
+      const center = target.getWorldPosition(new THREE.Vector3());
+      const group = new THREE.Group();
+      const geo = new THREE.SphereGeometry(0.055, 6, 6);
+      const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8 });
+      for (let i = 0; i < 16; i++) {
+        const p = new THREE.Mesh(geo, mat);
+        const a = (i / 16) * Math.PI * 2;
+        p.position.copy(center);
+        p.userData = {
+          vx: Math.cos(a) * (1.0 + (i % 3) * 0.25),
+          vy: 0.45 + (i % 4) * 0.12,
+          vz: Math.sin(a) * (1.0 + (i % 3) * 0.25),
+          life: 1
+        };
+        group.add(p);
+      }
+      scene.add(group);
+      evolutionParticles.push(group);
+    }
+
+    function updateAbilityButton() {
+      const btn = document.getElementById('wheel-ability');
+      if (!btn) return;
+      const def = abilitySystem ? abilitySystem.getDefinition(currentForm) : null;
+      btn.disabled = !def;
+      btn.title = def ? def.label : 'Eevee has no fixed elemental ability';
+      btn.textContent = def ? '⚡' : '◇';
+    }
+
+    function useSpeciesAbility() {
+      if (!abilitySystem || !roomManager || !roomManager.current) return false;
+      const def = abilitySystem.getDefinition(currentForm);
+      if (!def) {
+        showSpeech('Eevee adapts instead of using one fixed elemental ability.');
+        return false;
+      }
+      const target = roomManager.getAbilityTargets().find(obj => abilitySystem.canUseAbility(currentForm, obj));
+      if (!target) {
+        showSpeech(`${def.label} has nothing compatible to act on in this room.`);
+        return false;
+      }
+      const result = abilitySystem.performAbility(currentForm, target);
+      if (!result.ok) return false;
+      spawnAbilityBurst(def.color, target);
+      audio.playSparkle();
+      if (creatureActor) {
+        creatureActor.lookAtWorld(target.getWorldPosition(new THREE.Vector3()), 1.4);
+        creatureActor.setBehaviorState('reaction', 1.2);
+      }
+      showSpeech(`${def.label}. The room keeps the change.`);
+      return true;
     }
 
     /* ==========================================================================
@@ -1384,22 +1513,13 @@
     function selectEeveelution(formKey) {
       if (formKey === currentForm) return;
       cancelDoorTravel();
-      if (creatureManager) creatureManager.deactivateAllCompanions();
-      currentForm = formKey;
-      save.set('activeForm', formKey);
-      if (roomManager) roomManager.setActiveForm(formKey);
-      if (behaviorScheduler) behaviorScheduler.setSpecies(formKey);
-
-      renderSpeciesStrip();
-      updateFactSheet(formKey);
-      bondTracker.bump(formKey, 2);
+      if (evolutionController && evolutionController.isActive()) evolutionController.cancel('instant-switch');
+      if (!setCurrentFormCore(formKey, 2)) return;
 
       audio.playSparkle();
       triggerConfetti();
       triggerEvolutionVortex(formKey);
       showSpeech(getRandomSillyCry(formKey));
-      applyFormVisuals(formKey, isShiny);
-      syncConservatoryCompanion();
 
       if (eeveeRig) {
         if (activeGameMode === 'arcade') { arcadeJumpY = 1.2; arcadeJumpVel = 0.35; }
