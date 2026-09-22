@@ -9,13 +9,15 @@
   const THREE = global.THREE;
 
   class RoomManager {
-    constructor({ scene, save, discoveryLog, resonance, cameraController, onRoomEnter, onDiscovery, roomLabel }) {
+    constructor({ scene, save, discoveryLog, resonance, cameraController, worldState, onRoomEnter, onDoorTravelRequested, onDiscovery, roomLabel }) {
       this.scene = scene;
       this.save = save;
       this.discoveryLog = discoveryLog;
       this.resonance = resonance;
       this.cameraController = cameraController;
+      this.worldState = worldState || null;
       this.onRoomEnter = onRoomEnter || function () {};
+      this.onDoorTravelRequested = onDoorTravelRequested || null;
       this.roomLabel = roomLabel || (id => id);
 
       this.current = null; // { def, built, id, atmosphereIndex }
@@ -25,15 +27,24 @@
     _ctxFor(roomId) {
       return {
         goTo: (targetId) => this.goTo(targetId),
+        requestDoor: (targetId, doorObject) => this.requestDoor(targetId, doorObject),
         roomLabel: this.roomLabel,
         onRoomProp: (roomId2, detail) => {
           this.resonance.bump(roomId2, 0.08);
           const found = this.discoveryLog.checkCombo(roomId2, this._activeForm, 'roomProp');
           this._recordRoomMemory(roomId2, detail);
+          if (this.worldState) {
+            const state = this.worldState.noteRoomEvent(roomId2, 'roomProp', detail || {});
+            this._applyNarrativeState(roomId2, state);
+          }
           this.onDiscoveryFeedback && this.onDiscoveryFeedback(found, detail);
         },
         onMemento: (roomId2, mementoId, label) => {
           const unlocked = this.discoveryLog.unlockMemento(mementoId, label);
+          if (unlocked && this.worldState) {
+            const state = this.worldState.noteRoomEvent(roomId2, 'memento', { id: mementoId, label });
+            this._applyNarrativeState(roomId2, state);
+          }
           if (unlocked) this.onDiscoveryFeedback && this.onDiscoveryFeedback({ label }, null);
         }
       };
@@ -64,11 +75,35 @@
       return meshes;
     }
 
+    requestDoor(targetId, doorObject) {
+      if (!targetId || !global.ROOM_DEFINITIONS[targetId]) return false;
+      const request = {
+        targetId,
+        sourceRoomId: this.current ? this.current.id : null,
+        doorObject: doorObject || null
+      };
+      if (this.onDoorTravelRequested) {
+        const handled = this.onDoorTravelRequested(request);
+        if (handled !== false) return true;
+      }
+      this.goTo(targetId, { entryFrom: request.sourceRoomId, viaDoor: true });
+      return true;
+    }
+
+    capturePlacement(object) {
+      if (!this.current || !this.worldState || !object || !object.userData || !object.userData.placeableId) return null;
+      return this.worldState.savePlacement(this.current.id, object.userData.placeableId, {
+        position: object.position,
+        rotationY: object.rotation ? object.rotation.y || 0 : 0
+      });
+    }
+
     goTo(roomId, opts = {}) {
       const def = global.ROOM_DEFINITIONS[roomId];
       if (!def) return null;
       if (this.current && this.current.id === roomId && !opts.force) return this.current;
 
+      const sourceRoomId = opts.entryFrom || (this.current ? this.current.id : null);
       const prevCamPos = this.cameraController ? this.cameraController.camera.position.clone() : null;
 
       this._disposeCurrent();
@@ -82,29 +117,45 @@
       const unlocked = this.save.get(`atmosphereUnlocked.${roomId}`, []);
       const selected = this.save.get(`atmosphereSelected.${roomId}`, built.atmosphereVariants[0].id);
       const variantIdx = built.atmosphereVariants.findIndex(v => v.id === selected && (unlocked.includes(v.id) || v === built.atmosphereVariants[0]));
-      this.current = { id: roomId, def, built, atmosphereIndex: Math.max(0, variantIdx) };
+      const narrativeState = this.worldState ? this.worldState.noteVisit(roomId) : null;
+      this.current = { id: roomId, def, built, atmosphereIndex: Math.max(0, variantIdx), narrativeState };
       this._applyAtmosphere(this.current.atmosphereIndex);
 
-      // Apply habitat memory: reposition/restore small symbolic leftovers.
+      // Apply legacy symbolic memory plus Phase-5 semantic world state.
       const memory = this.save.get(`roomMemory.${roomId}`, {});
       this._applyRoomMemory(memory);
-
-      // Cross-contamination: small markers seeded by discoveries made elsewhere.
+      this._applyPlacements(roomId);
+      this._applyNarrativeState(roomId, narrativeState);
       this._applyCrossContamination(roomId);
+      if (roomId === 'conservatory' && this.worldState && built.applyHistory) {
+        built.applyHistory(this.worldState.getHistorySummary());
+      }
 
       this.save.set('lastRoom', roomId);
-      this.previousId = this.current.id;
+      this.previousId = sourceRoomId;
+
+      const entryFrom = opts.entryFrom || sourceRoomId;
+      const entryPoint = opts.viaDoor && entryFrom && built.entryPoints && built.entryPoints[entryFrom]
+        ? built.entryPoints[entryFrom].clone()
+        : (built.spawnPoint || new THREE.Vector3(0, 0, 1.2)).clone();
+      const continuePoint = opts.viaDoor && entryFrom && built.continuationPoints && built.continuationPoints[entryFrom]
+        ? built.continuationPoints[entryFrom].clone()
+        : null;
 
       if (this.cameraController) {
         this.cameraController.setRoomBounds(built.cameraBounds);
-        const spawn = built.spawnPoint || new THREE.Vector3(0, 0, 1.2);
-        const camTarget = new THREE.Vector3(0, 0.9, 0);
-        const camPos = prevCamPos || new THREE.Vector3(spawn.x, 2.4, spawn.z + 5);
-        const toPos = new THREE.Vector3(spawn.x + 2.2, 1.9, spawn.z + 3.4);
+        const camTarget = new THREE.Vector3(entryPoint.x * 0.15, 0.9, entryPoint.z * 0.15);
+        const camPos = prevCamPos || new THREE.Vector3(entryPoint.x, 2.4, entryPoint.z + 5);
+        const toPos = new THREE.Vector3(entryPoint.x + 2.2, 1.9, entryPoint.z + 3.4);
         this.cameraController.cinematicEnter(camPos, toPos, camTarget, 46);
       }
 
-      this.onRoomEnter(roomId, built);
+      this.onRoomEnter(roomId, built, {
+        fromRoomId: entryFrom,
+        entryPoint,
+        continuePoint,
+        viaDoor: !!opts.viaDoor
+      });
       return this.current;
     }
 
@@ -147,32 +198,64 @@
       }
     }
 
-    _applyCrossContamination(roomId) {
-      const totalDiscoveries = this.discoveryLog.count();
-      if (totalDiscoveries < 2) return;
-      const seeded = this.save.get(`crossContamination.${roomId}`, []);
-      const candidateKinds = ['ribbon', 'shell', 'tag', 'frame'];
-      const markerId = 'trace_' + roomId;
-      if (seeded.includes(markerId)) {
-        this._placeCrossTrace(roomId, markerId);
-        return;
-      }
-      // Deterministic: once total discoveries clears a room-specific threshold, seed one trace.
-      const threshold = 2 + (global.ROOM_ORDER.indexOf(roomId) % 3);
-      if (totalDiscoveries >= threshold) {
-        seeded.push(markerId);
-        this.save.set(`crossContamination.${roomId}`, seeded);
-        this._placeCrossTrace(roomId, markerId);
+    _applyPlacements(roomId) {
+      if (!this.current || !this.worldState) return;
+      const placements = this.worldState.listPlacements(roomId);
+      this.current.built.group.traverse(obj => {
+        const id = obj && obj.userData ? obj.userData.placeableId : null;
+        const saved = id ? placements[id] : null;
+        if (!saved || !obj.position) return;
+        obj.position.set(Number(saved.x) || 0, Number(saved.y) || 0, Number(saved.z) || 0);
+        if (obj.rotation) obj.rotation.y = Number(saved.ry) || 0;
+        if (obj.userData.directManipulation) obj.userData.directManipulation.state = 'resting';
+      });
+    }
+
+    _applyNarrativeState(roomId, state) {
+      if (!this.current || this.current.id !== roomId || !state) return;
+      this.current.narrativeState = state;
+      if (this.current.built.applyNarrativeStage) this.current.built.applyNarrativeStage(state);
+      if (roomId === 'conservatory' && this.worldState && this.current.built.applyHistory) {
+        this.current.built.applyHistory(this.worldState.getHistorySummary());
       }
     }
 
-    _placeCrossTrace(roomId, markerId) {
-      if (!global.RoomKit) return;
-      const kind = ['ribbon', 'shell', 'tag'][global.ROOM_ORDER.indexOf(roomId) % 3];
-      const trace = global.RoomKit.memento(kind, 0xffffff);
-      trace.name = markerId;
-      trace.scale.setScalar(0.7);
-      trace.position.set(0.3, 0.08, 2.4);
+    _applyCrossContamination(roomId) {
+      if (!this.current) return;
+      if (this.worldState) {
+        const traces = this.worldState.listTraces(roomId);
+        traces.forEach((trace, index) => this._placeCrossTrace(trace, index));
+        return;
+      }
+
+      // Legacy fallback for an older runtime loading this manager without HabitatWorldState.
+      const seeded = this.save.get(`crossContamination.${roomId}`, []);
+      if (!Array.isArray(seeded)) return;
+      seeded.forEach((markerId, index) => {
+        if (typeof markerId !== 'string') return;
+        this._placeCrossTrace({
+          id: markerId,
+          originRoom: 'legacy',
+          originEvent: 'legacy',
+          objectType: ['ribbon', 'shell', 'tag'][global.ROOM_ORDER.indexOf(roomId) % 3],
+          destinationRoom: roomId
+        }, index);
+      });
+    }
+
+    _placeCrossTrace(traceInfo, index) {
+      if (!global.RoomKit || !traceInfo || !this.current) return;
+      const trace = global.RoomKit.memento(traceInfo.objectType || 'tag', 0xffffff);
+      trace.name = traceInfo.id || ('trace_' + index);
+      trace.userData.traceProvenance = {
+        originRoom: traceInfo.originRoom || 'unknown',
+        originEvent: traceInfo.originEvent || 'unknown',
+        destinationRoom: traceInfo.destinationRoom || this.current.id,
+        objectType: traceInfo.objectType || 'tag'
+      };
+      trace.scale.setScalar(0.62 + Math.min(0.16, index * 0.03));
+      const angle = -0.65 + index * 0.55;
+      trace.position.set(Math.cos(angle) * 1.8, 0.08, 2.15 + Math.sin(angle) * 0.55);
       this.current.built.group.add(trace);
     }
 
