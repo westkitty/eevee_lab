@@ -21,6 +21,7 @@
       mesh.name = 'walkable_floor';
       mesh.userData.walkable = true;
       mesh.userData.walkRadius = Math.max(0.75, radius - 0.7);
+      mesh.userData.groundY = 0;
       return mesh;
     },
     wallPanel(width, height, color, opts = {}) {
@@ -72,6 +73,8 @@
     toyBall(color) {
       const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.22, 14, 14), FX.Materials.cloth(color));
       mesh.castShadow = true;
+      mesh.name = 'direct_toy_ball';
+      mesh.userData.directManipulation = { kind: 'ball', floorY: 0.22, restitution: 0.38, friction: 0.88 };
       return mesh;
     },
     toyPlush(color) {
@@ -82,6 +85,8 @@
       ear1.position.set(-0.1, 0.22, 0);
       const ear2 = ear1.clone(); ear2.position.x = 0.1;
       group.add(body, ear1, ear2);
+      group.name = 'direct_toy_plush';
+      group.userData.directManipulation = { kind: 'plush', floorY: 0.15, restitution: 0.12, friction: 0.72 };
       group.traverse(c => { if (c.isMesh) c.castShadow = true; });
       return group;
     },
@@ -102,6 +107,8 @@
       const head = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.05, 0.08), FX.Materials.cloth(0xf3e7d0));
       head.position.set(0.16, 0.06, 0);
       group.add(handle, head);
+      group.name = 'direct_room_brush';
+      group.userData.directManipulation = { kind: 'brush', floorY: 0.12, restitution: 0.08, friction: 0.65 };
       return group;
     },
     memento(kind, color) {

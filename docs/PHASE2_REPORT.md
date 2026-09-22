@@ -30,3 +30,20 @@ The runtime wiring will:
 5. allow food to exist as a placed/manipulable world object while retaining the old direct-feed API,
 6. add long-press context access without removing keyboard/menu alternatives,
 7. keep root grounding conservative rather than inventing unsupported IK.
+
+
+## Runtime wiring implemented
+
+- Existing Eevee/Vaporeon toy meshes are registered as direct-manipulation props.
+- Pointer drag moves toys over the active walkable floor; release velocity produces bounded lightweight throw/roll physics.
+- Ball/plush releases trigger creature chase, pickup and a simple return-to-throw-origin retrieve loop.
+- The Brush action now toggles a visible world-space brush; brushing is measured as a stroke rather than a one-shot button reaction.
+- Petting now records continuous stroke speed, length and dominant tactile region.
+- Long-press on the creature opens the existing interaction wheel as contextual fallback.
+- Feed buttons now place physical draggable food; the old `feedTreat()` ballistic API remains intact for regression/accessibility paths.
+- Optional device vibration gives tiny pickup/stroke/release cues and is disabled by Reduced Motion.
+- Creature root height is explicitly projected to the room's declared ground Y. Full foot IK remains prohibited until per-rig limb evidence is strong enough.
+
+## Evidence state
+
+Source ownership and regression assertions are present. Clean checkout/browser execution is unavailable in the current environment because outbound GitHub DNS resolution is blocked; runtime behavior therefore remains implemented-but-unverified until the committed Node and Playwright checks run in a browser-capable checkout.

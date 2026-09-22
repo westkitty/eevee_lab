@@ -172,6 +172,46 @@ async function main() {
   await page.evaluate(() => window.eeveeApp.moveCreatureTo(0, 1.4));
   await page.waitForTimeout(1200);
 
+  // Phase 2 direct interaction substrate: Eevee's room contains physical toys.
+  await page.evaluate(() => window.eeveeApp.goToRoom('eevee'));
+  await page.waitForTimeout(350);
+  const phase2Room = await page.evaluate(() => window.eeveeApp.interactionSystemState);
+  record('phase2-direct-props', !!phase2Room && phase2Room.directPropCount >= 3,
+    phase2Room ? JSON.stringify(phase2Room) : 'interaction system unavailable');
+
+  // Exercise direct-prop drag/release without depending on screen coordinates.
+  const propThrow = await page.evaluate(() => {
+    const sys = window.eeveeApp.interactionSystem;
+    const ball = sys.getManipulableObjects().find(o => o.userData.directManipulation.kind === 'ball');
+    if (!ball) return null;
+    const start = ball.getWorldPosition(new THREE.Vector3());
+    sys.beginPropDrag(ball, start, 0);
+    sys.dragPropTo(start.clone().add(new THREE.Vector3(0.9, 0, 0)), 180);
+    const r = sys.releaseProp(180);
+    return { kind: r.kind, speed: r.velocity.length(), dragging: sys.getDebugState().dragging };
+  });
+  record('phase2-prop-throw', !!propThrow && propThrow.kind === 'ball' && propThrow.speed > 0 && propThrow.dragging === false,
+    JSON.stringify(propThrow));
+
+  // Brush is now a visible tool mode, not a one-shot reaction.
+  await page.evaluate(() => window.eeveeApp.brushEeveelution());
+  let brushState = await page.evaluate(() => window.eeveeApp.interactionSystemState);
+  record('phase2-brush-tool-on', brushState && brushState.brushActive === true, JSON.stringify(brushState));
+  await page.evaluate(() => window.eeveeApp.brushEeveelution());
+  brushState = await page.evaluate(() => window.eeveeApp.interactionSystemState);
+  record('phase2-brush-tool-off', brushState && brushState.brushActive === false, JSON.stringify(brushState));
+
+  // Food can be placed as a manipulable world object; direct feed API remains separately covered below.
+  await page.evaluate(() => window.eeveeApp.placeTreatForInteraction('berry'));
+  const placedFood = await page.evaluate(() => ({
+    count: window.eeveeApp.treats.length,
+    direct: window.eeveeApp.treats.some(t => t.userData.directManipulation && t.userData.directManipulation.kind === 'food')
+  }));
+  record('phase2-physical-food', placedFood.count > 0 && placedFood.direct === true, JSON.stringify(placedFood));
+  await page.evaluate(() => window.eeveeApp.clearPlacedTreats());
+  await page.evaluate(() => window.eeveeApp.goToRoom('conservatory'));
+  await page.waitForTimeout(350);
+
   // 3. Shiny mode.
   await page.keyboard.press('s');
   await page.waitForTimeout(200);

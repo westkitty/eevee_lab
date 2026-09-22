@@ -130,6 +130,8 @@
       this.reducedMotion = !!options.reducedMotion;
       this.roomGroup = null;
       this.props = new Set();
+      this.navCenter = new THREE.Vector3(0, 0, 0);
+      this.navRadius = Infinity;
       this.activeDrag = null;
       this.brushActive = false;
       this.brushVisual = null;
@@ -140,10 +142,20 @@
     registerRoom(group) {
       this.roomGroup = group || null;
       this.props.clear();
+      this.activeDrag = null;
+      this.navCenter.set(0, 0, 0);
+      this.navRadius = Infinity;
+      let walkable = null;
       if (group && group.traverse) {
         group.traverse(obj => {
+          if (!walkable && obj && obj.isMesh && obj.userData && obj.userData.walkable) walkable = obj;
           if (obj && obj.userData && obj.userData.directManipulation) this.registerProp(obj);
         });
+      }
+      if (walkable) {
+        if (walkable.getWorldPosition) walkable.getWorldPosition(this.navCenter);
+        this.navCenter.y = 0;
+        this.navRadius = Math.max(0.75, Number(walkable.userData.walkRadius) || Infinity);
       }
       return this.props.size;
     }
@@ -164,6 +176,12 @@
       object.userData.directManipulation = meta;
       this.props.add(object);
       return object;
+    }
+
+    unregisterProp(object) {
+      if (!object) return false;
+      if (this.activeDrag && this.activeDrag.object === object) this.activeDrag = null;
+      return this.props.delete(object);
     }
 
     getManipulableObjects() { return Array.from(this.props); }
@@ -236,6 +254,7 @@
       const world = object.getWorldPosition ? object.getWorldPosition(new THREE.Vector3()) : object.position.clone();
       const predictedPoint = world.clone().addScaledVector(velocity, 0.45);
       predictedPoint.y = meta.floorY;
+      this._clampWorldToRoom(predictedPoint);
       this.haptic(12);
       return { object, kind: meta.kind, velocity: velocity.clone(), predictedPoint, releasedAt: now };
     }
@@ -252,6 +271,7 @@
 
         const world = object.getWorldPosition ? object.getWorldPosition(new THREE.Vector3()) : object.position.clone();
         world.addScaledVector(meta.velocity, dt);
+        this._clampWorldToRoom(world);
         if (world.y <= meta.floorY) {
           world.y = meta.floorY;
           if (Math.abs(meta.velocity.y) < 0.55) meta.velocity.y = 0;
@@ -267,6 +287,19 @@
           meta.state = 'resting';
         }
       });
+    }
+
+    _clampWorldToRoom(world) {
+      if (!world || !Number.isFinite(this.navRadius)) return world;
+      const dx = world.x - this.navCenter.x;
+      const dz = world.z - this.navCenter.z;
+      const d = Math.sqrt(dx * dx + dz * dz);
+      if (d > this.navRadius && d > 0.0001) {
+        const s = this.navRadius / d;
+        world.x = this.navCenter.x + dx * s;
+        world.z = this.navCenter.z + dz * s;
+      }
+      return world;
     }
 
     activateBrush() {
@@ -322,6 +355,15 @@
         if (global.navigator && typeof global.navigator.vibrate === 'function') return !!global.navigator.vibrate(pattern);
       } catch (e) { /* optional enhancement */ }
       return false;
+    }
+
+    getDebugState() {
+      return {
+        directPropCount: this.props.size,
+        dragging: !!this.activeDrag,
+        brushActive: this.brushActive,
+        navRadius: Number.isFinite(this.navRadius) ? this.navRadius : null
+      };
     }
 
     dispose() {

@@ -84,6 +84,7 @@
       this.walkable = [];
       this.navCenter = new THREE.Vector3(0, 0, 0);
       this.navRadius = 3;
+      this.groundY = 0;
       this.target = null;
       this.targetSource = null;
       this.state = 'idle';
@@ -147,6 +148,7 @@
       this.walkable = [];
       this.navCenter.set(0, 0, 0);
       this.navRadius = 3;
+      this.groundY = 0;
       if (built && built.group && built.group.traverse) {
         built.group.traverse(obj => {
           if (obj && obj.isMesh && obj.userData && obj.userData.walkable) this.walkable.push(obj);
@@ -155,11 +157,13 @@
       const floor = this.walkable[0];
       if (floor) {
         if (floor.getWorldPosition) floor.getWorldPosition(this.navCenter);
-        this.navCenter.y = 0;
+        this.groundY = Number(floor.userData.groundY) || 0;
+        this.navCenter.y = this.groundY;
         this.navRadius = Math.max(0.75, Number(floor.userData.walkRadius) || 3);
       }
       const spawn = built && built.spawnPoint ? built.spawnPoint : this.navCenter;
       this.root.position.x = spawn.x;
+      this.root.position.y = this.groundY;
       this.root.position.z = spawn.z;
       this.target = null;
       this.targetSource = null;
@@ -231,6 +235,7 @@
       }
       if (steps === this.maxSteps) this.accumulator = 0;
 
+      this.root.position.y = this.groundY;
       this._updateAttention(dt, context);
       this._updateProceduralView(dt);
       this.animation.update(dt);
@@ -367,6 +372,8 @@
         position: { x: this.root.position.x, y: this.root.position.y, z: this.root.position.z },
         heading: this.root.rotation.y,
         navRadius: this.navRadius,
+        groundY: this.groundY,
+        grounding: 'root-ground-projection',
         walkableCount: this.walkable.length,
         rawClipCount: (this.models.get(this.species) || { clips: [] }).clips.length,
         activeSemantic: this.animation.activeSlot,

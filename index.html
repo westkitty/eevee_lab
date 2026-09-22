@@ -412,8 +412,8 @@
     <div id="interaction-fab" class="interactive hud-hide-in-photo">
       <button class="icon-btn primary" title="Interactions" aria-label="Open interactions" aria-expanded="false" onclick="toggleInteractionWheel()">🐾</button>
       <div id="interaction-wheel" role="menu" aria-label="Interact with Eeveelution">
-        <button class="wheel-btn" title="Feed Oran Berry" onclick="feedTreat('berry')">🍓</button>
-        <button class="wheel-btn" title="Poké Puff" onclick="feedTreat('puff')">🧁</button>
+        <button class="wheel-btn" title="Place Oran Berry" onclick="placeTreatForInteraction('berry')">🍓</button>
+        <button class="wheel-btn" title="Place Poké Puff" onclick="placeTreatForInteraction('puff')">🧁</button>
         <button class="wheel-btn" title="Disco Fever" onclick="triggerDiscoDance()">🪩</button>
         <button class="wheel-btn" title="Loaf Mode" onclick="triggerLoafMode()">🍞</button>
         <button class="wheel-btn" title="Derp Face" onclick="triggerDerpMode()">🤪</button>
@@ -526,6 +526,7 @@
   <script src="src/rooms.js"></script>
   <script src="src/room-manager.js"></script>
   <script src="src/creature-actor.js"></script>
+  <script src="src/interaction-system.js"></script>
   <script src="src/ui-controller.js"></script>
 
   <!-- MAIN THREE.JS APPLICATION JAVASCRIPT -->
@@ -879,6 +880,8 @@
     let cameraController = null;
     let roomManager = null;
     let creatureActor = null;
+    let interactionSystem = null;
+    let toyRetrieval = null;
 
     /* ==========================================================================
        4. THREE.JS PROCEDURAL EEVEE 3D RIG & ANIMATION ENGINE (protected core)
@@ -1482,10 +1485,168 @@
     }
 
     function brushEeveelution() {
-      audio.playPurr();
-      bondTracker.bump(currentForm, 2);
+      if (!interactionSystem) return;
+      const active = interactionSystem.toggleBrush();
+      closeInteractionWheel();
+      if (active) {
+        showSpeech("Brush ready — drag it across me. Slow strokes count. 🖌️");
+        if (creatureActor && camera) creatureActor.lookAtWorld(camera.position, 1.2);
+      } else {
+        showSpeech("Brush put away.");
+      }
+    }
+
+    function placeTreatForInteraction(type) {
+      if (!interactionSystem || !eeveeRig) { feedTreat(type); return; }
+      clearPlacedTreats();
+      const pref = toyPref(type);
+      const treatMesh = new THREE.Mesh(
+        new THREE.DodecahedronGeometry(0.28),
+        new THREE.MeshToonMaterial({ color: type === 'berry' ? 0xFF2D55 : 0xFFB300 })
+      );
+      const heading = eeveeRig.rotation.y || 0;
+      const offset = new THREE.Vector3(Math.sin(heading) * 1.6, 0.24, Math.cos(heading) * 1.6);
+      treatMesh.position.copy(eeveeRig.position).add(offset);
+      treatMesh.name = 'direct_food_' + type;
+      treatMesh.userData = {
+        velocity: new THREE.Vector3(),
+        type,
+        pref,
+        placedTreat: true,
+        directManipulation: { kind: 'food', floorY: 0.24, restitution: 0.18, friction: 0.72 }
+      };
+      scene.add(treatMesh);
+      treats.push(treatMesh);
+      interactionSystem.registerProp(treatMesh);
+      closeInteractionWheel();
+      showSpeech(type === 'berry' ? "Berry's down. Pick it up and bring it here. 🍓" : "Poké Puff deployed. Yes, you may hand-deliver it. 🧁");
+      if (creatureActor) creatureActor.lookAtWorld(treatMesh.position, 1.8);
+    }
+
+    function clearPlacedTreats() {
+      for (let i = treats.length - 1; i >= 0; i--) {
+        const t = treats[i];
+        if (!t.userData || !t.userData.placedTreat) continue;
+        if (interactionSystem) interactionSystem.unregisterProp(t);
+        if (t.parent) t.parent.remove(t);
+        if (t.geometry) t.geometry.dispose();
+        if (t.material) t.material.dispose();
+        treats.splice(i, 1);
+      }
+    }
+
+    function respondToCreatureStroke(summary, tool) {
+      if (!summary) return;
+      const region = summary.primaryRegion || 'flank';
+      const profile = EeveeInteractionSystem.TOUCH_PROFILES[currentForm] || EeveeInteractionSystem.TOUCH_PROFILES.eevee;
+      const weight = profile[region] || 1;
+      const longBonus = summary.length === 'long' ? 1 : 0;
+      bondTracker.bump(currentForm, Math.max(1, Math.round(weight + longBonus)));
+      discoveryLog.checkCombo(roomManager ? roomManager.current?.id : null, currentForm, tool === 'brush' ? 'brush' : 'pet');
       updateFaceExpression('hearts');
-      showSpeech(interactionMemory.pick('brush', ["*happy shivers* right there!", "Fur is now 12% floofier.", "*leans into the brush*"]));
+
+      const petLines = {
+        ears: ["Right behind the ears. Excellent choice.", "*ears fold into the stroke*"],
+        head: ["*leans into your hand*", "Forehead scritches accepted."],
+        cheek: ["*presses cheek into your hand*", "That cheek spot is apparently important."],
+        neck: ["*ruff goes full cloud mode*", "Neck fluff: successfully excavated."],
+        back: ["*slow full-body stretch*", "That long back stroke landed perfectly."],
+        flank: ["*contented little side lean*", "Side scritches: approved."],
+        tail: ["*tail flicks, then settles*", "Careful tail scritches. Accepted."],
+        special: ["*special anatomy reacts immediately*", "Oh. That is apparently the spot."]
+      };
+      const brushLines = {
+        fast: "Easy, speed-brusher. This is grooming, not sanding furniture.",
+        slow: "Slow brush passes. Maximum floof restoration.",
+        gentle: "That brushing rhythm is exactly right."
+      };
+      if (tool === 'brush') {
+        showSpeech(brushLines[summary.speed] || brushLines.gentle);
+        interactionSystem.haptic([8, 18, 8]);
+      } else {
+        const lines = petLines[region] || petLines.flank;
+        showSpeech(interactionMemory.pick('stroke_' + region + '_' + summary.speed, lines));
+        interactionSystem.haptic(summary.length === 'long' ? [6, 18, 6] : 6);
+      }
+    }
+
+    function handleDirectPropReleased(release) {
+      if (!release || !creatureActor) return;
+      const object = release.object;
+      const world = object.getWorldPosition(new THREE.Vector3());
+      if (release.kind === 'food') {
+        creatureActor.lookAtWorld(world, 2.0);
+        creatureActor.moveTo(world, { source: 'food' });
+        showSpeech("Oh. You're actually making me walk over for it. Fair.");
+        return;
+      }
+      if (release.kind === 'brush') {
+        interactionSystem.activateBrush();
+        showSpeech("Brush acquired. Drag it over the fur.");
+        return;
+      }
+      if (release.kind === 'ball' || release.kind === 'plush') {
+        toyRetrieval = {
+          object,
+          returnPoint: eeveeRig.position.clone(),
+          stage: 'chase',
+          retarget: 0
+        };
+        creatureActor.lookAtWorld(release.predictedPoint, 2.0);
+        creatureActor.moveTo(release.predictedPoint, { source: 'toy' });
+        bondTracker.bump(currentForm, 1);
+        showSpeech(release.kind === 'ball' ? "BALL. Moving target. Priorities established." : "*locks onto the plush and gives chase*");
+      }
+    }
+
+    function updateToyRetrieval(dt) {
+      if (!toyRetrieval || !creatureActor || !eeveeRig) return;
+      const object = toyRetrieval.object;
+      if (!object || !object.parent || !object.userData || !object.userData.directManipulation) { toyRetrieval = null; return; }
+      const meta = object.userData.directManipulation;
+      const world = object.getWorldPosition(new THREE.Vector3());
+
+      if (toyRetrieval.stage === 'chase') {
+        toyRetrieval.retarget -= dt;
+        if (toyRetrieval.retarget <= 0) {
+          creatureActor.moveTo(world, { source: 'toy' });
+          toyRetrieval.retarget = 0.22;
+        }
+        const dx = eeveeRig.position.x - world.x;
+        const dz = eeveeRig.position.z - world.z;
+        if (meta.state === 'resting' && Math.sqrt(dx * dx + dz * dz) < 0.78) {
+          meta.state = 'carried';
+          meta.velocity.set(0, 0, 0);
+          toyRetrieval.stage = 'carry';
+          creatureActor.moveTo(toyRetrieval.returnPoint, { source: 'retrieve' });
+          audio.playPurr();
+          showSpeech("*picks it up and brings it back*");
+        }
+        return;
+      }
+
+      if (toyRetrieval.stage === 'carry') {
+        const mouth = new THREE.Vector3();
+        eeveeRig.userData.headGroup.getWorldPosition(mouth);
+        mouth.y -= 0.12;
+        mouth.z += 0.18;
+        const local = object.parent.worldToLocal(mouth.clone());
+        object.position.copy(local);
+
+        const dx = eeveeRig.position.x - toyRetrieval.returnPoint.x;
+        const dz = eeveeRig.position.z - toyRetrieval.returnPoint.z;
+        if (Math.sqrt(dx * dx + dz * dz) < 0.24) {
+          const heading = eeveeRig.rotation.y || 0;
+          const drop = eeveeRig.position.clone().add(new THREE.Vector3(Math.sin(heading) * 0.72, meta.floorY, Math.cos(heading) * 0.72));
+          drop.y = meta.floorY;
+          object.position.copy(object.parent.worldToLocal(drop.clone()));
+          meta.state = 'resting';
+          meta.velocity.set(0, 0, 0);
+          interactionSystem.haptic([8, 20, 8]);
+          showSpeech("Returned. Throw it again. Obviously.");
+          toyRetrieval = null;
+        }
+      }
     }
 
     function triggerRoomProp() {
@@ -1893,7 +2054,11 @@
       uiChrome.removeEscape(closeSettings);
     }
     function onSetDensity(v) { uiChrome.applyDensity(v); }
-    function onSetReducedMotion(v) { uiChrome.setReducedMotion(v); if (cameraController) cameraController.setReducedMotion(v); }
+    function onSetReducedMotion(v) {
+      uiChrome.setReducedMotion(v);
+      if (cameraController) cameraController.setReducedMotion(v);
+      if (interactionSystem) interactionSystem.setReducedMotion(v);
+    }
     function onSetMusic(v) { if (v) audio.startBGM(); else audio.stopBGM(); document.getElementById('btn-music').textContent = v ? '⏸️' : '🎵'; save.set('ui.musicOn', v); }
     function onSetSfx(v) { audio.isSFXEnabled = v; document.getElementById('btn-sound').textContent = v ? '🔊' : '🔇'; save.set('ui.sfxOn', v); }
     function onSetQuality(v) {
@@ -2119,7 +2284,10 @@
         scene, save, discoveryLog, resonance: resonanceTracker, cameraController,
         roomLabel: roomLabelFor,
         onRoomEnter: (roomId, built) => {
+          toyRetrieval = null;
+          clearPlacedTreats();
           if (creatureActor) creatureActor.enterRoom(roomId, built);
+          if (interactionSystem) interactionSystem.registerRoom(built.group);
           showRoomToast(roomId, built);
           renderRoomGrid();
         }
@@ -2133,6 +2301,11 @@
       scene.add(eeveeRig);
       creatureActor = new CreatureActorSystem.CreatureActor({ root: eeveeRig, species: currentForm });
       window.creatureActor = creatureActor;
+      interactionSystem = new EeveeInteractionSystem.DirectInteractionSystem({
+        scene,
+        reducedMotion: uiChrome.reducedMotion
+      });
+      window.interactionSystem = interactionSystem;
 
       renderSpeciesStrip();
       renderJournal();
@@ -2154,10 +2327,17 @@
     function setupPettingInteraction(canvas) {
       const raycaster = new THREE.Raycaster();
       const mouse = new THREE.Vector2();
+      const petStroke = new EeveeInteractionSystem.StrokeTracker();
+      const brushStroke = new EeveeInteractionSystem.StrokeTracker();
       let isPetting = false;
+      let isBrushing = false;
       let lastPurrTime = 0;
       let lastClickTime = 0;
       let tapCandidate = null;
+      let gestureStart = null;
+      let gestureBounds = null;
+      let longPressTimer = null;
+      let longPressTriggered = false;
       const reticle = document.getElementById('reticle');
 
       function ndcFromEvent(e) {
@@ -2166,30 +2346,80 @@
         return mouse;
       }
 
+      function activeModel() {
+        return eeveeRig && eeveeRig.userData.models ? eeveeRig.userData.models[currentForm] : eeveeRig;
+      }
+
+      function regionForHit(hit) {
+        if (!gestureBounds) gestureBounds = new THREE.Box3().setFromObject(activeModel());
+        return EeveeInteractionSystem.classifyTactileRegion(hit.object, hit.point, gestureBounds);
+      }
+
+      function normalForHit(hit) {
+        if (!hit || !hit.face) return new THREE.Vector3(0, 1, 0);
+        return hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
+      }
+
+      function clearLongPress() {
+        if (longPressTimer) clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+
+      function beginLongPress(e) {
+        clearLongPress();
+        longPressTriggered = false;
+        longPressTimer = setTimeout(() => {
+          const tracker = isPetting ? petStroke : brushStroke;
+          const stats = tracker.active ? tracker.snapshot(performance.now()) : null;
+          if (!isPetting || (stats && stats.distancePx > 10)) return;
+          isPetting = false;
+          petStroke.reset();
+          controls.enabled = true;
+          longPressTriggered = true;
+          interactionSystem.haptic(16);
+          toggleInteractionWheel();
+        }, 560);
+      }
+
       canvas.addEventListener('pointerdown', (e) => {
         if (activeGameMode !== 'sandbox' || isPhotoMode) return;
         ndcFromEvent(e);
         raycaster.setFromCamera(mouse, camera);
+        gestureStart = { x: e.clientX, y: e.clientY };
+        gestureBounds = null;
 
-        const petHits = raycaster.intersectObjects(eeveeRig.children, true);
+        if (interactionSystem) {
+          const propHits = raycaster.intersectObjects(interactionSystem.getManipulableObjects(), true);
+          if (propHits.length) {
+            interactionSystem.beginPropDrag(propHits[0].object, propHits[0].point, performance.now());
+            controls.enabled = false;
+            tapCandidate = null;
+            if (creatureActor) {
+              creatureActor.hold(0.5);
+              creatureActor.lookAtWorld(propHits[0].point, 1.0);
+            }
+            return;
+          }
+        }
+
+        const petHits = raycaster.intersectObjects([activeModel()], true);
         if (petHits.length > 0) {
           tapCandidate = null;
           if (creatureActor) creatureActor.hold(0.9);
-          isPetting = true;
           controls.enabled = false;
-          audio.playPurr();
-          petSquishFactor = 0.78;
-          updateFaceExpression('hearts');
-          bondTracker.bump(currentForm, 1);
+          const hit = petHits[0];
+          const region = regionForHit(hit);
 
-          const region = petHits[0].point.y > 1.0 ? 'head' : (petHits[0].point.z > 0.3 ? 'back' : 'side');
-          const regionResponses = {
-            head: ["Right behind the ears! Perfect spot!", "*Happy ear wiggles*"],
-            back: ["*Soft puppy snuffles*", "Tickle tickle tickle!"],
-            side: ["*Borb squish mode activated!*", "*Happy purrs and tail wags!* 🥰"]
-          };
-          showSpeech(interactionMemory.pick('pet_' + region, regionResponses[region] || regionResponses.side));
-          triggerConfetti();
+          if (interactionSystem && interactionSystem.brushActive) {
+            isBrushing = true;
+            brushStroke.begin(e.clientX, e.clientY, region, performance.now());
+            interactionSystem.updateBrushAt(hit.point, normalForHit(hit));
+          } else {
+            isPetting = true;
+            petStroke.begin(e.clientX, e.clientY, region, performance.now());
+            petSquishFactor = 0.9;
+            beginLongPress(e);
+          }
 
           const now = performance.now();
           if (now - lastClickTime < 380) cameraController.focusOnPoint(mouse.x, mouse.y, eeveeRig);
@@ -2216,23 +2446,54 @@
       });
 
       window.addEventListener('pointermove', (e) => {
+        if (interactionSystem && interactionSystem.activeDrag) {
+          ndcFromEvent(e);
+          raycaster.setFromCamera(mouse, camera);
+          const floorHits = roomManager ? raycaster.intersectObjects(roomManager.getWalkableMeshes(), false) : [];
+          if (floorHits.length) interactionSystem.dragPropTo(floorHits[0].point, performance.now());
+          if (creatureActor && floorHits.length) creatureActor.lookAtWorld(floorHits[0].point, 0.5);
+          return;
+        }
+
+        if (gestureStart) {
+          const gdx = e.clientX - gestureStart.x;
+          const gdy = e.clientY - gestureStart.y;
+          if ((gdx * gdx + gdy * gdy) > 100) clearLongPress();
+        }
+
+        if ((isPetting || isBrushing) && activeGameMode === 'sandbox') {
+          ndcFromEvent(e);
+          raycaster.setFromCamera(mouse, camera);
+          const hits = raycaster.intersectObjects([activeModel()], true);
+          if (hits.length) {
+            const hit = hits[0];
+            const region = regionForHit(hit);
+            if (isBrushing) {
+              brushStroke.sample(e.clientX, e.clientY, region, performance.now());
+              interactionSystem.updateBrushAt(hit.point, normalForHit(hit));
+              petSquishFactor = 0.92;
+            } else {
+              const stats = petStroke.sample(e.clientX, e.clientY, region, performance.now());
+              petSquishFactor = stats && stats.speed === 'fast' ? 0.86 : 0.78 + Math.sin(Date.now() * 0.02) * 0.08;
+            }
+            if (creatureActor) creatureActor.hold(0.35);
+            const now = Date.now();
+            if (now - lastPurrTime > 420) { audio.playPurr(); lastPurrTime = now; }
+          }
+          return;
+        }
+
         if (tapCandidate && tapCandidate.pointerId === e.pointerId) {
           const dx = e.clientX - tapCandidate.x;
           const dy = e.clientY - tapCandidate.y;
           if ((dx * dx + dy * dy) > 64) tapCandidate = null;
         }
 
-        if (isPetting && activeGameMode === 'sandbox') {
-          if (creatureActor) creatureActor.hold(0.35);
-          petSquishFactor = 0.78 + Math.sin(Date.now() * 0.03) * 0.12;
-          const now = Date.now();
-          if (now - lastPurrTime > 380) { audio.playPurr(); lastPurrTime = now; }
-        }
-
         if (activeGameMode === 'sandbox' && !isPhotoMode && !e.target.closest('.interactive') && roomManager && eeveeRig) {
           ndcFromEvent(e);
           raycaster.setFromCamera(mouse, camera);
-          const targets = [...eeveeRig.children, ...roomManager.getInteractableMeshes()];
+          const direct = interactionSystem ? interactionSystem.getManipulableObjects() : [];
+          const targets = [activeModel(), ...roomManager.getInteractableMeshes(), ...direct];
           const hits = raycaster.intersectObjects(targets, true);
           if (hits.length) {
             reticle.style.left = e.clientX + 'px';
@@ -2247,13 +2508,42 @@
       });
 
       window.addEventListener('pointerup', (e) => {
+        clearLongPress();
+        gestureStart = null;
+        gestureBounds = null;
+
+        if (interactionSystem && interactionSystem.activeDrag) {
+          const release = interactionSystem.releaseProp(performance.now());
+          controls.enabled = true;
+          handleDirectPropReleased(release);
+          tapCandidate = null;
+          return;
+        }
+
+        if (longPressTriggered) {
+          longPressTriggered = false;
+          tapCandidate = null;
+          return;
+        }
+
         if (isPetting) {
           isPetting = false;
           controls.enabled = true;
           if (creatureActor) creatureActor.hold(0.45);
+          respondToCreatureStroke(petStroke.end(performance.now()), 'pet');
           tapCandidate = null;
           return;
         }
+
+        if (isBrushing) {
+          isBrushing = false;
+          controls.enabled = true;
+          if (creatureActor) creatureActor.hold(0.45);
+          respondToCreatureStroke(brushStroke.end(performance.now()), 'brush');
+          tapCandidate = null;
+          return;
+        }
+
         if (!tapCandidate || tapCandidate.pointerId !== e.pointerId || activeGameMode !== 'sandbox' || isPhotoMode) {
           tapCandidate = null;
           return;
@@ -2265,6 +2555,17 @@
           if (floorHits.length) creatureActor.moveTo(floorHits[0].point, { manual: true });
         }
         tapCandidate = null;
+      });
+
+      window.addEventListener('pointercancel', () => {
+        clearLongPress();
+        isPetting = false;
+        isBrushing = false;
+        petStroke.reset();
+        brushStroke.reset();
+        tapCandidate = null;
+        gestureStart = null;
+        if (controls) controls.enabled = true;
       });
     }
 
@@ -2356,14 +2657,17 @@
           eeveeRig.position.y = Math.abs(Math.sin(elapsed * 18)) * 0.5;
         }
 
+        if (interactionSystem) interactionSystem.update(dt);
+
         if (creatureActor) {
           creatureActor.update(dt, elapsed, {
-            suspended: evolutionSpinTimer > 0 || isDiscoMode || isLoafMode || isVacuumPanicking || treats.length > 0 || treatHungerAngle > 0,
+            suspended: evolutionSpinTimer > 0 || isDiscoMode || isLoafMode || isVacuumPanicking || treats.some(t => !t.userData.directManipulation) || treatHungerAngle > 0,
             reducedMotion: !!(uiChrome && uiChrome.reducedMotion),
             chillMode: isChillMode,
             cameraPosition: camera ? camera.position : null
           });
         }
+        updateToyRetrieval(dt);
 
         const mouthWorldPos = new THREE.Vector3();
         u.headGroup.getWorldPosition(mouthWorldPos);
@@ -2371,15 +2675,32 @@
 
         for (let i = treats.length - 1; i >= 0; i--) {
           const t = treats[i];
-          t.position.addScaledVector(t.userData.velocity, dt);
-          t.userData.velocity.y -= 9.8 * dt * 0.55;
-          if (t.position.distanceTo(mouthWorldPos) < 1.35) {
+          const managed = !!t.userData.directManipulation;
+          if (managed && interactionSystem && interactionSystem.isDragging(t)) continue;
+
+          if (!managed) {
+            t.position.addScaledVector(t.userData.velocity, dt);
+            t.userData.velocity.y -= 9.8 * dt * 0.55;
+          }
+
+          const treatWorld = managed ? t.getWorldPosition(new THREE.Vector3()) : t.position;
+          const eatDistance = managed ? 0.95 : 1.35;
+          if (treatWorld.distanceTo(mouthWorldPos) < eatDistance) {
             audio.playChomp(); triggerConfetti(); updateFaceExpression('hearts');
             const pref = t.userData.pref || 1.0;
             if (t.userData.type === 'puff') { petSquishFactor = 1.6 + 0.3 * pref; showSpeech("CHONK! Maximum gigantamax floof unlocked! 🧁"); }
             else { petSquishFactor = 1.2 + 0.15 * pref; showSpeech("Munch munch munch! Delicious berry! 🍓"); }
-            scene.remove(t); treats.splice(i, 1);
-          } else if (t.position.y < -1) { scene.remove(t); treats.splice(i, 1); }
+            if (interactionSystem) interactionSystem.unregisterProp(t);
+            if (t.parent) t.parent.remove(t);
+            if (t.geometry) t.geometry.dispose();
+            if (t.material) t.material.dispose();
+            treats.splice(i, 1);
+          } else if (!managed && t.position.y < -1) {
+            scene.remove(t);
+            if (t.geometry) t.geometry.dispose();
+            if (t.material) t.material.dispose();
+            treats.splice(i, 1);
+          }
         }
 
         for (let i = evolutionParticles.length - 1; i >= 0; i--) {
@@ -2431,11 +2752,13 @@
       get cameraController() { return cameraController; },
       get creatureActor() { return creatureActor; },
       get creatureActorState() { return creatureActor ? creatureActor.getDebugState() : null; },
+      get interactionSystem() { return interactionSystem; },
+      get interactionSystemState() { return interactionSystem ? interactionSystem.getDebugState() : null; },
       get save() { return save; },
       get isPhotoMode() { return isPhotoMode; },
       get isChillMode() { return isChillMode; },
       selectEeveelution, toggleShinyMode, updateFaceExpression,
-      triggerLoafMode, triggerDerpMode, triggerDiscoDance, summonVacuum, feedTreat, callEeveelution,
+      triggerLoafMode, triggerDerpMode, triggerDiscoDance, summonVacuum, feedTreat, placeTreatForInteraction, clearPlacedTreats, callEeveelution, brushEeveelution,
       startArcadeGame, stopArcadeGame, switchGameMode,
       enterPhotoMode, exitPhotoMode, capturePhotoModeShot,
       goToRoom: (id) => roomManager && roomManager.goTo(id),
