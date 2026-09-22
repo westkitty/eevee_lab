@@ -7,7 +7,7 @@
   "project_name": "Eevee Lab",
   "project_root": "/",
   "artifact_path": "index.html",
-  "state_revision": 9,
+  "state_revision": 10,
   "last_updated": "2026-09-22",
   "current_baseline": {
     "identity": "30715710146880400bc1dda3a479f2b7aa1e2643",
@@ -140,6 +140,7 @@ No confirmed baseline failure is recorded at initialization.
 - **UNV-016:** A current broad Playwright attempt launched successfully using installed Google Chrome but failed the protected journey: `actor-boot` reported CreatureActor unavailable and the suite later crashed when the Phase-1 movement assertion dereferenced missing actor state. Root cause is unresolved; no Phase-1 through Phase-7 browser behavior is promoted from this run.
 - **UNV-017:** Phase-7 visual quality of vistas, weather motion and ambient-life composition is not yet manually approved in a rendered browser session.
 - **UNV-018:** Live GitHub Pages delivery remains unverified after Phase 7.
+- **UNV-019:** Phase-7.5 source forensics found an exact symptom match for a stale-served-runtime failure mode: protected baseline `661a37b` has no `src/creature-actor.js`, no `CreatureActorSystem` reference and no `creatureActorState` API, while current `main` has all three. The broad harness accepts whichever page is already serving at `BASE_URL` and does not verify the served checkout identity. A server rooted at `661a37b` could therefore finish the nine-model wait, report `actor-boot` unavailable and then fail at the Phase-1 movement dereference exactly as observed. This is strong source evidence for a stale/static-server candidate, not browser proof of root cause.
 
 ## 8. Unknown or Evidence-Stale State
 
@@ -162,6 +163,7 @@ No confirmed baseline failure is recorded at initialization.
 - **PND-012:** Manually inspect Phase-7 vista placement, micro-weather readability, reduced-motion behavior and ambient-life composition in a rendered browser session.
 - **PND-013:** Re-run the full Playwright suite after the actor-boot repair and promote browser behavior only if the protected Phase-1 through Phase-7 journey passes.
 - **PND-014:** Phase 8 may expand observation/media systems only after the browser actor-boot failure is repaired or explicitly isolated from that work.
+- **PND-015:** On the next browser-capable run, prove the served checkout before mutation: capture static-server working directory/HEAD, failed script requests, `window.CreatureActorSystem`, `window.eeveeApp`, and `window.eeveeApp.creatureActor`. If a stale server is confirmed, restart the server from a disposable checkout at current remote `main` and rerun the full suite before changing application code.
 
 ## 10. Active Decisions, Defaults, and Prohibitions
 
@@ -356,3 +358,11 @@ No confirmed baseline failure is recorded at initialization.
 - **Browser evidence:** the Playwright harness now falls back to installed Chrome/Brave/Chromium when its exact cached browser is absent. A current Chrome run exposed an unresolved actor-boot failure and did not complete the protected journey.
 - **Declared unverified:** Phase-7 visual composition and live Pages delivery.
 - **Next safe action:** diagnose and repair the browser CreatureActor boot failure before Phase 8 relies on full end-to-end behavior.
+
+
+### Revision 10 — 2026-09-22
+
+- **State delta:** Phase 7.5 browser-recovery forensics recorded; no application/runtime code changed.
+- **Source evidence:** `661a37b` lacks the CreatureActor script/global/debug API that the current harness expects, while current `main` includes them. Because the harness does not establish served-source identity, a stale server can reproduce the observed `actor unavailable` → movement-null-dereference chain.
+- **Evidence limit:** the authorized Mac could not be re-entered in this session (DEX//REACH exposed no connected node; the alternate remote-computer connector reported the MacBook Air offline), so the stale-server candidate is not promoted to confirmed root cause and no browser repair is claimed.
+- **Next safe action:** establish a current disposable checkout and server identity on the Mac, reproduce with console/page/network evidence, then either restart the stale server with no app-code mutation or repair the earliest proven runtime defect. Phase 8 remains blocked until broad Playwright completes.
