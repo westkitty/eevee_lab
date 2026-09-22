@@ -1073,6 +1073,30 @@
     const abilityTarget = abilityEntry ? abilityEntry.object3D : null;
     if (abilityTarget) {
       abilityTarget.userData = abilityTarget.userData || {};
+
+      // RoomKit materials are deliberately cached. Ability visuals must never
+      // mutate those shared instances, so the target owns disposable clones.
+      const abilityOwnedMaterials = [];
+      abilityTarget.traverse(obj => {
+        if (!obj || !obj.isMesh || !obj.material) return;
+        const cloneOne = mat => {
+          if (!mat || !mat.clone) return mat;
+          const clone = mat.clone();
+          clone.userData = Object.assign({}, mat.userData || {}, { phase6AbilityOwned: true });
+          abilityOwnedMaterials.push(clone);
+          return clone;
+        };
+        obj.material = Array.isArray(obj.material)
+          ? obj.material.map(cloneOne)
+          : cloneOne(obj.material);
+      });
+
+      const priorDisposeExtra = typeof built.disposeExtra === 'function' ? built.disposeExtra.bind(built) : null;
+      built.disposeExtra = () => {
+        abilityOwnedMaterials.forEach(mat => { if (mat && mat.dispose) mat.dispose(); });
+        if (priorDisposeExtra) priorDisposeExtra();
+      };
+
       abilityTarget.userData.abilityTarget = {
         id: 'ability_' + roomId,
         roomId,
