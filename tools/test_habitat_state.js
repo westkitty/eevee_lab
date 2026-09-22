@@ -43,7 +43,7 @@ const persistence = fs.readFileSync(path.join(__dirname, '..', 'src', 'persisten
 vm.runInNewContext(persistence, context);
 const save = new window.SaveManager();
 
-assert.equal(save.state.version, 2);
+assert.equal(save.state.version, 3);
 assert.equal(save.state.activeForm, 'flareon');
 assert.equal(save.state.highScore, 4321);
 assert.equal(save.state.ui.density, 'full');
@@ -51,6 +51,7 @@ assert.equal(save.state.ui.sfxOn, true);
 assert.deepEqual(save.state.roomMemory.jolteon, { charged: true });
 assert(save.state.roomNarrative && typeof save.state.roomNarrative === 'object');
 assert(save.state.placedObjects && typeof save.state.placedObjects === 'object');
+assert(save.state.abilityMutations && typeof save.state.abilityMutations === 'object');
 assert.equal(save.state.crossContamination.vaporeon[0].destinationRoom, 'vaporeon');
 assert.equal(save.state.crossContamination.vaporeon[0].originRoom, 'legacy');
 
@@ -88,6 +89,16 @@ assert(provenanceTrace.objectType === 'shell');
 
 world.noteVisit('eevee');
 world.noteVisit('flareon');
+const abilityMutation = world.recordAbilityMutation('jolteon', 'ability_jolteon', {
+  species: 'jolteon',
+  abilityId: 'relay-charge',
+  targetType: 'power',
+  mutation: 'charged'
+});
+assert.equal(abilityMutation.abilityId, 'relay-charge');
+assert.equal(world.getAbilityMutation('jolteon', 'ability_jolteon').mutation, 'charged');
+assert.equal(world.listAbilityMutations('jolteon').length, 1);
+
 const summary = world.getHistorySummary();
 assert(summary.visitedCount >= 4);
 assert(summary.mementoCount >= 1);
@@ -96,7 +107,7 @@ assert(world.getRoomState('conservatory').stageIndex >= 1);
 
 save.flush();
 const stored = JSON.parse(localStorage.getItem('eevee_habitat_save'));
-assert.equal(stored.version, 2);
+assert.equal(stored.version, 3);
 assert(stored.placedObjects.jolteon.relay_cushion);
 assert(Array.isArray(stored.crossContamination[provenanceTrace.destinationRoom]));
 
