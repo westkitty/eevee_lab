@@ -395,6 +395,7 @@
       group.add(nest);
 
       const stones = ['vaporeon', 'jolteon', 'flareon', 'espeon', 'umbreon', 'leafeon', 'glaceon', 'sylveon'];
+      const stoneMeshes = [];
       const colors = { vaporeon: 0x49b2e8, jolteon: 0xfee033, flareon: 0xf76835, espeon: 0xc68fed, umbreon: 0x8899ff, leafeon: 0x76b852, glaceon: 0x8be5f5, sylveon: 0xffaec9 };
       const interactables = [];
       stones.forEach((s, i) => {
@@ -402,6 +403,7 @@
         const a = (i / stones.length) * Math.PI * 2;
         stone.position.set(Math.cos(a) * 1.9, 0.18, 1.6 + Math.sin(a) * 1.1);
         group.add(stone);
+        stoneMeshes.push(stone);
         interactables.push(makeInteractable(stone, 'stone_' + s, 'prop', s + ' stone', () =>
           ctx.onRoomProp('eevee', { stoneInspected: s })));
       });
@@ -438,6 +440,14 @@
           { id: 'afternoon', label: 'Late Afternoon' },
           { id: 'evening', label: 'Amber Evening', keyColor: 0xff9a5c, hemiIntensity: 0.35 }
         ],
+        applyNarrativeStage(state) {
+          const stage = state ? state.stageIndex || 0 : 0;
+          stoneMeshes.forEach((stone, i) => {
+            stone.material.emissiveIntensity = 0.35 + stage * 0.2 + (i < stage * 2 ? 0.3 : 0);
+            stone.scale.setScalar(1 + stage * 0.035);
+          });
+          nest.scale.setScalar(1 + stage * 0.03);
+        },
         update(dt, elapsed) { dust.update(dt, elapsed); }
       };
     }
@@ -496,6 +506,12 @@
           { id: 'calm', label: 'Calm' },
           { id: 'moonlit', label: 'Moonlit Water', keyColor: 0x4c7db0, hemiIntensity: 0.3 }
         ],
+        applyNarrativeStage(state) {
+          const stage = state ? state.stageIndex || 0 : 0;
+          water.position.y = 0.02 + stage * 0.015;
+          water.scale.setScalar(1 + stage * 0.045);
+          ledgeMat.roughness = Math.max(0.28, 0.62 - stage * 0.08);
+        },
         update(dt, elapsed) {
           waterMat.uniforms.uTime.value = elapsed;
           droplets.update(dt, elapsed);
@@ -594,6 +610,7 @@
       const fire = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.6, 10), fireMat);
       fire.position.set(0, 0.55, -1.6);
       group.add(fire);
+      let narrativeHeat = 0;
 
       const cushion = RoomKit.cushion(0xd98b4a, 0.55);
       cushion.position.set(0.9, 0.1, -0.3);
@@ -636,8 +653,14 @@
           { id: 'afternoon', label: 'Afternoon' },
           { id: 'hearthnight', label: 'Hearth Night', hemiIntensity: 0.2, keyIntensity: 0.5 }
         ],
+        applyNarrativeStage(state) {
+          const stage = state ? state.stageIndex || 0 : 0;
+          narrativeHeat = stage * 0.16;
+          fire.scale.set(1 + stage * 0.06, 1 + stage * 0.12, 1 + stage * 0.06);
+          cushion.scale.setScalar(1 + stage * 0.035);
+        },
         update(dt, elapsed) {
-          fireMat.emissiveIntensity = 1.1 + Math.sin(elapsed * 9) * 0.3;
+          fireMat.emissiveIntensity = 1.1 + narrativeHeat + Math.sin(elapsed * 9) * 0.3;
           embers.update(dt, elapsed);
         }
       };
@@ -694,6 +717,11 @@
           { id: 'daylight', label: 'Daylight' },
           { id: 'twilight', label: 'Violet Twilight', hemiIntensity: 0.22, keyColor: 0x8a5fd6 }
         ],
+        applyNarrativeStage(state) {
+          const stage = state ? state.stageIndex || 0 : 0;
+          orb.scale.setScalar(1 + stage * 0.1);
+          floatingBooks.forEach((b, i) => { b.rotation.z = (i - 1.5) * 0.04 * stage; });
+        },
         update(dt, elapsed) {
           psychicMat.uniforms.uTime.value = elapsed;
           orb.rotation.y += dt * 0.2;
@@ -756,6 +784,7 @@
       const ringLight = new THREE.PointLight(0xfce029, 0.6, 3);
       ringLight.position.set(0, 0.8, 0.6);
       lights.push(ringLight);
+      let narrativeNight = 0;
 
       return {
         group, lights, particleFields: [fireflies], interactables, memento,
@@ -765,9 +794,15 @@
           { id: 'moonlight', label: 'Moonlight' },
           { id: 'deepnight', label: 'Deep Night', hemiIntensity: 0.18, keyIntensity: 0.18 }
         ],
+        applyNarrativeStage(state) {
+          const stage = state ? state.stageIndex || 0 : 0;
+          narrativeNight = stage * 0.09;
+          dial.rotation.y = stage * 0.22;
+          gnomon.scale.setScalar(1 + stage * 0.06);
+        },
         update(dt, elapsed) {
           poolMat.uniforms.uTime.value = elapsed;
-          ringLight.intensity = 0.5 + Math.sin(elapsed * 2) * 0.2;
+          ringLight.intensity = 0.5 + narrativeNight + Math.sin(elapsed * 2) * 0.2;
           fireflies.update(dt, elapsed);
         },
         disposeExtra: () => poolMat.dispose()
@@ -889,6 +924,12 @@
           { id: 'still', label: 'Still' },
           { id: 'snowfall', label: 'Snowfall', hemiIntensity: 0.4 }
         ],
+        applyNarrativeStage(state) {
+          const stage = state ? state.stageIndex || 0 : 0;
+          sculptures.forEach((s, i) => s.scale.setScalar(1 + stage * 0.055 + i * 0.01));
+          rim.scale.setScalar(1 + stage * 0.08);
+          rim.position.y = sculptures[1].position.y + stage * 0.025;
+        },
         update(dt, elapsed) {
           rim.rotation.y += dt * 0.15;
           snow.update(dt, elapsed);
@@ -934,6 +975,7 @@
       const centerpiece = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), FX.Materials.emissiveAccent(0xffd6ee, 0.6));
       centerpiece.position.set(0, 0.5, 1.2);
       group.add(centerpiece);
+      let narrativeGather = 0;
       interactables.push(makeInteractable(centerpiece, 'sylveon_centerpiece', 'prop', 'the ribbon centerpiece', () =>
         ctx.onRoomProp('sylveon', { connected: true })));
 
@@ -960,9 +1002,15 @@
           { id: 'softday', label: 'Soft Daylight' },
           { id: 'lanternnight', label: 'Lantern Night', hemiIntensity: 0.3, keyIntensity: 0.35 }
         ],
+        applyNarrativeStage(state) {
+          const stage = state ? state.stageIndex || 0 : 0;
+          narrativeGather = stage * 0.07;
+          lanternMat.emissiveIntensity = 1 + stage * 0.2;
+          ribbons.forEach((r, i) => r.scale.setScalar(1 + stage * 0.025 + (i % 2) * 0.01));
+        },
         update(dt, elapsed) {
           ribbons.forEach((r, i) => { r.rotation.z = Math.sin(elapsed * 1.4 + i) * 0.2; });
-          centerpiece.scale.setScalar(1 + Math.sin(elapsed * 2) * 0.05);
+          centerpiece.scale.setScalar(1 + narrativeGather + Math.sin(elapsed * 2) * 0.05);
           sparkles.update(dt, elapsed);
         }
       };
