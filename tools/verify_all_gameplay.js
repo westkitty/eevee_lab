@@ -10,9 +10,9 @@
  *   node tools/verify_all_gameplay.js [baseUrl]
  *
  * Screenshots land in ./qa/ (repo-relative, git-ignored). No machine-specific
- * paths or browser executables are hardcoded — this uses Playwright's own
- * bundled Chromium so it runs the same on any machine with `playwright`
- * installed (globally or locally).
+ * Playwright's matching Chromium is preferred. If its cache is missing, the
+ * harness may reuse an installed local Chrome/Brave/Chromium executable rather
+ * than downloading another browser.
  */
 const path = require('path');
 const fs = require('fs');
@@ -63,14 +63,33 @@ async function shot(page, name) {
 function findCachedChromiumExecutable() {
   const os = require('os');
   const cacheDir = path.join(os.homedir(), 'Library', 'Caches', 'ms-playwright');
-  if (!fs.existsSync(cacheDir)) return null;
-  const candidates = fs.readdirSync(cacheDir).filter(d => /^chromium-\d+$/.test(d));
-  for (const dir of candidates) {
-    const full = path.join(cacheDir, dir);
-    const found = walkForExecutable(full, 0);
-    if (found) return found;
+  if (fs.existsSync(cacheDir)) {
+    const candidates = fs.readdirSync(cacheDir).filter(d => /^chromium-\d+$/.test(d));
+    for (const dir of candidates) {
+      const full = path.join(cacheDir, dir);
+      const found = walkForExecutable(full, 0);
+      if (found) return found;
+    }
   }
-  return null;
+
+  // A machine can have the Playwright package but not its exact cached
+  // Chromium revision. Reuse a locally installed Chromium-family browser
+  // before asking for a large browser download.
+  const systemCandidates = process.platform === 'darwin'
+    ? [
+        '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+        '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
+        '/Applications/Chromium.app/Contents/MacOS/Chromium'
+      ]
+    : [
+        '/usr/bin/google-chrome',
+        '/usr/bin/chromium',
+        '/usr/bin/chromium-browser'
+      ];
+  return systemCandidates.find(candidate => {
+    try { fs.accessSync(candidate, fs.constants.X_OK); return true; }
+    catch (_) { return false; }
+  }) || null;
 }
 function walkForExecutable(dir, depth) {
   if (depth > 6) return null;
@@ -105,7 +124,7 @@ async function main() {
   } catch (e) {
     const cachedExe = findCachedChromiumExecutable();
     if (cachedExe) {
-      console.log(`Default Chromium resolution failed; using cached build: ${cachedExe}`);
+      console.log(`Default Chromium resolution failed; using local browser: ${cachedExe}`);
       launchOpts.executablePath = cachedExe;
     } else {
       throw e;
