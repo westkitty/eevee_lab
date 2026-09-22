@@ -38,12 +38,12 @@ const source=fs.readFileSync(path.join(__dirname,'..','src','phase7-living-world
 vm.runInNewContext(source,{window,console,Math,Object,Array,Number,String,Date,Map,Set,Float32Array});
 const P7=window.EeveeLivingWorld;
 
-const clock=new P7.WorldClock({dayLengthMs:24000,now:()=>0});
+const clock=new P7.WorldClock({dayLengthMs:240000,now:()=>0});
 assert.equal(clock.sample(0).phase,'night');
-assert.equal(clock.sample(5000).phase,'dawn');
-assert.equal(clock.sample(12000).phase,'day');
-assert.equal(clock.sample(18000).phase,'dusk');
-assert.equal(clock.sample(18000).label,'18:00');
+assert.equal(clock.sample(50000).phase,'dawn');
+assert.equal(clock.sample(120000).phase,'day');
+assert.equal(clock.sample(180000).phase,'dusk');
+assert.equal(clock.sample(180000).label,'18:00');
 
 const state={habitatHour:12,dayIndex:7};
 const w1=P7.weatherFor('jolteon',state);
