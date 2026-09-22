@@ -184,6 +184,16 @@
       return true;
     }
 
+    getDebugState() {
+      return {
+        initialized: !!this.master,
+        contextReused: !!(this.master && this.audio && this.audio.ctx),
+        level: this.level,
+        suspended: this.suspended,
+        lastKey: this.lastKey
+      };
+    }
+
     dispose() {
       try { if (this.tone) this.tone.stop(); } catch (_) {}
       try { if (this.noise) this.noise.stop(); } catch (_) {}
@@ -381,7 +391,15 @@
     }
 
     getDebugState() {
-      return this.state ? Object.assign({}, this.state, { suspended: this.suspended }) : null;
+      if (!this.state) return null;
+      const living = this.built && this.built.phase7Living;
+      return Object.assign({}, this.state, {
+        suspended: this.suspended,
+        manualLighting: this.manualLighting,
+        lifeDrawCount: living && living.life ? living.life.geometry.drawRange.count : 0,
+        weatherDrawCount: living && living.weather ? living.weather.geometry.drawRange.count : 0,
+        audio: this.audioDirector && this.audioDirector.getDebugState ? this.audioDirector.getDebugState() : null
+      });
     }
   }
 
