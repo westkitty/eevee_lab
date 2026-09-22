@@ -179,6 +179,22 @@
       return this.getDebugState();
     }
 
+    placeAt(point) {
+      if (!point) return false;
+      const target = this._clampToNav(point);
+      this.target = null;
+      this.targetSource = null;
+      this.behaviorState = null;
+      this.behaviorTimer = 0;
+      this.root.position.x = target.x;
+      this.root.position.y = this.groundY;
+      this.root.position.z = target.z;
+      this.state = 'idle';
+      this.idleTimer = this._nextIdleDelay();
+      this.holdTimer = 0.25;
+      return true;
+    }
+
     moveTo(point, options) {
       if (!point) return false;
       options = options || {};
