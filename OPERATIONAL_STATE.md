@@ -7,12 +7,12 @@
   "project_name": "Eevee Lab",
   "project_root": "/",
   "artifact_path": "index.html",
-  "state_revision": 7,
+  "state_revision": 8,
   "last_updated": "2026-09-22",
   "current_baseline": {
-    "identity": "f2f8f320ad15e33c268ea2eb20a10fcbc328c96e",
-    "state": "phase5-implemented",
-    "last_verified": "phase5-focused-world-state-room-lifecycle-and-source-scope"
+    "identity": "30715710146880400bc1dda3a479f2b7aa1e2643",
+    "state": "phase6-implemented",
+    "last_verified": "phase6-focused-evolution-ability-persistence-syntax-and-source-scope"
   },
   "scope_boundaries": [
     "The vanilla Three.js Habitat House browser project in westkitty/eevee_lab."
@@ -34,14 +34,15 @@
 
 ## 2. Current Baseline
 
-- **Primary artifact:** `f2f8f320ad15e33c268ea2eb20a10fcbc328c96e`
+- **Primary artifact:** `30715710146880400bc1dda3a479f2b7aa1e2643`
 - **Protected pre-Phase-0 runtime baseline:** `661a37bc7f86e5ff2b7da28d02e8c44ad696e007`.
 - **Protected pre-Phase-1 implementation baseline:** `0e31de1b392bb6cab1895818047ad45982a87a08`.
 - **Protected pre-Phase-2 implementation baseline:** `0c8f9adc9f251c044f4cb290cc6c6ec2f110c8cc`.
 - **Protected pre-Phase-3 implementation baseline:** `39dfb95e65f0391722f0e40ce39916b7dcb615bd`.
 - **Protected pre-Phase-4 implementation baseline:** `a86c34354ce8b5745550a4b0bac950e27e4d35c6`.
 - **Protected pre-Phase-5 implementation baseline:** `eb5d02152f7ed588c3ac3fc6d3d9c8613d15f44f`.
-- **Baseline state:** Phase 5 Habitat Becomes a Place is committed. Semantic world-state migration, one-heavy-room door lifecycle, persistent placement, provenance traces, and focused state/lifecycle contracts are verified; visible browser behavior remains unverified in the current execution environment.
+- **Protected pre-Phase-6 implementation baseline:** `8ac85ce77defac04ce0a7dace0679793dadc5c59`.
+- **Baseline state:** Phase 6 Transformation, Elemental Powers and Visual Unification is committed. Evolution/ability contracts, save-v3 semantic persistence, syntax and source ownership are focused-verified; visible browser behavior remains unverified.
 - **Source/build/install identity:** Vanilla global-script Three.js r128; no bundler or framework.
 - **Active default user route:** `index.html` → Habitat House → Conservatory / habitat rooms.
 - **Delivery state:** Repository has GitHub Pages enabled; live delivery is not reverified here.
@@ -98,6 +99,15 @@ The project remains a dependency-free static browser experience. Eevee and all e
 - **VER-031:** All nine species habitats plus the Conservatory implement visible narrative-stage application; habitat-room decoration supplies return portals, persistent furnishings, topology metadata, and destination entry/continuation points.
 - **VER-032:** Drawer/public instant room navigation remains available as an accessibility/debug fallback while diegetic doors use actor locomotion and threshold occlusion.
 - **VER-033:** Phase-5 portal previews are cached lightweight textures only; no destination heavy room is loaded behind a portal.
+- **VER-034:** Phase-6 diff from `8ac85ce` through `3071571` is bounded to evolution/ability/rendering/room/persistence/test/report surfaces; no model binary or vendored library changed.
+- **VER-035:** `tools/test_phase6_system.js` passes against current GitHub main source on the authorized Mac for explicit shiny mapping/restoration, unknown-material preservation, ability compatibility, stale-target rejection and two-step evolution.
+- **VER-036:** Updated `tools/test_habitat_state.js` passes against current GitHub main source on the authorized Mac through save-v3 migration and semantic ability mutation persistence while retaining Phase-5 state behavior.
+- **VER-037:** `node --check` passes for all changed Phase-6 source modules: phase6-system, render-effects, rooms, room-manager, persistence and habitat-state.
+- **VER-038:** Source inspection confirms one master render loop, one GLB load site, one EvolutionController construction/update seam, one AbilitySystem construction and one model cel-conversion seam.
+- **VER-039:** The old whole-model shiny tint markers are absent from `index.html`; explicit shiny profiles cover all nine species and preserve unknown materials.
+- **VER-040:** Ability persistence is semantic only under save-v3 `abilityMutations`; no scene serialization is introduced.
+- **VER-041:** Ability-target material mutations use room-owned clones with explicit disposal, preventing shared RoomKit material bleed.
+- **VER-042:** Physical evolution reuses already-loaded models and CreatureActor approach locomotion; no second GLB load path or renderer migration was added.
 
 ## 6. Known Not Working
 
@@ -118,6 +128,8 @@ No confirmed baseline failure is recorded at initialization.
 - **UNV-011:** Current GitHub Pages delivery has not been reverified after Phase 4.
 - **UNV-012:** Phase-5 portal preview rendering, physical walk-through-door choreography, destination continuation, visible room-state progression, persistent furnishing drag/drop, provenance trace rendering, and Conservatory history display are asserted in Playwright but have not run in a browser-capable checkout.
 - **UNV-013:** The updated persistent-furnishing assertion in `tools/test_interaction_system.js` is committed but was not separately executed from the exact repository checkout in this environment.
+- **UNV-014:** Phase-6 visible cel rendering, two-step evolution camera/flash choreography, room ability VFX, persistent mutation visuals, distinct ability controls and cinematic rim lighting are asserted in Playwright but have not run in a current browser checkout.
+- **UNV-015:** The authorized Mac contains `/Users/andrew/EEvEE_Lab`, but that checkout is still at `661a37b`; it was deliberately not used as evidence for current Phase-6 browser behavior.
 
 ## 8. Unknown or Evidence-Stale State
 
@@ -129,13 +141,14 @@ No confirmed baseline failure is recorded at initialization.
 - **PND-001:** In the first normal checkout, regenerate `assets/models/rig-manifest.json` so Umbreon's deep binary inventory replaces the partial evidence entry.
 - **PND-002:** Run `node tools/test_creature_actor.js`.
 - **PND-003:** Run `node tools/test_interaction_system.js`.
-- **PND-004:** Run `tools/verify_all_gameplay.js` in a browser-capable checkout and promote Phase-1 through Phase-5 runtime behavior only if it passes.
+- **PND-004:** Run `tools/verify_all_gameplay.js` in a current browser-capable checkout and promote Phase-1 through Phase-6 runtime behavior only if it passes.
 - **PND-005:** Visually classify any embedded animation clip before mapping it to a semantic slot.
 - **PND-006:** Full limb IK remains deferred until rig-specific foot-chain behavior is visually proven; Phase 2 uses root-ground projection only.
 - **PND-007:** Run `node tools/test_creature_behavior.js`.
 - **PND-008:** Before expanding beyond the Eevee + Vaporeon Conservatory slice, obtain the first browser-capable multi-creature regression run when possible and keep companion history/persistence out of scope until that slice is proven.
 - **PND-009:** Re-run the exact committed `tools/test_interaction_system.js` in the first normal checkout and confirm persistent furnishings cannot become projectiles.
-- **PND-010:** Phase 6 may implement physical evolution, species abilities, exact shiny profiles, unified cel treatment and cinematic lighting while preserving save-v2 semantic world state, Phase-5 room topology, and the one-heavy-room lifecycle.
+- **PND-010:** Update or create a current disposable Eevee Lab checkout before the next full Playwright run; do not treat the stale `661a37b` local checkout as current runtime evidence.
+- **PND-011:** Phase 7 may implement world clock, habitat micro-weather, vistas, ambient life and the AudioDirector while preserving save-v3 ability mutations, Phase-6 material ownership and the one-heavy-room lifecycle.
 
 ## 10. Active Decisions, Defaults, and Prohibitions
 
@@ -174,6 +187,14 @@ No confirmed baseline failure is recorded at initialization.
 - **DEC-033:** Slowly placed/retrieved identified toys may persist at rest, but thrown toys retain Phase-2 chase/retrieve behavior.
 - **DEC-034:** Cross-room contamination is bounded to at most four provenance-rich traces per destination and is seeded deterministically from meaningful source-room events.
 - **DEC-035:** Every habitat exposes semantic topology (interest, sleep, social, prop and portal positions); CreatureActor may use interest points for autonomous exploration without adding navmesh/physics dependencies.
+- **DEC-036:** EvolutionController owns physical evolution sequencing; CreatureActor owns the approach; the species strip remains an instant accessibility/debug switch.
+- **DEC-037:** Physical evolution is two-step: first activation offers/approaches, second activation commits; no irreversible form swap occurs on the first stone tap.
+- **DEC-038:** AbilitySystem owns species-to-target compatibility; HabitatWorldState stores only semantic ability mutations and RoomManager reapplies them on rebuild.
+- **DEC-039:** Species abilities may mutate only targets in the currently active room; stale target references are rejected.
+- **DEC-040:** Imported GLB materials are cel-converted once at load without renderer/framework migration; original material names remain the shiny-profile key.
+- **DEC-041:** Shiny mode modifies only explicitly known material names/patterns; unknown materials are preserved rather than globally recolored.
+- **DEC-042:** Ability visuals must not mutate shared RoomKit cached materials; target materials are cloned per room and disposed through the existing room lifecycle.
+- **DEC-043:** Cinematic lighting remains lightweight room-local directional rim lighting; no post-processing stack or new runtime dependency is introduced.
 
 ## 11. Validation and Evidence Matrix
 
@@ -204,15 +225,20 @@ No confirmed baseline failure is recorded at initialization.
 | VAL-023 | Door/room lifecycle and placement restoration work | verified-focused | test_room_manager_phase5 PASS: one heavy room, handoff, entry/continue, narrative apply, restore/capture | Container Node contract | f2f8f32 | 2026-09-22 | room-manager lifecycle change |
 | VAL-024 | Phase-5 ownership remains singular | verified-source | One animate, one RoomManager.goTo, one door choreography owner, one GLB load site, zero scene serialization | Repository source inspection | f2f8f32 | 2026-09-22 | runtime/lifecycle change |
 | VAL-025 | Physical habitat browser journey works | unverified | Playwright assertions committed for portal, walk-through door, persistence, provenance and Conservatory history; browser unavailable here | Playwright | f2f8f32 | — | first browser-capable checkout |
+| VAL-026 | Phase-6 focused species-system contract works | verified-focused | test_phase6_system PASS from current GitHub main source on authorized Mac | Node contract | 3071571 | 2026-09-22 | evolution/ability/shiny change |
+| VAL-027 | Save-v3 migration and ability persistence work | verified-focused | updated test_habitat_state PASS from current GitHub main source on authorized Mac | Node contract | 3071571 | 2026-09-22 | persistence/world-state change |
+| VAL-028 | Changed Phase-6 modules are syntactically valid | verified | node --check exit 0 for six changed source modules | Node syntax check | 3071571 | 2026-09-22 | source change |
+| VAL-029 | Phase-6 ownership remains singular | verified-source | one animate, one GLB load, one evolution controller/tick, one ability system, one celify seam | Repository source inspection | 3071571 | 2026-09-22 | runtime architecture change |
+| VAL-030 | Phase-6 visible browser journey works | unverified | Playwright assertions committed; local Eevee checkout is stale at 661a37b | Playwright | 3071571 | — | current browser checkout |
 
 ## 12. Current Change Scope and Impact Radius
 
-- **Allowed Phase-5 changes:** semantic habitat state, save-v2 migration, physical doorway choreography, destination entry/continuation points, room topology, room narrative visuals, persistent furnishings/toy resting positions, Conservatory history display, provenance-rich cross-room traces, focused tests, browser assertions, report and operational state.
-- **Protected and unchanged:** nine model binaries, Three.js r128, no-bundler architecture, one-heavy-room lifecycle, Phase-4 companion model reuse/restoration, camera implementation, procedural audio architecture, photo subsystem, Stone Dash implementation, primary interaction availability, reduced-motion accessibility.
-- **Potentially affected behavior:** room entry/exit, model/companion teardown during transitions, save loading/migration, direct-prop release semantics, autonomous target selection, room visuals after revisits, cross-room trace rendering, room grid navigation.
-- **Mandatory checks:** old saves migrate without data loss; only one heavy room survives a transition; diegetic door travel does not suspend locomotion; companion restoration remains reachable on room exit; semantic state never serializes scene objects; persistent furniture cannot become projectile physics; instant navigation fallback remains; no second GLB load path.
-- **Validated here:** focused world-state migration/persistence contract, focused RoomManager lifecycle/placement contract, final Git diff, and ownership/source counts.
-- **Unavailable proof:** full browser/Playwright journey, visual portal quality, exact drag/drop feel, and live Pages delivery.
+- **Allowed Phase-6 changes:** physical evolution choreography, species ability contracts/targets, save-v3 semantic ability state, explicit shiny profiles, one-time GLB cel conversion, room-local cinematic rim lighting, focused tests, browser assertions, report and operational state.
+- **Protected and unchanged:** nine model binaries, Three.js r128, global-script/no-bundler architecture, one-heavy-room lifecycle, Phase-4 companion ownership, Phase-5 topology/placement/provenance semantics, camera controller architecture, procedural audio architecture, photo subsystem and Stone Dash implementation.
+- **Potentially affected behavior:** model material appearance, form switching, companion teardown during evolution, room target materials, room disposal, save migration, interaction-wheel layout, reduced-motion evolution timing.
+- **Mandatory checks:** old saves migrate; one GLB load remains; evolution approach uses CreatureActor; first stone activation does not immediately swap; ability state is semantic and room-bounded; unknown shiny materials remain untouched; ability material clones dispose; legacy instant form switching remains.
+- **Validated here:** focused Phase-6 system contract, save-v3 habitat-state contract, syntax of all changed source modules, final Git diff and source ownership counts.
+- **Unavailable proof:** full browser/Playwright journey, visual cel/shiny fidelity, exact evolution camera feel and live Pages delivery.
 - **Repair class:** bounded feature implementation.
 
 ## 13. Compact Revision Log
@@ -293,3 +319,15 @@ No confirmed baseline failure is recorded at initialization.
 - **Focused validation:** habitat-state migration/persistence and RoomManager door/placement lifecycle contracts pass in the available container.
 - **Declared unverified:** the full browser journey and live GitHub Pages rendering remain unverified; exact committed persistent-furnishing unit assertion awaits a normal checkout.
 - **Next safe phase:** Phase 6 Transformation, Elemental Powers and Visual Unification, preserving save-v2 semantics and Phase-5 topology/lifecycle contracts.
+
+
+### Revision 8 — 2026-09-22
+
+- **Artifact/source identity:** `30715710146880400bc1dda3a479f2b7aa1e2643`
+- **State deltas:** Phase 6 Transformation, Elemental Powers and Visual Unification implemented and pushed.
+- **New behavior:** two-step physical Eevee evolution, eight reusable environmental abilities, persistent room power mutations, explicit material-keyed shiny profiles, cel-converted GLB materials and lightweight cinematic rim lighting.
+- **Persistence:** save schema advanced to v3 with semantic `abilityMutations`; v1/v2 data continues through the migration path.
+- **Lifecycle protection:** ability target materials are room-owned clones and dispose with the habitat; one heavy room and one GLB load path remain.
+- **Focused validation:** Phase-6 species-system test and updated habitat-state migration test pass from current GitHub main source on the authorized Mac; all changed source modules pass Node syntax checking.
+- **Declared unverified:** the full Playwright/browser journey and live GitHub Pages rendering remain unverified because the local Eevee Lab checkout is stale at `661a37b`.
+- **Next safe phase:** Phase 7 Living World, Atmosphere and Sound, preserving save-v3 semantics and Phase-6 rendering/material ownership.
