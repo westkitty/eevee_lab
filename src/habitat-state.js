@@ -115,6 +115,7 @@
     _ensureShape() {
       if (!isObject(this.save.get('roomNarrative', null))) this.save.set('roomNarrative', {});
       if (!isObject(this.save.get('placedObjects', null))) this.save.set('placedObjects', {});
+      if (!isObject(this.save.get('abilityMutations', null))) this.save.set('abilityMutations', {});
       const raw = this.save.get('crossContamination', {});
       const normalized = {};
       let changed = !isObject(raw);
@@ -254,6 +255,35 @@
       return isObject(room) ? Object.assign({}, room) : {};
     }
 
+    recordAbilityMutation(roomId, targetId, mutation) {
+      if (!roomId || !targetId || !isObject(mutation)) return null;
+      const all = Object.assign({}, this.save.get('abilityMutations', {}));
+      const room = Object.assign({}, all[roomId] || {});
+      room[targetId] = {
+        roomId,
+        targetId,
+        species: String(mutation.species || ''),
+        abilityId: String(mutation.abilityId || ''),
+        targetType: String(mutation.targetType || ''),
+        mutation: String(mutation.mutation || '')
+      };
+      all[roomId] = room;
+      this.save.set('abilityMutations', all);
+      return Object.assign({}, room[targetId]);
+    }
+
+    getAbilityMutation(roomId, targetId) {
+      const room = this.save.get('abilityMutations.' + roomId, {});
+      const value = room && room[targetId];
+      return isObject(value) ? Object.assign({}, value) : null;
+    }
+
+    listAbilityMutations(roomId) {
+      const room = this.save.get('abilityMutations.' + roomId, {});
+      if (!isObject(room)) return [];
+      return Object.keys(room).sort().map(id => Object.assign({}, room[id]));
+    }
+
     listTraces(destinationRoom) {
       const raw = this.save.get('crossContamination.' + destinationRoom, []);
       return Array.isArray(raw) ? raw.filter(isObject).map(item => Object.assign({}, item)) : [];
@@ -306,6 +336,7 @@
       return {
         room: this.getRoomState(roomId || 'conservatory'),
         placements: this.listPlacements(roomId || 'conservatory'),
+        abilities: this.listAbilityMutations(roomId || 'conservatory'),
         traces: this.listTraces(roomId || 'conservatory'),
         history: this.getHistorySummary()
       };
