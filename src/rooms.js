@@ -376,7 +376,7 @@
   };
 
   function commonReturnDoor(color) {
-    const door = RoomKit.doorway(color, 'return');
+    const door = RoomKit.doorway(color, 'conservatory');
     return door;
   }
 
