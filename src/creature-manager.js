@@ -68,9 +68,10 @@
       return this.primary;
     }
 
-    setPrimarySpecies(species) {
+    setPrimarySpecies(species, wrapper) {
       if (!this.primary) return false;
       this.primary.species = species || this.primary.species;
+      if (wrapper) this.primary.wrapper = wrapper;
       return true;
     }
 
