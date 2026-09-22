@@ -31,3 +31,19 @@ Autonomous social movement is suppressed under Reduced Motion or while the playe
 ## Validation target
 
 Focused manager tests cover roster ownership, separation, first greeting, toy competition and nap-together scheduling. The broad browser suite will verify the Conservatory pair, room/form restoration, actor-count stability and the unchanged single-form path.
+
+
+## Runtime wiring implemented
+
+- Vaporeon's already-loaded wrapper is temporarily reparented beneath `vaporeon-companion_root` only when Eevee is active in the Conservatory.
+- Activation stores the wrapper's original parent, local transform and visibility; restoration occurs before form switching or arcade entry.
+- `CreatureManager.update()` is the single normal multi-actor update seam. The Phase-3 scheduler still governs primary relationship state, while each `CreatureActor` exclusively owns its own pose and movement.
+- Vaporeon receives its own CreatureActor with the same room walkable bounds and independently navigates the active Conservatory.
+- Social coordination now requests greeting, approach, follow, shared inspection, parallel wandering, play, avoidance, nearby sitting, synchronized rest and toy competition.
+- Clicking Vaporeon selects/focuses the companion. Petting, brushing and feeding intentionally remain primary-targeted in this proving slice.
+- Leaving the Conservatory, switching away from Eevee or entering Stone Dash restores the original single-form rig. Returning to Eevee + Conservatory reuses the already-loaded Vaporeon without another GLB request.
+- Reduced Motion suppresses optional autonomous social motion; overlap separation remains a safety behavior.
+
+## Evidence state
+
+The focused manager contract passes for roster ownership, separation, first greeting, toy competition and nap scheduling. The focused test also covers companion reparent/restore lifecycle. The broad Playwright assertions are committed but cannot be executed in the current environment, so visible browser behavior remains implemented-but-unverified.
