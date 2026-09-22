@@ -357,6 +357,128 @@ async function main() {
   await page.evaluate(() => window.eeveeApp.selectEeveelution('eevee'));
   await page.waitForFunction(() => window.eeveeApp.creatureManagerState && window.eeveeApp.creatureManagerState.activeCount === 2, { timeout: 5000 });
 
+  // Phase 5: the house behaves like a persistent place rather than a room menu.
+  const phase5Boot = await page.evaluate(() => ({
+    version: window.eeveeApp.save.state.version,
+    habitat: window.eeveeApp.habitatState,
+    portalPreview: (() => {
+      const door = window.eeveeApp.roomManager.current.built.interactables.find(i => i.kind === 'door');
+      return !!(door && door.object3D.userData.glow && door.object3D.userData.glow.material.map);
+    })()
+  }));
+  record('phase5-save-v2', phase5Boot.version === 2, `saveVersion=${phase5Boot.version}`);
+  record('phase5-portal-preview', phase5Boot.portalPreview === true, JSON.stringify(phase5Boot));
+  record('phase5-conservatory-world-state',
+    phase5Boot.habitat && phase5Boot.habitat.room && phase5Boot.habitat.room.stageCount === 4,
+    JSON.stringify(phase5Boot.habitat));
+
+  // The diegetic door path walks the creature to the threshold before swapping rooms.
+  const startedDoor = await page.evaluate(() => window.eeveeApp.travelThroughDoor('jolteon'));
+  record('phase5-door-starts', startedDoor === true, `started=${startedDoor}`);
+  await page.waitForFunction(() => window.eeveeApp.doorTravelState !== null, { timeout: 2000 });
+  const duringDoor = await page.evaluate(() => ({
+    door: window.eeveeApp.doorTravelState,
+    actor: window.eeveeApp.creatureActorState
+  }));
+  record('phase5-door-actor-approach',
+    duringDoor.door && duringDoor.door.targetId === 'jolteon' && duringDoor.actor.targetSource === 'door',
+    JSON.stringify(duringDoor));
+  await page.waitForFunction(() => window.eeveeApp.roomManager.current.id === 'jolteon' && window.eeveeApp.doorTravelState === null, { timeout: 8000 });
+  await page.waitForTimeout(500);
+  const afterDoor = await page.evaluate(() => ({
+    room: window.eeveeApp.roomManager.current.id,
+    previous: window.eeveeApp.roomManager.previousId,
+    actor: window.eeveeApp.creatureActorState,
+    manager: window.eeveeApp.creatureManagerState
+  }));
+  record('phase5-door-room-swap',
+    afterDoor.room === 'jolteon' && afterDoor.previous === 'conservatory' && afterDoor.actor.roomId === 'jolteon' &&
+    afterDoor.actor.interestPointCount >= 3 && afterDoor.manager.activeCount === 1,
+    JSON.stringify(afterDoor));
+
+  // Room narrative advances through repeat interaction + discovered memento.
+  await page.evaluate(() => { triggerRoomProp(); triggerRoomProp(); });
+  await page.waitForTimeout(150);
+  await page.evaluate(() => {
+    const m = window.eeveeApp.roomManager.current.built.interactables.find(i => i.kind === 'memento');
+    if (m) m.onActivate();
+  });
+  await page.waitForTimeout(150);
+  const narrative = await page.evaluate(() => window.eeveeApp.habitatState.room);
+  record('phase5-jolteon-narrative',
+    narrative.stageIndex === 3 && narrative.stageId === 'overloaded',
+    JSON.stringify(narrative));
+
+  // A room furnishing stores only a bounded semantic transform and restores after rebuild.
+  const placement = await page.evaluate(() => {
+    const app = window.eeveeApp;
+    const cushion = app.interactionSystem.getManipulableObjects().find(o => o.userData.placeableId === 'jolteon_cushion');
+    if (!cushion) return null;
+    cushion.position.set(1.35, 0.12, 1.1);
+    cushion.rotation.y = 0.37;
+    const saved = app.roomManager.capturePlacement(cushion);
+    return { id: cushion.userData.placeableId, saved };
+  });
+  record('phase5-placement-captured', !!placement && placement.saved.x === 1.35 && placement.saved.z === 1.1, JSON.stringify(placement));
+  await page.evaluate(() => window.eeveeApp.goToRoom('conservatory'));
+  await page.waitForTimeout(250);
+  await page.evaluate(() => window.eeveeApp.goToRoom('jolteon'));
+  await page.waitForTimeout(250);
+  const placementRestored = await page.evaluate(() => {
+    const cushion = window.eeveeApp.interactionSystem.getManipulableObjects().find(o => o.userData.placeableId === 'jolteon_cushion');
+    return cushion ? { x:cushion.position.x, y:cushion.position.y, z:cushion.position.z, ry:cushion.rotation.y } : null;
+  });
+  record('phase5-placement-restored',
+    !!placementRestored && Math.abs(placementRestored.x - 1.35) < 0.001 && Math.abs(placementRestored.z - 1.1) < 0.001 &&
+    Math.abs(placementRestored.ry - 0.37) < 0.001,
+    JSON.stringify(placementRestored));
+
+  // Cross-room traces carry source provenance instead of anonymous threshold markers.
+  const provenance = await page.evaluate(() => {
+    const all = window.eeveeApp.save.get('crossContamination', {});
+    for (const [destination, list] of Object.entries(all)) {
+      const found = Array.isArray(list) ? list.find(t => t && t.originRoom === 'jolteon') : null;
+      if (found) return { destination, trace: found };
+    }
+    return null;
+  });
+  record('phase5-trace-provenance',
+    !!provenance && !!provenance.trace.originEvent && !!provenance.trace.objectType && provenance.trace.destinationRoom === provenance.destination,
+    JSON.stringify(provenance));
+  if (provenance) {
+    await page.evaluate((id) => window.eeveeApp.goToRoom(id), provenance.destination);
+    await page.waitForTimeout(250);
+    const renderedTrace = await page.evaluate(() => {
+      let found = null;
+      window.eeveeApp.roomManager.current.built.group.traverse(o => {
+        if (!found && o.userData && o.userData.traceProvenance) found = o.userData.traceProvenance;
+      });
+      return found;
+    });
+    record('phase5-trace-rendered',
+      !!renderedTrace && renderedTrace.originRoom === 'jolteon' && renderedTrace.destinationRoom === provenance.destination,
+      JSON.stringify(renderedTrace));
+  }
+
+  // Conservatory visibly reflects accumulated room history.
+  await page.evaluate(() => window.eeveeApp.goToRoom('conservatory'));
+  await page.waitForTimeout(300);
+  const archiveState = await page.evaluate(() => {
+    const built = window.eeveeApp.roomManager.current.built;
+    let litHistoryStones = 0;
+    built.group.traverse(o => {
+      if (o.userData && o.userData.floatSeed != null && o.material && o.material.emissiveIntensity > 0.5) litHistoryStones++;
+    });
+    return {
+      litHistoryStones,
+      narrative: window.eeveeApp.habitatState.room,
+      history: window.eeveeApp.habitatState.history
+    };
+  });
+  record('phase5-conservatory-reflects-history',
+    archiveState.litHistoryStones >= 3 && archiveState.narrative.stageIndex >= 1 && archiveState.history.visitedCount >= 3,
+    JSON.stringify(archiveState));
+
   // 3. Shiny mode.
   await page.keyboard.press('s');
   await page.waitForTimeout(200);
