@@ -88,6 +88,8 @@
       this.target = null;
       this.targetSource = null;
       this.state = 'idle';
+      this.behaviorState = null;
+      this.behaviorTimer = 0;
       this.heading = this.root.rotation ? this.root.rotation.y || 0 : 0;
       this.idleTimer = this._nextIdleDelay();
       this.holdTimer = 0;
@@ -128,6 +130,8 @@
       else this.animation.attach(null, [], null);
       this.target = null;
       this.targetSource = null;
+      this.behaviorState = null;
+      this.behaviorTimer = 0;
       this.state = 'idle';
       this.idleTimer = this._nextIdleDelay();
       return !!record;
@@ -167,6 +171,8 @@
       this.root.position.z = spawn.z;
       this.target = null;
       this.targetSource = null;
+      this.behaviorState = null;
+      this.behaviorTimer = 0;
       this.state = 'idle';
       this.idleTimer = this._nextIdleDelay();
       this.holdTimer = 0.6;
@@ -176,6 +182,7 @@
     moveTo(point, options) {
       if (!point) return false;
       options = options || {};
+      this.clearBehaviorState();
       const target = this._clampToNav(point);
       const dx = target.x - this.root.position.x;
       const dz = target.z - this.root.position.z;
@@ -197,6 +204,28 @@
       if (!point) return;
       this.attentionPoint = new THREE.Vector3(point.x, point.y || 0, point.z);
       this.attentionTimer = Math.max(0.1, seconds == null ? 1.5 : seconds);
+    }
+
+    setBehaviorState(slot, seconds) {
+      if (!SEMANTIC_SLOTS.includes(slot)) return false;
+      this.target = null;
+      this.targetSource = null;
+      this.holdTimer = 0;
+      this.behaviorState = slot;
+      this.behaviorTimer = seconds == null ? Infinity : Math.max(0.1, seconds);
+      this.state = slot;
+      this.animation.play(slot, 0.16);
+      return true;
+    }
+
+    clearBehaviorState(expectedSlot) {
+      if (expectedSlot && this.behaviorState !== expectedSlot) return false;
+      if (!this.behaviorState) return false;
+      this.behaviorState = null;
+      this.behaviorTimer = 0;
+      this.state = 'idle';
+      this.animation.play('idle', 0.16);
+      return true;
     }
 
     hold(seconds) {
@@ -242,6 +271,16 @@
     }
 
     _step(step, context) {
+      if (this.behaviorState) {
+        this.state = this.behaviorState;
+        this.animation.play(this.behaviorState, 0.12);
+        if (Number.isFinite(this.behaviorTimer)) {
+          this.behaviorTimer = Math.max(0, this.behaviorTimer - step);
+          if (this.behaviorTimer === 0) this.clearBehaviorState();
+        }
+        return;
+      }
+
       if (this.holdTimer > 0) {
         this.holdTimer = Math.max(0, this.holdTimer - step);
         this.state = 'idle';
@@ -323,7 +362,17 @@
     _updateProceduralView(dt) {
       const record = this.models.get(this.species);
       if (!record || !record.body) return;
-      if (this.state === 'walk') {
+      if (this.behaviorState === 'sleep') {
+        record.body.position.y += ((record.bodyBaseY - 0.13) - record.body.position.y) * Math.min(1, dt * 7);
+        record.body.rotation.z += ((record.bodyBaseZRot + 0.025) - record.body.rotation.z) * Math.min(1, dt * 7);
+      } else if (this.behaviorState === 'sit') {
+        record.body.position.y += ((record.bodyBaseY - 0.055) - record.body.position.y) * Math.min(1, dt * 8);
+        record.body.rotation.z += (record.bodyBaseZRot - record.body.rotation.z) * Math.min(1, dt * 8);
+      } else if (this.behaviorState === 'stretch' || this.behaviorState === 'groom' || this.behaviorState === 'reaction' || this.behaviorState === 'play') {
+        const pulse = Math.sin(this.gaitPhase += dt * 4) * 0.018;
+        record.body.position.y = record.bodyBaseY + pulse;
+        record.body.rotation.z = record.bodyBaseZRot + pulse * 0.35;
+      } else if (this.state === 'walk') {
         const bob = Math.abs(Math.sin(this.gaitPhase)) * 0.035;
         const sway = Math.sin(this.gaitPhase * 0.5) * 0.018;
         record.body.position.y = record.bodyBaseY + bob;
@@ -368,6 +417,8 @@
         roomId: this.roomId,
         state: this.state,
         targetSource: this.targetSource,
+        behaviorState: this.behaviorState,
+        behaviorTimer: Number.isFinite(this.behaviorTimer) ? this.behaviorTimer : null,
         target: this.target ? { x: this.target.x, z: this.target.z } : null,
         position: { x: this.root.position.x, y: this.root.position.y, z: this.root.position.z },
         heading: this.root.rotation.y,

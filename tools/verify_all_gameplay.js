@@ -212,6 +212,52 @@ async function main() {
   await page.evaluate(() => window.eeveeApp.goToRoom('conservatory'));
   await page.waitForTimeout(350);
 
+  // Phase 3 bounded memory: repeated semantic interactions create favorites without event logs.
+  const phase3Memory = await page.evaluate(() => {
+    const b = window.eeveeApp.behaviorScheduler;
+    b.recordInteraction('pet', { region: 'ears' });
+    b.recordInteraction('pet', { region: 'ears' });
+    b.recordInteraction('brush', { region: 'back' });
+    b.recordInteraction('toyRetrieve', { toy: 'ball' });
+    return b.getDebugState();
+  });
+  record('phase3-bounded-memory',
+    phase3Memory && phase3Memory.memory.favoriteTouchZone === 'ears' && phase3Memory.memory.favoriteToy === 'ball',
+    phase3Memory ? JSON.stringify(phase3Memory.memory) : 'behavior scheduler unavailable');
+
+  // Familiarity tier changes behavior and unlocks the species-specific personal gesture.
+  const bondGesture = await page.evaluate(() => {
+    const app = window.eeveeApp;
+    app.save.set('bond.eevee.familiarity', 80);
+    const requested = app.requestBondGesture();
+    return { requested, scheduler: app.behaviorState, actor: app.creatureActorState };
+  });
+  record('phase3-bond-gesture',
+    bondGesture.requested === true && bondGesture.scheduler.familiarityTier === 2 && !!bondGesture.actor.behaviorState,
+    JSON.stringify(bondGesture));
+
+  // Actual sleep is scheduler-owned and actor-presented; interaction wakes it.
+  const sleepState = await page.evaluate(() => {
+    const app = window.eeveeApp;
+    const b = app.behaviorScheduler;
+    b.needs.restInclination = 0.9;
+    b.lastInteractionAgo = 45;
+    b.quietAccum = 22;
+    b.update(1, { idle: true, userActive: false, specialAction: false });
+    return { scheduler: app.behaviorState, actor: app.creatureActorState };
+  });
+  record('phase3-sleep-start',
+    sleepState.scheduler.sleeping === true && sleepState.actor.behaviorState === 'sleep',
+    JSON.stringify(sleepState));
+  const wakeState = await page.evaluate(() => {
+    const app = window.eeveeApp;
+    app.behaviorScheduler.recordInteraction('pet', { region: 'head' });
+    return { scheduler: app.behaviorState, actor: app.creatureActorState };
+  });
+  record('phase3-sleep-wake',
+    wakeState.scheduler.sleeping === false && wakeState.actor.behaviorState !== 'sleep',
+    JSON.stringify(wakeState));
+
   // 3. Shiny mode.
   await page.keyboard.press('s');
   await page.waitForTimeout(200);

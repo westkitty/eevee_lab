@@ -219,6 +219,7 @@
       this.sleeping = false;
       this.sleepTimer = 0;
       this.currentMoment = null;
+      this.currentMomentTimer = 0;
     }
 
     familiarityTier(species) {
@@ -270,6 +271,7 @@
         tags: ['relationship', 'photographable', 'species:' + this.species]
       };
       this.currentMoment = event;
+      this.currentMomentTimer = 4;
       this.emit(event);
       return true;
     }
@@ -280,6 +282,7 @@
       this.sleepTimer = 0;
       this.needs.afterSleep();
       this.currentMoment = null;
+      this.currentMomentTimer = 0;
       this.emit({
         type: 'sleep-end',
         species: this.species,
@@ -296,6 +299,10 @@
       const quiet = !!context.idle && !context.specialAction && !context.userActive;
       this.lastInteractionAgo += dt;
       this.needs.update(dt, quiet);
+      if (!this.sleeping && this.currentMomentTimer > 0) {
+        this.currentMomentTimer = Math.max(0, this.currentMomentTimer - dt);
+        if (this.currentMomentTimer === 0) this.currentMoment = null;
+      }
 
       if (this.sleeping) {
         this.sleepTimer -= dt;
@@ -345,6 +352,7 @@
       this.sleeping = true;
       this.sleepTimer = 16 + this.random() * 22;
       this.memory.noteSleep(this.species, this.roomId);
+      this.currentMomentTimer = Infinity;
       this.currentMoment = {
         type: 'sleep-start',
         species: this.species,
@@ -367,6 +375,7 @@
         tags: ['rare', 'photographable', 'species:' + this.species, 'room:' + (this.roomId || 'any')]
       };
       this.currentMoment = event;
+      this.currentMomentTimer = 4;
       this.emit(event);
     }
 

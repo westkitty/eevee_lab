@@ -24,3 +24,19 @@ The scheduler may request behavior. It does not mutate Three.js scene objects. `
 - Needs do not create penalties.
 - No giant interaction history is persisted.
 - Unknown imported animation clips remain unmapped.
+
+
+## Runtime wiring implemented
+
+- `CreatureActor` now exposes semantic external behavior poses while retaining sole transform authority.
+- Sleep is a real scheduled state: locomotion pauses, a visible settled pose is applied, and player interaction wakes the creature immediately.
+- Rare species behaviors are emitted as temporary tagged moments, journaled through the existing rare-moment system, and never remain falsely active after their short window.
+- Familiarity changes call behavior: cautious creatures attend, comfortable creatures approach, and bonded creatures can perform a species-specific personal gesture.
+- Comfortable/bonded creatures periodically initiate attention or approach rather than waiting for a button press.
+- Petting and brushing record dominant touch region; toys record throw/retrieve preference; food records preference; rooms, quiet sessions, and sleep update bounded memory.
+- The scheduler reads the existing BondTracker tier and does not introduce a second relationship score.
+- UI/pointer/keyboard activity wakes or delays rest opportunities without creating any penalty for absence.
+
+## Evidence state
+
+Focused Node and Playwright assertions are committed. Runtime execution remains unavailable in the current environment because the container cannot resolve github.com for a clean checkout, so Phase 3 is source-verified but browser-unverified.

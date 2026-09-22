@@ -525,6 +525,7 @@
   <script src="src/camera-controller.js"></script>
   <script src="src/rooms.js"></script>
   <script src="src/room-manager.js"></script>
+  <script src="src/creature-behavior.js"></script>
   <script src="src/creature-actor.js"></script>
   <script src="src/interaction-system.js"></script>
   <script src="src/ui-controller.js"></script>
@@ -873,6 +874,7 @@
     const save = new SaveManager();
     const bondTracker = new DiscoverySystem.BondTracker(save);
     const interactionMemory = new DiscoverySystem.InteractionMemory();
+    const creatureMemory = new CreatureBehaviorSystem.CreatureMemory(save);
     const resonanceTracker = new DiscoverySystem.ResonanceTracker(save);
     let uiChrome; // needs window.matchMedia + save, created below
     const discoveryLog = new DiscoverySystem.DiscoveryLog(save, (entry) => showDiscoveryToast(entry));
@@ -881,6 +883,7 @@
     let roomManager = null;
     let creatureActor = null;
     let interactionSystem = null;
+    let behaviorScheduler = null;
     let toyRetrieval = null;
 
     /* ==========================================================================
@@ -1267,6 +1270,7 @@
       currentForm = formKey;
       save.set('activeForm', formKey);
       if (roomManager) roomManager.setActiveForm(formKey);
+      if (behaviorScheduler) behaviorScheduler.setSpecies(formKey);
 
       renderSpeciesStrip();
       updateFactSheet(formKey);
@@ -1480,8 +1484,32 @@
       updateFaceExpression('happy');
       bondTracker.bump(currentForm, 1);
       discoveryLog.checkCombo(roomManager ? roomManager.current?.id : null, currentForm, 'call');
-      showSpeech(interactionMemory.pick('call', ["*perks up instantly and looks right at you*", "*leans in, full attention*", "*ears swivel toward you immediately*"]));
-      if (eeveeRig) { petSquishFactor = 1.15; eeveeRig.position.y = Math.max(eeveeRig.position.y, 0.15); }
+      if (behaviorScheduler) behaviorScheduler.recordInteraction('call');
+      const tier = behaviorScheduler ? behaviorScheduler.familiarityTier() : bondTracker.tier(currentForm);
+      const lines = tier >= 2
+        ? ["*is already moving toward you before the call finishes*", "*looks over like: yes, obviously I heard you*"]
+        : tier >= 1
+          ? ["*perks up, then comes closer on its own*", "*ears swivel toward you and the whole body follows*"]
+          : ["*perks up instantly and looks right at you*", "*leans in, full attention*", "*ears swivel toward you immediately*"];
+      showSpeech(interactionMemory.pick('call_tier_' + tier, lines));
+      if (creatureActor && camera) {
+        creatureActor.lookAtWorld(camera.position, 1.8);
+        if (tier >= 1) {
+          const dx = camera.position.x - eeveeRig.position.x;
+          const dz = camera.position.z - eeveeRig.position.z;
+          const d = Math.sqrt(dx * dx + dz * dz);
+          if (d > 1.6) {
+            const travel = Math.min(1.15, d - 1.35);
+            creatureActor.moveTo(new THREE.Vector3(
+              eeveeRig.position.x + dx / d * travel,
+              0,
+              eeveeRig.position.z + dz / d * travel
+            ), { source: 'relationship' });
+          }
+        }
+      }
+      if (tier >= 2 && behaviorScheduler) behaviorScheduler.requestBondGesture('call');
+      if (eeveeRig) petSquishFactor = 1.15;
     }
 
     function brushEeveelution() {
@@ -1560,6 +1588,11 @@
         slow: "Slow brush passes. Maximum floof restoration.",
         gentle: "That brushing rhythm is exactly right."
       };
+      if (behaviorScheduler) behaviorScheduler.recordInteraction(tool === 'brush' ? 'brush' : 'pet', {
+        region,
+        speed: summary.speed,
+        length: summary.length
+      });
       if (tool === 'brush') {
         showSpeech(brushLines[summary.speed] || brushLines.gentle);
         interactionSystem.haptic([8, 18, 8]);
@@ -1586,6 +1619,7 @@
         return;
       }
       if (release.kind === 'ball' || release.kind === 'plush') {
+        if (behaviorScheduler) behaviorScheduler.recordInteraction('toyThrow', { toy: release.kind });
         toyRetrieval = {
           object,
           returnPoint: eeveeRig.position.clone(),
@@ -1643,8 +1677,49 @@
           meta.state = 'resting';
           meta.velocity.set(0, 0, 0);
           interactionSystem.haptic([8, 20, 8]);
+          if (behaviorScheduler) behaviorScheduler.recordInteraction('toyRetrieve', { toy: meta.kind });
           showSpeech("Returned. Throw it again. Obviously.");
           toyRetrieval = null;
+        }
+      }
+    }
+
+    function handleBehaviorEvent(event) {
+      if (!event || !creatureActor) return;
+      if (event.type === 'sleep-start') {
+        creatureActor.setBehaviorState('sleep');
+        updateFaceExpression('happy');
+        showSpeech("*settles down and actually falls asleep* 💤");
+        return;
+      }
+      if (event.type === 'sleep-end') {
+        creatureActor.clearBehaviorState('sleep');
+        if (event.reason === 'interaction') showSpeech("*wakes up immediately and focuses on you*");
+        return;
+      }
+      if (event.type === 'rare') {
+        creatureActor.setBehaviorState(event.semantic || 'reaction', 2.8);
+        discoveryLog.unlockRareMoment(event.id, event.label);
+        showSpeech(event.label);
+        return;
+      }
+      if (event.type === 'bond-gesture') {
+        creatureActor.setBehaviorState(event.semantic || 'reaction', 2.6);
+        showSpeech(event.label);
+        return;
+      }
+      if (event.type === 'initiative' && camera && eeveeRig) {
+        creatureActor.lookAtWorld(camera.position, 1.6);
+        const dx = camera.position.x - eeveeRig.position.x;
+        const dz = camera.position.z - eeveeRig.position.z;
+        const d = Math.sqrt(dx * dx + dz * dz);
+        if (d > 2.0) {
+          const travel = Math.min(event.tier >= 2 ? 1.0 : 0.65, d - 1.5);
+          creatureActor.moveTo(new THREE.Vector3(
+            eeveeRig.position.x + dx / d * travel,
+            0,
+            eeveeRig.position.z + dz / d * travel
+          ), { source: 'relationship' });
         }
       }
     }
@@ -2288,6 +2363,7 @@
           clearPlacedTreats();
           if (creatureActor) creatureActor.enterRoom(roomId, built);
           if (interactionSystem) interactionSystem.registerRoom(built.group);
+          if (behaviorScheduler) behaviorScheduler.enterRoom(roomId);
           showRoomToast(roomId, built);
           renderRoomGrid();
         }
@@ -2306,6 +2382,14 @@
         reducedMotion: uiChrome.reducedMotion
       });
       window.interactionSystem = interactionSystem;
+      behaviorScheduler = new CreatureBehaviorSystem.BehaviorScheduler({
+        save,
+        bond: bondTracker,
+        memory: creatureMemory,
+        species: currentForm,
+        emit: handleBehaviorEvent
+      });
+      window.behaviorScheduler = behaviorScheduler;
 
       renderSpeciesStrip();
       renderJournal();
@@ -2321,6 +2405,8 @@
 
       setupPettingInteraction(canvas);
       window.addEventListener('resize', onWindowResize);
+      window.addEventListener('pointerdown', () => { lastActivityAt = performance.now(); }, { passive: true });
+      window.addEventListener('keydown', () => { lastActivityAt = performance.now(); }, { passive: true });
       uiChrome.reportActivity();
     }
 
@@ -2659,9 +2745,19 @@
 
         if (interactionSystem) interactionSystem.update(dt);
 
+        const specialActionActive = evolutionSpinTimer > 0 || isDiscoMode || isLoafMode || isVacuumPanicking || treats.some(t => !t.userData.directManipulation) || treatHungerAngle > 0;
+        if (behaviorScheduler && creatureActor) {
+          const actorStateBefore = creatureActor.getDebugState();
+          behaviorScheduler.update(dt, {
+            idle: actorStateBefore.state === 'idle' && !actorStateBefore.target,
+            specialAction: specialActionActive,
+            userActive: performance.now() - lastActivityAt < 2200
+          });
+        }
+
         if (creatureActor) {
           creatureActor.update(dt, elapsed, {
-            suspended: evolutionSpinTimer > 0 || isDiscoMode || isLoafMode || isVacuumPanicking || treats.some(t => !t.userData.directManipulation) || treatHungerAngle > 0,
+            suspended: specialActionActive,
             reducedMotion: !!(uiChrome && uiChrome.reducedMotion),
             chillMode: isChillMode,
             cameraPosition: camera ? camera.position : null
@@ -2690,6 +2786,7 @@
           const managedReached = managed && Math.sqrt(rootDx * rootDx + rootDz * rootDz) < 0.68;
           if (managedReached || treatWorld.distanceTo(mouthWorldPos) < eatDistance) {
             audio.playChomp(); triggerConfetti(); updateFaceExpression('hearts');
+            if (behaviorScheduler) behaviorScheduler.recordInteraction('feed', { food: t.userData.type });
             const pref = t.userData.pref || 1.0;
             if (t.userData.type === 'puff') { petSquishFactor = 1.6 + 0.3 * pref; showSpeech("CHONK! Maximum gigantamax floof unlocked! 🧁"); }
             else { petSquishFactor = 1.2 + 0.15 * pref; showSpeech("Munch munch munch! Delicious berry! 🍓"); }
@@ -2757,6 +2854,8 @@
       get creatureActorState() { return creatureActor ? creatureActor.getDebugState() : null; },
       get interactionSystem() { return interactionSystem; },
       get interactionSystemState() { return interactionSystem ? interactionSystem.getDebugState() : null; },
+      get behaviorScheduler() { return behaviorScheduler; },
+      get behaviorState() { return behaviorScheduler ? behaviorScheduler.getDebugState() : null; },
       get save() { return save; },
       get isPhotoMode() { return isPhotoMode; },
       get isChillMode() { return isChillMode; },
@@ -2767,6 +2866,8 @@
       goToRoom: (id) => roomManager && roomManager.goTo(id),
       moveCreatureTo: (x, z) => creatureActor && creatureActor.moveTo(new THREE.Vector3(x, 0, z), { manual: true }),
       lookCreatureAt: (x, y, z) => creatureActor && creatureActor.lookAtWorld(new THREE.Vector3(x, y || 0, z), 1.5),
+      requestBondGesture: () => behaviorScheduler && behaviorScheduler.requestBondGesture('debug'),
+      wakeCreature: () => behaviorScheduler && behaviorScheduler.wake('interaction'),
       startApp
     };
 
