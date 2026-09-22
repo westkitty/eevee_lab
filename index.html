@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Eevee's Silly Evolution Disco & Arcade 🌟</title>
-  
+
   <!-- Playful Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,739 +26,506 @@
       --shadow-soft: 0 12px 36px rgba(100, 70, 90, 0.18);
       --font-display: 'Bungee', cursive;
       --font-body: 'Fredoka', sans-serif;
+      --focus-ring: #ffb400;
+      --touch-min: 44px;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none;
-      -webkit-user-select: none;
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+
+    html, body { width: 100%; height: 100%; overflow: hidden; font-family: var(--font-body); background: var(--bg-gradient); color: #332418; }
+
+    /* Global focus visibility (UX-14) */
+    a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
+      outline: 3px solid var(--focus-ring);
+      outline-offset: 2px;
+      border-radius: 8px;
     }
 
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      font-family: var(--font-body);
-      background: var(--bg-gradient);
-      color: #332418;
+    /* Reduced motion (UX-15): manual + prefers-reduced-motion, both funnel through this attribute */
+    html[data-reduced-motion="true"] *, html[data-reduced-motion="true"] *::before, html[data-reduced-motion="true"] *::after {
+      animation-duration: 0.001s !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 120ms !important;
+      scroll-behavior: auto !important;
     }
 
     #webgl-canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-      display: block;
-      outline: none;
-      cursor: grab;
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 1; display: block; outline: none; cursor: grab;
     }
-    #webgl-canvas:active {
-      cursor: grabbing;
-    }
+    #webgl-canvas:active { cursor: grabbing; }
+    #webgl-canvas.hover-interactive { cursor: pointer; }
 
-    /* UI Overlay Containers */
-    .ui-layer {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 10;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 16px;
-    }
+    /* ---------------------------------------------------------------
+       QUIET HUD (UX-01): everything hugs an edge. Center stays clear.
+       --------------------------------------------------------------- */
+    .hud { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
+    .interactive { pointer-events: auto; }
+    .corner { position: absolute; display: flex; gap: 8px; transition: opacity 0.4s ease, transform 0.3s ease; }
+    .corner.tl { top: 14px; left: 14px; flex-direction: column; align-items: flex-start; }
+    .corner.tr { top: 14px; right: 14px; flex-direction: column; align-items: flex-end; }
+    .corner.bl { bottom: 14px; left: 14px; flex-direction: column; align-items: flex-start; }
+    .corner.br { bottom: 14px; right: 14px; flex-direction: column; align-items: flex-end; }
+    .corner.bc { bottom: 14px; left: 50%; transform: translateX(-50%); flex-direction: column; align-items: center; }
+    .corner.tc { top: 14px; left: 50%; transform: translateX(-50%); flex-direction: column; align-items: center; }
 
-    .interactive {
-      pointer-events: auto;
-    }
+    /* Auto-fading chrome (UX-02): everything with .fadeable dims after inactivity, snaps back instantly */
+    .fadeable { transition: opacity 0.5s ease; }
+    .chrome-faded .fadeable { opacity: 0.28; }
+    .chrome-faded .fadeable:hover, .chrome-faded .fadeable:focus-within { opacity: 1; }
+    /* Arcade HUD is never faded (UX-02: never hide critical game state) */
 
-    /* Top Navigation Bar */
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
+    .icon-btn {
+      width: var(--touch-min); height: var(--touch-min);
+      background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 2px solid var(--glass-border); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.15rem; cursor: pointer; box-shadow: var(--shadow-soft);
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
+    .icon-btn:hover { transform: scale(1.1); }
+    .icon-btn:active { transform: scale(0.94); }
+    .icon-btn.primary { background: linear-gradient(135deg, #ffb834, #ff7597); color: #fff; }
 
-    .brand-pill {
-      background: var(--glass-bg);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border: 2px solid var(--glass-border);
-      padding: 8px 20px;
-      border-radius: 40px;
-      box-shadow: var(--shadow-soft);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      animation: gentle-bob 4s ease-in-out infinite;
+    /* ---- Room identity toast (UX-10): brief, then shrinks to a tiny breadcrumb ---- */
+    #room-toast {
+      background: var(--glass-bg); backdrop-filter: blur(14px); border: 2px solid var(--glass-border);
+      border-radius: 22px; padding: 10px 22px; box-shadow: var(--shadow-soft); text-align: center;
+      opacity: 0; transform: translateX(-50%) translateY(-10px) scale(0.96);
+      transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.34,1.56,0.64,1);
+      max-width: 80vw;
     }
+    #room-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    #room-toast .room-name { font-family: var(--font-display); font-size: 0.95rem; color: #6e4624; }
+    #room-toast .room-mood { font-size: 0.75rem; color: #7a5a3a; margin-top: 2px; }
 
-    .brand-title {
-      font-family: var(--font-display);
-      font-size: 1.25rem;
-      color: #7b4f2c;
-      letter-spacing: 0.5px;
-      text-shadow: 1px 1px 0px #fff;
+    #room-breadcrumb {
+      background: var(--glass-bg); backdrop-filter: blur(10px); border: 1px solid var(--glass-border);
+      border-radius: 16px; padding: 5px 12px; font-size: 0.7rem; font-weight: 700; color: #6e4624;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none;
     }
+    html[data-density="standard"] #room-breadcrumb, html[data-density="full"] #room-breadcrumb { display: block; }
 
-    .mode-badge {
-      background: #ff7597;
-      color: #fff;
-      font-size: 0.75rem;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 20px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      box-shadow: 0 4px 10px rgba(255, 117, 151, 0.4);
-    }
-
-    .top-controls {
-      display: flex;
-      gap: 8px;
-    }
-
-    .btn-icon {
-      background: var(--glass-bg);
-      backdrop-filter: blur(12px);
-      border: 2px solid var(--glass-border);
-      border-radius: 50%;
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.2rem;
-      cursor: pointer;
-      box-shadow: var(--shadow-soft);
-      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    .btn-icon:hover {
-      transform: scale(1.15) rotate(5deg);
-      background: #ffffff;
-    }
-    .btn-icon:active {
-      transform: scale(0.95);
-    }
-
-    /* Mode Switcher Buttons */
-    .mode-switch-group {
-      background: var(--glass-bg);
-      backdrop-filter: blur(14px);
-      border: 2px solid var(--glass-border);
-      border-radius: 30px;
-      padding: 4px;
-      display: flex;
-      gap: 4px;
-      box-shadow: var(--shadow-soft);
-    }
-    .mode-btn {
-      border: none;
-      background: transparent;
-      padding: 8px 16px;
-      border-radius: 24px;
-      font-family: var(--font-body);
-      font-weight: 700;
-      font-size: 0.85rem;
-      cursor: pointer;
-      color: #6a4a35;
-      transition: all 0.25s ease;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .mode-btn.active {
-      background: #ffb834;
-      color: #fff;
-      box-shadow: 0 4px 12px rgba(255, 184, 52, 0.45);
-      transform: scale(1.02);
-    }
-
-    /* Side Action Panel (Petting & Toys) */
-    .side-toy-panel {
-      position: absolute;
-      right: 16px;
-      top: 80px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      z-index: 12;
-    }
-
-    .toy-card {
-      background: var(--glass-bg);
-      backdrop-filter: blur(12px);
-      border: 2px solid var(--glass-border);
-      border-radius: 20px;
-      padding: 10px 14px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      cursor: pointer;
-      box-shadow: var(--shadow-soft);
-      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-      font-weight: 700;
-      font-size: 0.85rem;
-      color: #55341c;
-      width: 175px;
-    }
-    .toy-card:hover {
-      transform: translateX(-8px) scale(1.04);
-      background: #ffffff;
-      box-shadow: 0 10px 24px rgba(255, 150, 180, 0.3);
-    }
-    .toy-card:active {
-      transform: scale(0.96);
-    }
-    .toy-icon {
-      font-size: 1.6rem;
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
-    }
-    .toy-danger {
-      border-color: #ff8585;
-      background: rgba(255, 235, 235, 0.9);
-      color: #b71c1c;
-    }
-    .toy-danger:hover {
-      background: #ffe6e6;
-      box-shadow: 0 10px 24px rgba(255, 60, 60, 0.35);
-    }
-
-    /* Floating Speech & Reaction Bubble */
-    .speech-bubble {
-      position: absolute;
-      top: 15%;
-      left: 50%;
-      transform: translateX(-50%) scale(0);
-      background: #ffffff;
-      border: 3px solid #633e21;
-      padding: 12px 24px;
-      border-radius: 24px;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.15);
-      font-family: var(--font-body);
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: #533219;
-      pointer-events: none;
-      z-index: 20;
-      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
-      opacity: 0;
-      text-align: center;
-      max-width: 320px;
-    }
-    .speech-bubble::after {
-      content: '';
-      position: absolute;
-      bottom: -14px;
-      left: 50%;
-      transform: translateX(-50%);
-      border-width: 14px 12px 0;
-      border-style: solid;
-      border-color: #633e21 transparent transparent;
-      display: block;
-      width: 0;
-    }
-    .speech-bubble.visible {
-      transform: translateX(-50%) scale(1);
-      opacity: 1;
-    }
-
-    /* Bottom Dock: Eeveelution Selector */
-    .bottom-dock {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      width: 100%;
-    }
-
-    .evolution-scroll-bar {
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      max-width: 95vw;
-      padding: 10px 14px;
-      background: var(--glass-bg);
-      backdrop-filter: blur(16px);
-      border: 2px solid var(--glass-border);
-      border-radius: 36px;
-      box-shadow: var(--shadow-soft);
+    /* ---- Compact species token strip (UX-04) ---- */
+    #species-strip {
+      display: flex; gap: 6px; overflow-x: auto; max-width: min(92vw, 620px);
+      padding: 8px 10px; background: var(--glass-bg); backdrop-filter: blur(16px);
+      border: 2px solid var(--glass-border); border-radius: 30px; box-shadow: var(--shadow-soft);
       scrollbar-width: none;
     }
-    .evolution-scroll-bar::-webkit-scrollbar {
-      display: none;
+    #species-strip::-webkit-scrollbar { display: none; }
+    .species-token {
+      position: relative; width: 38px; height: 38px; min-width: 38px; border-radius: 50%;
+      background: #fff; border: 2px solid transparent; display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; cursor: pointer; transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1);
     }
+    .species-token.active { border-color: #332418; transform: translateY(-4px) scale(1.12); box-shadow: 0 8px 16px rgba(0,0,0,0.22); }
+    .species-token .token-tip {
+      position: absolute; bottom: 46px; left: 50%; transform: translateX(-50%) scale(0.85);
+      background: #2a1c10; color: #fff; padding: 4px 10px; border-radius: 10px; font-size: 0.68rem;
+      white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+    .species-token:hover .token-tip, .species-token:focus-visible .token-tip { opacity: 1; transform: translateX(-50%) scale(1); }
+    .species-token[data-form="eevee"] { background: #e0b47a; }
+    .species-token[data-form="vaporeon"] { background: #68c3ef; }
+    .species-token[data-form="jolteon"] { background: #ffe644; }
+    .species-token[data-form="flareon"] { background: #ff7844; }
+    .species-token[data-form="espeon"] { background: #d09cf5; }
+    .species-token[data-form="umbreon"] { background: #3c424e; }
+    .species-token[data-form="leafeon"] { background: #9bd770; }
+    .species-token[data-form="glaceon"] { background: #a2e8f5; }
+    .species-token[data-form="sylveon"] { background: #ffb7df; }
 
-    .evo-pill {
-      background: #ffffff;
-      border: 2px solid transparent;
-      padding: 8px 16px;
-      border-radius: 26px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      font-weight: 700;
-      font-size: 0.85rem;
-      color: #4a3424;
-      white-space: nowrap;
-      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-      box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+    /* ---- Speech bubble: nonblocking, near creature / quiet edge (UX-17) ---- */
+    .speech-bubble {
+      position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%) scale(0);
+      background: #ffffff; border: 3px solid #633e21; padding: 8px 18px; border-radius: 20px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.15); font-size: 0.95rem; font-weight: 700; color: #533219;
+      pointer-events: none; z-index: 20; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
+      opacity: 0; text-align: center; max-width: 280px;
     }
-    .evo-pill:hover {
-      transform: translateY(-4px) scale(1.06);
-      box-shadow: 0 8px 18px rgba(0,0,0,0.12);
-    }
-    .evo-pill.active {
-      border-color: #332418;
-      transform: translateY(-4px) scale(1.08);
-      box-shadow: 0 10px 22px rgba(0,0,0,0.2);
-    }
+    .speech-bubble.visible { transform: translateX(-50%) scale(1); opacity: 1; }
 
-    /* Color Accents for Eeveelutions */
-    .evo-pill[data-form="eevee"].active { background: #e0b47a; color: #4a2c0c; }
-    .evo-pill[data-form="vaporeon"].active { background: #68c3ef; color: #083c5d; }
-    .evo-pill[data-form="jolteon"].active { background: #ffe644; color: #5a4b00; }
-    .evo-pill[data-form="flareon"].active { background: #ff7844; color: #571600; }
-    .evo-pill[data-form="espeon"].active { background: #d09cf5; color: #401460; }
-    .evo-pill[data-form="umbreon"].active { background: #3c424e; color: #ffe644; }
-    .evo-pill[data-form="leafeon"].active { background: #9bd770; color: #234d0b; }
-    .evo-pill[data-form="glaceon"].active { background: #a2e8f5; color: #114a57; }
-    .evo-pill[data-form="sylveon"].active { background: #ffb7df; color: #6a1a47; }
+    /* ---- Journal toast (small, edge, non-blocking discovery notice) ---- */
+    #discovery-toast {
+      position: absolute; top: 70px; left: 50%; transform: translateX(-50%) translateY(-8px);
+      background: #fff7e0; border: 2px solid #ffb834; border-radius: 16px; padding: 8px 16px;
+      font-size: 0.78rem; font-weight: 700; color: #6e4624; opacity: 0; transition: all 0.4s ease;
+      pointer-events: none; z-index: 22; max-width: 320px; text-align: center;
+    }
+    #discovery-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    /* Shiny Toggle Button */
-    .shiny-btn {
-      background: linear-gradient(135deg, #fff7ad, #ffa9f9);
-      border: 2px solid #fff;
-      border-radius: 20px;
-      padding: 6px 14px;
-      font-weight: 800;
-      font-size: 0.75rem;
-      cursor: pointer;
-      color: #6a1a47;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      box-shadow: 0 4px 12px rgba(255, 170, 240, 0.4);
+    /* ---- Control drawer (UX-03) ---- */
+    #drawer-fab { position: absolute; bottom: 16px; right: 16px; z-index: 30; }
+    #control-drawer {
+      position: absolute; top: 0; right: 0; height: 100%; width: min(320px, 88vw);
+      background: rgba(255,255,255,0.92); backdrop-filter: blur(18px); box-shadow: -8px 0 30px rgba(0,0,0,0.18);
+      transform: translateX(100%); transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
+      z-index: 40; padding: 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px;
+    }
+    #control-drawer.open { transform: translateX(0); }
+    .drawer-section { display: flex; flex-direction: column; gap: 8px; }
+    .drawer-title { font-family: var(--font-display); font-size: 0.72rem; color: #8c6a44; letter-spacing: 0.5px; text-transform: uppercase; }
+    .drawer-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .drawer-btn {
+      flex: 1; min-width: 120px; min-height: var(--touch-min);
+      background: #fff; border: 2px solid #eee0cc; border-radius: 14px; padding: 8px 12px;
+      font-family: var(--font-body); font-weight: 700; font-size: 0.82rem; color: #55341c; cursor: pointer;
+      display: flex; align-items: center; gap: 8px; transition: all 0.2s ease;
+    }
+    .drawer-btn:hover { background: #fff3e0; transform: translateY(-2px); }
+    .drawer-btn.active { background: #ffb834; color: #fff; border-color: #ffb834; }
+    .drawer-btn.danger { border-color: #ff8585; }
+    .room-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .room-grid button {
+      min-height: 40px; border-radius: 12px; border: 2px solid #eee0cc; background: #fff;
+      font-size: 0.72rem; font-weight: 700; color: #55341c; cursor: pointer; padding: 4px 8px;
+    }
+    .room-grid button.active { background: #ffb834; color: #fff; }
+
+    /* ---- Interaction popover (UX-06: replaces the six-card toy panel) ---- */
+    #interaction-fab { position: absolute; bottom: 16px; left: 16px; z-index: 30; }
+    #interaction-wheel {
+      position: absolute; bottom: 70px; left: 0; display: grid; grid-template-columns: repeat(3, 56px);
+      gap: 8px; background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); border-radius: 22px;
+      padding: 10px; box-shadow: var(--shadow-soft); opacity: 0; transform: scale(0.85) translateY(8px);
+      pointer-events: none; transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1); z-index: 31;
+    }
+    #interaction-wheel.open { opacity: 1; transform: scale(1) translateY(0); pointer-events: auto; }
+    .wheel-btn {
+      width: 56px; height: 56px; border-radius: 16px; border: 2px solid #eee0cc; background: #fff;
+      font-size: 1.35rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
       transition: transform 0.2s ease;
     }
-    .shiny-btn:hover {
-      transform: scale(1.08);
-    }
-    .shiny-btn.is-shiny {
-      background: linear-gradient(135deg, #81fbb8, #28c76f);
-      color: #064019;
-      box-shadow: 0 0 18px rgba(40, 199, 111, 0.6);
-    }
+    .wheel-btn:hover { transform: scale(1.08); background: #fff3e0; }
+    .wheel-btn.danger { border-color: #ff8585; background: rgba(255,235,235,0.9); }
 
-    /* Fact & Lore Drawer */
-    .fact-card {
-      background: var(--glass-bg);
-      backdrop-filter: blur(16px);
-      border: 2px solid var(--glass-border);
-      border-radius: 24px;
-      padding: 14px 20px;
-      max-width: 600px;
-      width: 90%;
-      box-shadow: var(--shadow-soft);
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      transition: all 0.3s ease;
-      position: relative;
+    /* ---- Lore / journal drawer (UX-05) ---- */
+    #lore-fab { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 30; }
+    #lore-drawer {
+      position: absolute; left: 50%; top: 0; transform: translateX(-50%) translateY(-105%);
+      width: min(560px, 92vw); max-height: 70vh; overflow-y: auto;
+      background: rgba(255,255,255,0.94); backdrop-filter: blur(18px); border-radius: 0 0 24px 24px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.2); padding: 20px; z-index: 41; transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
     }
-    .fact-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .fact-title {
-      font-family: var(--font-display);
-      font-size: 0.95rem;
-      color: #6e4624;
-    }
-    .fact-text {
-      font-size: 0.9rem;
-      line-height: 1.35;
-      color: #3f2a1b;
-    }
-    .fact-quote {
-      font-style: italic;
-      color: #b73966;
-      font-weight: 600;
-      font-size: 0.85rem;
-    }
-    .btn-shuffle-fact {
-      background: #ff8ab6;
-      border: none;
-      color: #fff;
-      font-size: 0.75rem;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-    .btn-shuffle-fact:hover {
-      transform: scale(1.1);
-    }
+    #lore-drawer.open { transform: translateX(-50%) translateY(0); }
+    .lore-tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+    .lore-tab { padding: 6px 14px; border-radius: 14px; border: 2px solid #eee0cc; background: #fff; font-weight: 700; font-size: 0.78rem; cursor: pointer; }
+    .lore-tab.active { background: #ff8ab6; color: #fff; border-color: #ff8ab6; }
+    .fact-title { font-family: var(--font-display); font-size: 0.95rem; color: #6e4624; margin-bottom: 6px; }
+    .fact-text { font-size: 0.88rem; line-height: 1.4; color: #3f2a1b; margin-bottom: 8px; }
+    .fact-quote { font-style: italic; color: #b73966; font-weight: 600; font-size: 0.82rem; }
+    .journal-entry { padding: 8px 0; border-bottom: 1px dashed #e5d5bd; font-size: 0.82rem; color: #4a3424; }
+    .journal-empty { font-size: 0.82rem; color: #a08560; font-style: italic; }
 
-    /* ARCADE RUNNER HUD */
-    .arcade-hud {
-      position: absolute;
-      top: 80px;
-      left: 16px;
-      display: none;
-      flex-direction: column;
-      gap: 12px;
-      z-index: 15;
+    /* ---- Settings sheet (UX-16) ---- */
+    #settings-backdrop {
+      position: fixed; inset: 0; background: rgba(30,20,10,0.35); z-index: 49; opacity: 0; pointer-events: none;
+      transition: opacity 0.25s ease;
     }
+    #settings-backdrop.open { opacity: 1; pointer-events: auto; }
+    #settings-sheet {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); width: min(420px, 90vw);
+      max-height: 82vh; overflow-y: auto; background: #fff; border-radius: 24px; padding: 22px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.3); z-index: 50; opacity: 0; pointer-events: none; transition: all 0.25s ease;
+    }
+    #settings-sheet.open { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+    .settings-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f1e6d3; }
+    .settings-row label { font-size: 0.85rem; font-weight: 700; color: #55341c; }
+    .settings-row select, .settings-row input[type="range"] { max-width: 55%; }
+
+    /* ---- First-use camera hints (UX-12) ---- */
+    #camera-hint {
+      background: rgba(30,20,10,0.78); color: #fff; padding: 8px 18px; border-radius: 20px;
+      font-size: 0.82rem; font-weight: 700; opacity: 0; transition: opacity 0.4s ease; pointer-events: none;
+    }
+    #camera-hint.visible { opacity: 1; }
+
+    /* ---- Hover/focus reticle (UX-11) ---- */
+    #reticle {
+      position: absolute; width: 26px; height: 26px; border: 2px solid #fff; border-radius: 50%;
+      box-shadow: 0 0 0 2px rgba(0,0,0,0.25), 0 0 16px rgba(255,255,255,0.6);
+      pointer-events: none; transform: translate(-50%, -50%) scale(0); transition: transform 0.15s ease, opacity 0.15s ease;
+      opacity: 0; z-index: 15;
+    }
+    #reticle.visible { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+
+    /* ---- Loading overlay (UX-19) ---- */
+    #loading-overlay {
+      position: fixed; inset: 0; background: var(--bg-gradient); z-index: 90;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+      transition: opacity 0.5s ease; opacity: 1;
+    }
+    #loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    .loading-mark { font-size: 2.4rem; }
+    #loading-bar-track { width: 220px; height: 8px; border-radius: 6px; background: rgba(0,0,0,0.1); overflow: hidden; }
+    #loading-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #ffb834, #ff7597); transition: width 0.25s ease; }
+    #loading-text { font-size: 0.8rem; font-weight: 700; color: #7b4f2c; }
+    #loading-error { font-size: 0.74rem; color: #b71c1c; max-width: 300px; text-align: center; }
+
+    /* ---- Photo / cinematic mode (UX-09) ---- */
+    body.photo-mode .hud-hide-in-photo { display: none !important; }
+    #photo-mode-bar {
+      position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); display: none; gap: 8px;
+      background: rgba(0,0,0,0.55); padding: 8px 14px; border-radius: 20px; z-index: 45;
+    }
+    body.photo-mode #photo-mode-bar { display: flex; }
+    #photo-mode-bar button { background: rgba(255,255,255,0.9); border: none; border-radius: 14px; padding: 8px 14px; font-weight: 700; font-size: 0.78rem; cursor: pointer; min-height: var(--touch-min); }
+    #moment-toast {
+      position: absolute; top: 90px; left: 50%; transform: translateX(-50%) translateY(-8px); opacity: 0;
+      background: #fff; border: 2px solid #ffb834; border-radius: 16px; padding: 8px 18px; font-weight: 700;
+      font-size: 0.8rem; color: #6e4624; transition: all 0.4s ease; z-index: 46; pointer-events: none;
+    }
+    #moment-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ---- Arcade Runner HUD (kept prominent; never fades) ---- */
+    .arcade-hud { display: none; flex-direction: column; gap: 12px; z-index: 15; }
     .arcade-score-card {
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(14px);
-      border: 3px solid #ffaa00;
-      border-radius: 20px;
-      padding: 12px 18px;
-      box-shadow: 0 8px 24px rgba(255, 170, 0, 0.35);
-      min-width: 170px;
+      background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(14px); border: 3px solid #ffaa00;
+      border-radius: 20px; padding: 12px 18px; box-shadow: 0 8px 24px rgba(255, 170, 0, 0.35); min-width: 170px;
     }
-    .arcade-label {
-      font-family: var(--font-display);
-      font-size: 0.75rem;
-      color: #8c5300;
-      letter-spacing: 0.5px;
-    }
-    .arcade-value {
-      font-family: var(--font-display);
-      font-size: 1.8rem;
-      color: #d86900;
-      line-height: 1.1;
-    }
-    .arcade-hearts {
-      display: flex;
-      gap: 6px;
-      font-size: 1.4rem;
-      margin-top: 4px;
-    }
+    .arcade-label { font-family: var(--font-display); font-size: 0.75rem; color: #8c5300; letter-spacing: 0.5px; }
+    .arcade-value { font-family: var(--font-display); font-size: 1.8rem; color: #d86900; line-height: 1.1; }
+    .arcade-hearts { display: flex; gap: 6px; font-size: 1.4rem; margin-top: 4px; }
     .arcade-powerup-bar {
-      background: #fff;
-      border: 2px solid #5a3cff;
-      border-radius: 14px;
-      padding: 6px 12px;
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: #4a28cc;
-      display: none;
-      align-items: center;
-      gap: 6px;
-      animation: pulse-glow 1s infinite alternate;
+      background: #fff; border: 2px solid #5a3cff; border-radius: 14px; padding: 6px 12px; font-size: 0.8rem;
+      font-weight: 700; color: #4a28cc; display: none; align-items: center; gap: 6px; animation: pulse-glow 1s infinite alternate;
     }
-
-    /* Arcade Instructions Overlay */
     .arcade-help-banner {
-      position: absolute;
-      bottom: 120px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.7);
-      color: #fff;
-      padding: 8px 20px;
-      border-radius: 30px;
-      font-size: 0.9rem;
-      font-weight: 700;
-      pointer-events: none;
-      display: none;
-      letter-spacing: 0.5px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-      z-index: 15;
+      position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.7);
+      color: #fff; padding: 8px 20px; border-radius: 30px; font-size: 0.85rem; font-weight: 700; pointer-events: none;
+      display: none; letter-spacing: 0.5px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); z-index: 15;
     }
-
-    /* Game Over Modal */
     .gameover-modal {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(0.9);
-      background: #ffffff;
-      border: 4px solid #ff4477;
-      border-radius: 32px;
-      padding: 30px 40px;
-      box-shadow: 0 20px 60px rgba(255, 68, 119, 0.4);
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-      z-index: 50;
-      text-align: center;
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9);
+      background: #ffffff; border: 4px solid #ff4477; border-radius: 32px; padding: 30px 40px;
+      box-shadow: 0 20px 60px rgba(255, 68, 119, 0.4); display: none; flex-direction: column; align-items: center;
+      gap: 16px; z-index: 50; text-align: center;
     }
-    .gameover-title {
-      font-family: var(--font-display);
-      font-size: 2rem;
-      color: #ff3366;
-    }
-    .gameover-score {
-      font-size: 1.4rem;
-      font-weight: 800;
-      color: #442a19;
-    }
+    .gameover-title { font-family: var(--font-display); font-size: 2rem; color: #ff3366; }
+    .gameover-score { font-size: 1.4rem; font-weight: 800; color: #442a19; }
     .btn-restart {
-      background: linear-gradient(135deg, #ff6b8b, #ff8e53);
-      border: none;
-      color: #fff;
-      font-family: var(--font-display);
-      font-size: 1.1rem;
-      padding: 12px 28px;
-      border-radius: 28px;
-      cursor: pointer;
-      box-shadow: 0 8px 20px rgba(255, 107, 139, 0.4);
-      transition: transform 0.2s ease;
+      background: linear-gradient(135deg, #ff6b8b, #ff8e53); border: none; color: #fff; font-family: var(--font-display);
+      font-size: 1.1rem; padding: 12px 28px; border-radius: 28px; cursor: pointer; min-height: var(--touch-min);
+      box-shadow: 0 8px 20px rgba(255, 107, 139, 0.4); transition: transform 0.2s ease;
     }
-    .btn-restart:hover {
-      transform: scale(1.08);
-    }
+    .btn-restart:hover { transform: scale(1.08); }
 
-    /* Click-to-start audio banner */
     .audio-prompt-banner {
-      position: absolute;
-      top: 75px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #ffea79;
-      border: 2px solid #d49800;
-      color: #573e00;
-      padding: 6px 16px;
-      border-radius: 20px;
-      font-weight: 700;
-      font-size: 0.8rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      z-index: 25;
-      animation: pulse-glow 2s infinite alternate;
+      background: #ffea79; border: 2px solid #d49800; color: #573e00; padding: 6px 16px; border-radius: 20px;
+      font-weight: 700; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1); animation: pulse-glow 2s infinite alternate;
     }
 
-    /* Animations */
-    @keyframes gentle-bob {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-4px); }
-    }
-    @keyframes pulse-glow {
-      0% { transform: scale(1); filter: brightness(1); }
-      100% { transform: scale(1.03); filter: brightness(1.15); }
+    @keyframes pulse-glow { 0% { transform: scale(1); filter: brightness(1); } 100% { transform: scale(1.03); filter: brightness(1.15); } }
+
+    /* ---------------------------------------------------------------
+       Mobile thumb layout (UX-13): bottom corners, big touch targets,
+       Pokémon stays unobscured, species strip scrolls horizontally.
+       --------------------------------------------------------------- */
+    @media (max-width: 600px) {
+      .corner.tr { top: 10px; right: 10px; }
+      .corner.tl { top: 10px; left: 10px; }
+      #drawer-fab { bottom: 12px; right: 12px; }
+      #interaction-fab { bottom: 12px; left: 12px; }
+      #species-strip { max-width: 78vw; bottom: 78px; }
+      .corner.bc { bottom: 78px; }
+      #control-drawer { width: 100vw; }
+      #lore-drawer { width: 100vw; border-radius: 0 0 18px 18px; }
+      .arcade-help-banner { bottom: 74px; font-size: 0.75rem; }
     }
 
-    /* Mobile Responsive Tweaks */
-    @media (max-width: 768px) {
-      .brand-title { font-size: 0.95rem; }
-      .side-toy-panel { top: auto; bottom: 170px; right: 12px; gap: 6px; }
-      .toy-card { width: 140px; padding: 6px 10px; font-size: 0.75rem; }
-      .toy-icon { font-size: 1.3rem; }
-      .fact-card { padding: 10px 14px; }
-      .fact-title { font-size: 0.85rem; }
-      .fact-text { font-size: 0.8rem; }
-      .arcade-hud { top: 70px; left: 10px; }
-      .arcade-value { font-size: 1.4rem; }
-    }
+    /* Density (UX-08): Minimal hides optional persistent chrome; Standard adds breadcrumb;
+       Full keeps the lore drawer peeked open by default via JS. */
+    html[data-density="minimal"] .req-standard { display: none !important; }
   </style>
 </head>
 <body>
 
+  <!-- Loading overlay -->
+  <div id="loading-overlay">
+    <div class="loading-mark">🦊</div>
+    <div id="loading-bar-track"><div id="loading-bar"></div></div>
+    <div id="loading-text">Waking up the habitat…</div>
+    <div id="loading-error"></div>
+  </div>
+
   <!-- 3D Canvas -->
   <canvas id="webgl-canvas"></canvas>
+  <div id="reticle"></div>
 
-  <!-- UI Overlay Layer -->
-  <div class="ui-layer">
-    
-    <!-- Top Bar -->
-    <div class="top-bar">
-      <div class="brand-pill interactive">
-        <span style="font-size: 1.5rem;">✨</span>
-        <div>
-          <div class="brand-title">EEVEE WONDERLAND</div>
-          <div style="font-size: 0.7rem; color: #8e623a; font-weight: 700;">THE ULTIMATE DERPY 3D EVOLUTION CARNIVAL</div>
+  <!-- Quiet HUD -->
+  <div class="hud">
+
+    <!-- Top-left: room breadcrumb (standard/full density) -->
+    <div class="corner tl fadeable">
+      <div id="room-breadcrumb" class="interactive req-standard">The Conservatory</div>
+    </div>
+
+    <!-- Top-center: room identity toast (brief) -->
+    <div class="corner tc">
+      <div id="room-toast"><div class="room-name" id="room-toast-name">The Conservatory of Possibilities</div><div class="room-mood" id="room-toast-mood">A quiet stone room built to study how one creature becomes many.</div></div>
+      <div id="discovery-toast"></div>
+    </div>
+
+    <!-- Top-right: minimal audio/photo controls -->
+    <div class="corner tr fadeable interactive hud-hide-in-photo">
+      <div class="drawer-row" style="gap:8px;">
+        <button class="icon-btn" id="btn-music" title="Toggle music" aria-label="Toggle music" onclick="toggleMusic()">🎵</button>
+        <button class="icon-btn" id="btn-sound" title="Toggle sound effects" aria-label="Toggle sound effects" onclick="toggleSFX()">🔊</button>
+        <button class="icon-btn" id="btn-photo-mode" title="Photo mode (hides UI)" aria-label="Enter photo mode" onclick="enterPhotoMode()">📷</button>
+      </div>
+      <div class="audio-prompt-banner interactive" id="audio-prompt" onclick="initAudioUserGesture()" style="margin-top:8px;">
+        <span>🎵</span> Tap to enable music
+      </div>
+    </div>
+
+    <!-- Bottom-center: species strip + camera hint -->
+    <div class="corner bc fadeable interactive hud-hide-in-photo">
+      <div id="camera-hint">Drag to orbit • Scroll/pinch to zoom • Double-click Eevee to focus</div>
+      <div id="species-strip" role="tablist" aria-label="Choose Eeveelution"></div>
+    </div>
+
+    <!-- Speech bubble -->
+    <div class="speech-bubble hud-hide-in-photo" id="speech-bubble">"Eev-vee!"</div>
+
+    <!-- Lore / Journal -->
+    <button class="icon-btn interactive hud-hide-in-photo" id="lore-fab" title="Lore & Journal" aria-label="Open lore and journal" aria-expanded="false" onclick="toggleLoreDrawer()">📖</button>
+    <div class="hud-hide-in-photo interactive" id="lore-drawer" role="dialog" aria-label="Lore and journal">
+      <div class="lore-tabs">
+        <button class="lore-tab active" id="tab-lore" onclick="setLoreTab('lore')">Lore</button>
+        <button class="lore-tab" id="tab-journal" onclick="setLoreTab('journal')">Journal</button>
+      </div>
+      <div id="lore-panel">
+        <div class="fact-title" id="fact-form-name">🌟 EEVEE (The Evolution Pokémon)</div>
+        <div class="fact-text" id="fact-text-main"></div>
+        <div class="fact-quote" id="fact-silly-quote"></div>
+        <div class="drawer-row" style="margin-top:10px;">
+          <button class="drawer-btn" onclick="shuffleRandomFact()">🎲 Random Fact</button>
+          <button class="drawer-btn" id="btn-shiny" onclick="toggleShinyMode()">✨ Shiny Mode</button>
         </div>
-        <span class="mode-badge" id="current-mode-label">PLAYGROUND</span>
       </div>
+      <div id="journal-panel" style="display:none;"></div>
+    </div>
 
-      <!-- Mode Switcher (Playground vs Arcade Runner) -->
-      <div class="mode-switch-group interactive">
-        <button class="mode-btn active" id="btn-mode-sandbox" onclick="switchGameMode('sandbox')">
-          <span>🧸</span> Pet & Toybox
-        </button>
-        <button class="mode-btn" id="btn-mode-arcade" onclick="switchGameMode('arcade')">
-          <span>🎮</span> Stone Dash
-        </button>
-      </div>
-
-      <!-- Audio & Silly Action Controls -->
-      <div class="top-controls interactive">
-        <button class="btn-icon" id="btn-music" title="Toggle Disco Chiptune BGM" onclick="toggleMusic()">🎵</button>
-        <button class="btn-icon" id="btn-sound" title="Toggle Sound FX" onclick="toggleSFX()">🔊</button>
-        <button class="btn-icon" id="btn-photo" title="Snap Silly Photo (Downloads PNG)" onclick="snapSillyPhoto()">📸</button>
+    <!-- Interaction wheel (replaces the six-card toy panel) -->
+    <div id="interaction-fab" class="interactive hud-hide-in-photo">
+      <button class="icon-btn primary" title="Interactions" aria-label="Open interactions" aria-expanded="false" onclick="toggleInteractionWheel()">🐾</button>
+      <div id="interaction-wheel" role="menu" aria-label="Interact with Eeveelution">
+        <button class="wheel-btn" title="Feed Oran Berry" onclick="feedTreat('berry')">🍓</button>
+        <button class="wheel-btn" title="Poké Puff" onclick="feedTreat('puff')">🧁</button>
+        <button class="wheel-btn" title="Disco Fever" onclick="triggerDiscoDance()">🪩</button>
+        <button class="wheel-btn" title="Loaf Mode" onclick="triggerLoafMode()">🍞</button>
+        <button class="wheel-btn" title="Derp Face" onclick="triggerDerpMode()">🤪</button>
+        <button class="wheel-btn" title="Call" onclick="callEeveelution()">📣</button>
+        <button class="wheel-btn" title="Brush" onclick="brushEeveelution()">🖌️</button>
+        <button class="wheel-btn" title="Room Interaction" id="wheel-room-prop" onclick="triggerRoomProp()">✨</button>
+        <button class="wheel-btn danger" title="Summon the Roomba" onclick="summonVacuum()">🚨</button>
       </div>
     </div>
 
-    <!-- Click To Enable Audio Prompt -->
-    <div class="audio-prompt-banner interactive" id="audio-prompt" onclick="initAudioUserGesture()">
-      <span>🎵</span> Click here to enable Funky Disco Chiptunes & Boing SFX!
+    <!-- Control drawer -->
+    <button class="icon-btn primary interactive hud-hide-in-photo" id="drawer-fab" title="Menu (Tab)" aria-label="Open menu" aria-expanded="false" onclick="toggleDrawer()">☰</button>
+    <div id="control-drawer" role="dialog" aria-label="Habitat controls" class="hud-hide-in-photo interactive">
+      <div class="drawer-section">
+        <div class="drawer-title">Mode</div>
+        <div class="drawer-row">
+          <button class="drawer-btn active" id="btn-mode-sandbox" onclick="switchGameMode('sandbox')">🧸 Habitat</button>
+          <button class="drawer-btn" id="btn-mode-arcade" onclick="switchGameMode('arcade')">🎮 Stone Dash</button>
+          <button class="drawer-btn" id="btn-chill" onclick="toggleChillMode()">🌙 Chill Mode</button>
+        </div>
+      </div>
+      <div class="drawer-section">
+        <div class="drawer-title">Camera</div>
+        <div class="drawer-row">
+          <button class="drawer-btn" onclick="cameraController && cameraController.cyclePreset()">🎥 Cycle View (C)</button>
+          <button class="drawer-btn" onclick="cameraController && cameraController.resetCamera()">↺ Reset (R)</button>
+        </div>
+      </div>
+      <div class="drawer-section">
+        <div class="drawer-title">Habitats</div>
+        <div class="room-grid" id="room-grid"></div>
+      </div>
+      <div class="drawer-section">
+        <div class="drawer-title">Atmosphere</div>
+        <div class="drawer-row" id="atmosphere-row"></div>
+      </div>
+      <div class="drawer-section">
+        <div class="drawer-row">
+          <button class="drawer-btn" onclick="openSettings()">⚙️ Settings</button>
+          <button class="drawer-btn" onclick="snapSillyPhoto()">📸 Quick Photo</button>
+        </div>
+      </div>
     </div>
 
-    <!-- Speech / Reaction Bubble -->
-    <div class="speech-bubble" id="speech-bubble">
-      "Eev-vee! *happy ear wiggles*"
+    <!-- Photo mode bar -->
+    <div id="photo-mode-bar" class="interactive">
+      <button onclick="cameraController && cameraController.cyclePreset()">Lens</button>
+      <button onclick="cameraController && cameraController.resetCamera()">Reset</button>
+      <button onclick="capturePhotoModeShot()">📸 Capture</button>
+      <button onclick="exitPhotoMode()">Exit (Esc)</button>
     </div>
+    <div id="moment-toast"></div>
 
-    <!-- Arcade Runner HUD (Active in Arcade Mode) -->
-    <div class="arcade-hud" id="arcade-hud">
+    <!-- Arcade HUD (never fades; always shows critical game state) -->
+    <div class="arcade-hud interactive" id="arcade-hud">
       <div class="arcade-score-card">
         <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 16px;">
-          <div>
-            <div class="arcade-label">SCORE</div>
-            <div class="arcade-value" id="arcade-score">0000</div>
-          </div>
-          <div style="text-align: right;">
-            <div class="arcade-label" style="color: #9c6000;">BEST</div>
-            <div style="font-family: var(--font-display); font-size: 1.25rem; color: #9c6000;" id="arcade-best-score">0000</div>
-          </div>
+          <div><div class="arcade-label">SCORE</div><div class="arcade-value" id="arcade-score">0000</div></div>
+          <div style="text-align: right;"><div class="arcade-label" style="color: #9c6000;">BEST</div><div style="font-family: var(--font-display); font-size: 1.25rem; color: #9c6000;" id="arcade-best-score">0000</div></div>
         </div>
         <div class="arcade-hearts" id="arcade-lives">❤️❤️❤️</div>
       </div>
-      <div class="arcade-powerup-bar" id="arcade-powerup-badge">
-        <span id="powerup-icon">⚡</span> <span id="powerup-desc">SUPER JOLTEON SPEED!</span>
-      </div>
+      <div class="arcade-powerup-bar" id="arcade-powerup-badge"><span id="powerup-icon">⚡</span> <span id="powerup-desc">SUPER SPEED!</span></div>
     </div>
-
-    <div class="arcade-help-banner" id="arcade-help">
-      Use ⬅️ ➡️ Keys or Drag Mouse / Touch to steer • Space to Jump! Catch Stones!
-    </div>
-
-    <!-- Game Over Screen -->
+    <div class="arcade-help-banner" id="arcade-help">Use ⬅️ ➡️ Keys or Drag Mouse / Touch to steer • Space to Jump! Catch Stones!</div>
     <div class="gameover-modal interactive" id="gameover-modal">
       <div class="gameover-title">SPECTACULAR SPLAT! 🍌</div>
-      <p style="color: #6a4425; font-weight: 600;">Eevee did a goofy triple-flip into a pile of fluffy pillows!</p>
+      <p style="color: #6a4425; font-weight: 600;">A goofy triple-flip into a pile of fluffy pillows!</p>
       <div class="gameover-score" id="gameover-final-score">Score: 0</div>
       <button class="btn-restart" onclick="restartArcadeGame()">PLAY AGAIN! 🚀</button>
     </div>
 
-    <!-- Side Toybox / Petting Panel (Active in Sandbox Mode) -->
-    <div class="side-toy-panel interactive" id="side-toy-panel">
-      <div class="toy-card" onclick="feedTreat('berry')">
-        <span class="toy-icon">🍓</span>
-        <div>
-          <div>Feed Oran Berry</div>
-          <div style="font-size: 0.68rem; color:#888;">Nom nom chomp!</div>
-        </div>
-      </div>
-      <div class="toy-card" onclick="feedTreat('puff')">
-        <span class="toy-icon">🧁</span>
-        <div>
-          <div>Poke-Puff (Chonky)</div>
-          <div style="font-size: 0.68rem; color:#888;">Instant gigantamax floof!</div>
-        </div>
-      </div>
-      <div class="toy-card" onclick="triggerDiscoDance()">
-        <span class="toy-icon">🪩</span>
-        <div>
-          <div>Disco Fever!</div>
-          <div style="font-size: 0.68rem; color:#888;">Groovy dance moves</div>
-        </div>
-      </div>
-      <div class="toy-card" onclick="triggerLoafMode()">
-        <span class="toy-icon">🍞</span>
-        <div>
-          <div>Loaf Mode</div>
-          <div style="font-size: 0.68rem; color:#888;">Tuck in the paws!</div>
-        </div>
-      </div>
-      <div class="toy-card" onclick="triggerDerpMode()">
-        <span class="toy-icon">🤪</span>
-        <div>
-          <div>Goofy Derp Face</div>
-          <div style="font-size: 0.68rem; color:#888;">Blep! (:P) mode</div>
-        </div>
-      </div>
-      <div class="toy-card toy-danger" onclick="summonVacuum()">
-        <span class="toy-icon">🚨</span>
-        <div>
-          <div>THE ROOMBA!</div>
-          <div style="font-size: 0.68rem; color:#b71c1c;">MAXIMUM PANIC!</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Bottom Dock: Evolution Selector + Fact Sheet -->
-    <div class="bottom-dock interactive" id="bottom-dock">
-      
-      <!-- Fact / Lore Sheet -->
-      <div class="fact-card" id="fact-card">
-        <div class="fact-header">
-          <div class="fact-title" id="fact-form-name">🌟 EEVEE (The Evolution Pokémon)</div>
-          <div style="display: flex; gap: 8px; align-items: center;">
-            <button class="shiny-btn" id="btn-shiny" onclick="toggleShinyMode()">
-              <span>✨</span> Shiny Mode
-            </button>
-            <button class="btn-shuffle-fact" onclick="shuffleRandomFact()">Random Fact 🎲</button>
-          </div>
-        </div>
-        <div class="fact-text" id="fact-text-main">
-          Eevee's genetic code is so notoriously unstable that urban radiation, rocks, or simply high friendship can cause it to mutate into 8 completely different species!
-        </div>
-        <div class="fact-quote" id="fact-silly-quote">
-          "Basically a furry Swiss Army knife that runs on cuddles and treats."
-        </div>
-      </div>
-
-      <!-- Evolution Selector Bar -->
-      <div class="evolution-scroll-bar">
-        <div class="evo-pill active" data-form="eevee" onclick="selectEeveelution('eevee')">
-          <span>🦊</span> Eevee (Normal)
-        </div>
-        <div class="evo-pill" data-form="vaporeon" onclick="selectEeveelution('vaporeon')">
-          <span>🧜‍♂️</span> Vaporeon (Water)
-        </div>
-        <div class="evo-pill" data-form="jolteon" onclick="selectEeveelution('jolteon')">
-          <span>⚡</span> Jolteon (Electric)
-        </div>
-        <div class="evo-pill" data-form="flareon" onclick="selectEeveelution('flareon')">
-          <span>🔥</span> Flareon (Fire)
-        </div>
-        <div class="evo-pill" data-form="espeon" onclick="selectEeveelution('espeon')">
-          <span>🔮</span> Espeon (Psychic)
-        </div>
-        <div class="evo-pill" data-form="umbreon" onclick="selectEeveelution('umbreon')">
-          <span>🌙</span> Umbreon (Dark)
-        </div>
-        <div class="evo-pill" data-form="leafeon" onclick="selectEeveelution('leafeon')">
-          <span>🍃</span> Leafeon (Grass)
-        </div>
-        <div class="evo-pill" data-form="glaceon" onclick="selectEeveelution('glaceon')">
-          <span>❄️</span> Glaceon (Ice)
-        </div>
-        <div class="evo-pill" data-form="sylveon" onclick="selectEeveelution('sylveon')">
-          <span>🎀</span> Sylveon (Fairy)
-        </div>
-      </div>
-
-    </div>
-
   </div>
 
-  <!-- Vendor Libraries (Clean Modular Local) -->
+  <!-- Settings sheet -->
+  <div id="settings-backdrop" onclick="closeSettings()"></div>
+  <div id="settings-sheet" role="dialog" aria-label="Settings">
+    <div class="fact-title" style="margin-bottom:10px;">Settings</div>
+    <div class="settings-row"><label for="set-density">UI Density</label>
+      <select id="set-density" onchange="onSetDensity(this.value)">
+        <option value="minimal">Minimal</option><option value="standard">Standard</option><option value="full">Full</option>
+      </select>
+    </div>
+    <div class="settings-row"><label for="set-reduced-motion">Reduced Motion</label><input type="checkbox" id="set-reduced-motion" onchange="onSetReducedMotion(this.checked)"></div>
+    <div class="settings-row"><label for="set-music">Music</label><input type="checkbox" id="set-music" onchange="onSetMusic(this.checked)"></div>
+    <div class="settings-row"><label for="set-sfx">Sound Effects</label><input type="checkbox" id="set-sfx" onchange="onSetSfx(this.checked)"></div>
+    <div class="settings-row"><label for="set-quality">Graphics Quality</label>
+      <select id="set-quality" onchange="onSetQuality(this.value)">
+        <option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
+      </select>
+    </div>
+    <div class="settings-row"><label for="set-sensitivity">Camera Sensitivity</label><input type="range" id="set-sensitivity" min="0.3" max="2" step="0.1" oninput="onSetSensitivity(this.value)"></div>
+    <div class="settings-row"><label for="set-ambience">Ambience Level</label><input type="range" id="set-ambience" min="0" max="1" step="0.05" oninput="onSetAmbience(this.value)"></div>
+    <div class="settings-row"><label for="set-autofollow">Camera Auto-Follow</label><input type="checkbox" id="set-autofollow" onchange="onSetAutoFollow(this.checked)"></div>
+    <div class="drawer-row" style="margin-top:14px;"><button class="drawer-btn active" onclick="closeSettings()">Done</button></div>
+  </div>
+
+  <!-- Vendor Libraries -->
   <script src="libs/three.min.js"></script>
   <script src="libs/OrbitControls.js"></script>
   <script src="libs/GLTFLoader.js"></script>
   <script src="libs/confetti.browser.min.js"></script>
+
+  <!-- Habitat House modules -->
+  <script src="src/persistence.js"></script>
+  <script src="src/render-effects.js"></script>
+  <script src="src/discovery-system.js"></script>
+  <script src="src/photo-system.js"></script>
+  <script src="src/camera-controller.js"></script>
+  <script src="src/rooms.js"></script>
+  <script src="src/room-manager.js"></script>
+  <script src="src/ui-controller.js"></script>
 
   <!-- MAIN THREE.JS APPLICATION JAVASCRIPT -->
   <script>
@@ -767,12 +534,9 @@
        ========================================================================== */
     const EEVEELUTION_DATA = {
       eevee: {
-        name: "EEVEE (The Evolution Pokémon)",
-        type: "Normal",
-        colorNormal: 0xC59B63,
-        colorRuff: 0xF7E7CE,
-        colorShiny: 0xDCD6C8,
-        colorShinyRuff: 0xFFFFFF,
+        name: "EEVEE (The Evolution Pokémon)", type: "Normal",
+        colorNormal: 0xC59B63, colorRuff: 0xF7E7CE, colorShiny: 0xDCD6C8, colorShinyRuff: 0xFFFFFF,
+        icon: "🦊",
         facts: [
           "Eevee's genetic makeup is so profoundly unstable that its DNA literally restructures based on the ambient vibes of its environment!",
           "In early generation beta concepts, Eevee was originally named 'Eon' (the suffix shared by all its evolutions).",
@@ -789,12 +553,9 @@
         ]
       },
       vaporeon: {
-        name: "VAPOREON (The Bubble Jet Pokémon)",
-        type: "Water",
-        colorNormal: 0x49B2E8,
-        colorRuff: 0xFFFFFF,
-        colorShiny: 0xEE72C7,
-        colorShinyRuff: 0xFDF6C7,
+        name: "VAPOREON (The Bubble Jet Pokémon)", type: "Water",
+        colorNormal: 0x49B2E8, colorRuff: 0xFFFFFF, colorShiny: 0xEE72C7, colorShinyRuff: 0xFDF6C7,
+        icon: "🫧",
         facts: [
           "Vaporeon's cellular composition is virtually identical to water molecules! When it takes a swim, it can literally melt invisibly into water.",
           "It has gills hidden beneath its ruffled neck fin, allowing it to snooze peacefully on the ocean floor for weeks.",
@@ -809,12 +570,9 @@
         ]
       },
       jolteon: {
-        name: "JOLTEON (The Lightning Pokémon)",
-        type: "Electric",
-        colorNormal: 0xFEE033,
-        colorRuff: 0xFFFFFF,
-        colorShiny: 0x98E040,
-        colorShinyRuff: 0xFFFFFF,
+        name: "JOLTEON (The Lightning Pokémon)", type: "Electric",
+        colorNormal: 0xFEE033, colorRuff: 0xFFFFFF, colorShiny: 0x98E040, colorShinyRuff: 0xFFFFFF,
+        icon: "⚡",
         facts: [
           "Jolteon generates over 10,000 volts of static electricity in its fur! Every single strand of fur can harden into razor-sharp needle missiles.",
           "Because its lungs and cells are supercharged with negative ions, it emits a constant, high-speed crackling hum.",
@@ -829,12 +587,9 @@
         ]
       },
       flareon: {
-        name: "FLAREON (The Flame Pokémon)",
-        type: "Fire",
-        colorNormal: 0xF76835,
-        colorRuff: 0xFFE082,
-        colorShiny: 0xF5A642,
-        colorShinyRuff: 0xFFF2A6,
+        name: "FLAREON (The Flame Pokémon)", type: "Fire",
+        colorNormal: 0xF76835, colorRuff: 0xFFE082, colorShiny: 0xF5A642, colorShinyRuff: 0xFFF2A6,
+        icon: "🔥",
         facts: [
           "Flareon has an internal flame sac that reaches scorching temperatures of 1,650°F (900°C) before battle!",
           "It puffs out its massive neck collar and tail to cool down its internal body heat, acting like a giant furry radiator.",
@@ -849,12 +604,9 @@
         ]
       },
       espeon: {
-        name: "ESPEON (The Sun Pokémon)",
-        type: "Psychic",
-        colorNormal: 0xC68FED,
-        colorRuff: 0xB17CE0,
-        colorShiny: 0x64DE64,
-        colorShinyRuff: 0x48BA48,
+        name: "ESPEON (The Sun Pokémon)", type: "Psychic",
+        colorNormal: 0xC68FED, colorRuff: 0xB17CE0, colorShiny: 0x64DE64, colorShinyRuff: 0x48BA48,
+        icon: "🔮",
         facts: [
           "Espeon's ultra-fine fur has the texture of premium velvet and is sensitive enough to read air currents and predict the weather or enemy moves.",
           "The red ruby gem on its forehead glows brightly when it channels telekinetic psychic waves.",
@@ -869,13 +621,9 @@
         ]
       },
       umbreon: {
-        name: "UMBREON (The Moonlight Pokémon)",
-        type: "Dark",
-        colorNormal: 0x2A2E35,
-        colorRuff: 0x1E2126,
-        colorRing: 0xFCE029,
-        colorShiny: 0x1F2228,
-        colorShinyRing: 0x00E5FF,
+        name: "UMBREON (The Moonlight Pokémon)", type: "Dark",
+        colorNormal: 0x2A2E35, colorRuff: 0x1E2126, colorRing: 0xFCE029, colorShiny: 0x1F2228, colorShinyRing: 0x00E5FF,
+        icon: "🌙",
         facts: [
           "When exposed to full moonlight, the mysterious circular patterns on Umbreon's body glow with faint, eerie bioluminescence.",
           "When agitated or hunting in the dark, it can secrete a poisonous sweat from its pores to ward off enemies.",
@@ -890,12 +638,9 @@
         ]
       },
       leafeon: {
-        name: "LEAFEON (The Verdant Pokémon)",
-        type: "Grass",
-        colorNormal: 0xEDDEB2,
-        colorRuff: 0x76B852,
-        colorShiny: 0xFAF0CD,
-        colorShinyRuff: 0x8CD663,
+        name: "LEAFEON (The Verdant Pokémon)", type: "Grass",
+        colorNormal: 0xEDDEB2, colorRuff: 0x76B852, colorShiny: 0xFAF0CD, colorShinyRuff: 0x8CD663,
+        icon: "🍃",
         facts: [
           "Leafeon's cellular structure is literally closer to a leafy green plant than an animal—it undergoes genuine photosynthesis!",
           "As a result of producing fresh clean oxygen through its leaves, the air around a sleeping Leafeon always smells like fresh forest pine.",
@@ -910,12 +655,9 @@
         ]
       },
       glaceon: {
-        name: "GLACEON (The Fresh Snow Pokémon)",
-        type: "Ice",
-        colorNormal: 0x8BE5F5,
-        colorRuff: 0x367F9E,
-        colorShiny: 0xB5F7FF,
-        colorShinyRuff: 0x48A0C2,
+        name: "GLACEON (The Fresh Snow Pokémon)", type: "Ice",
+        colorNormal: 0x8BE5F5, colorRuff: 0x367F9E, colorShiny: 0xB5F7FF, colorShinyRuff: 0x48A0C2,
+        icon: "❄️",
         facts: [
           "Glaceon can instantaneously drop its body temperature down to -75°F (-60°C), freezing moisture in the air into glittering diamond dust.",
           "It wears dangling ice crystal head bangs that clink together like frozen chimes when it prances.",
@@ -930,12 +672,9 @@
         ]
       },
       sylveon: {
-        name: "SYLVEON (The Intertwining Pokémon)",
-        type: "Fairy",
-        colorNormal: 0xFDF4E7,
-        colorRuff: 0xFFAEC9,
-        colorShiny: 0xE2F4FD,
-        colorShinyRuff: 0x70CBF5,
+        name: "SYLVEON (The Intertwining Pokémon)", type: "Fairy",
+        colorNormal: 0xFDF4E7, colorRuff: 0xFFAEC9, colorShiny: 0xE2F4FD, colorShinyRuff: 0x70CBF5,
+        icon: "🎀",
         facts: [
           "Sylveon wraps its silky ribbon-like feelers around its trainer's arm to read their heartbeat and soothe any negative emotions.",
           "Despite its adorable pastel butterfly bow aesthetic, it is canonically known as the ferocious 'Dragon Slayer' in Pokémon battles!",
@@ -952,7 +691,7 @@
     };
 
     /* ==========================================================================
-       2. PROCEDURAL WEB AUDIO SYNTHESIZER ENGINE
+       2. PROCEDURAL WEB AUDIO SYNTHESIZER ENGINE (unchanged core system)
        ========================================================================== */
     class RetroAudioEngine {
       constructor() {
@@ -961,25 +700,16 @@
         this.isSFXEnabled = true;
         this.bgmTimer = null;
         this.step = 0;
-
-        // Funky catchy bass & melody notes (frequencies in Hz)
         this.bassline = [130.81, 130.81, 164.81, 196.00, 174.61, 174.61, 196.00, 220.00];
-        this.melody = [
-          523.25, 0, 659.25, 783.99, 880.00, 783.99, 659.25, 587.33,
-          523.25, 659.25, 0, 783.99, 1046.50, 880.00, 783.99, 659.25
-        ];
+        this.melody = [523.25, 0, 659.25, 783.99, 880.00, 783.99, 659.25, 587.33, 523.25, 659.25, 0, 783.99, 1046.50, 880.00, 783.99, 659.25];
       }
-
       init() {
         if (!this.ctx) {
           const AudioContextClass = window.AudioContext || window.webkitAudioContext;
           this.ctx = new AudioContextClass();
         }
-        if (this.ctx.state === 'suspended') {
-          this.ctx.resume();
-        }
+        if (this.ctx.state === 'suspended') this.ctx.resume();
       }
-
       startBGM() {
         this.init();
         const banner = document.getElementById('audio-prompt');
@@ -987,351 +717,193 @@
         if (this.isMusicPlaying) return;
         this.isMusicPlaying = true;
         this.step = 0;
-
-        const tempo = 128; // BPM
-        const interval = (60 / tempo) / 2 * 1000; // 8th note interval in ms
-
+        const tempo = 128;
+        const interval = (60 / tempo) / 2 * 1000;
         this.bgmTimer = setInterval(() => {
           if (!this.isMusicPlaying) return;
           this.playBGMStep(this.step);
           this.step = (this.step + 1) % 16;
         }, interval);
       }
-
       stopBGM() {
         this.isMusicPlaying = false;
-        if (this.bgmTimer) {
-          clearInterval(this.bgmTimer);
-          this.bgmTimer = null;
-        }
+        if (this.bgmTimer) { clearInterval(this.bgmTimer); this.bgmTimer = null; }
       }
-
       playBGMStep(step) {
         if (!this.ctx) return;
         const now = this.ctx.currentTime;
-
-        // Kick Drum (every 4 steps: 0, 4, 8, 12)
         if (step % 4 === 0) {
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
+          const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
           osc.frequency.setValueAtTime(140, now);
           osc.frequency.exponentialRampToValueAtTime(32, now + 0.12);
           gain.gain.setValueAtTime(0.3, now);
           gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
-          osc.connect(gain);
-          gain.connect(this.ctx.destination);
-          osc.start(now);
-          osc.stop(now + 0.15);
+          osc.connect(gain); gain.connect(this.ctx.destination);
+          osc.start(now); osc.stop(now + 0.15);
         }
-
-        // Snare / Clap (steps 4, 12)
-        if (step % 8 === 4) {
-          this.playSnare(now);
-        }
-
-        // Hi-Hat (every odd step)
-        if (step % 2 === 1) {
-          this.playHiHat(now);
-        }
-
-        // Bassline Synth
+        if (step % 8 === 4) this.playSnare(now);
+        if (step % 2 === 1) this.playHiHat(now);
         const bassFreq = this.bassline[Math.floor(step / 2) % this.bassline.length];
         if (bassFreq > 0) {
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          const filter = this.ctx.createBiquadFilter();
-
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(bassFreq, now);
-
-          filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(450, now);
-
-          gain.gain.setValueAtTime(0.18, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-
-          osc.connect(filter);
-          filter.connect(gain);
-          gain.connect(this.ctx.destination);
-
-          osc.start(now);
-          osc.stop(now + 0.2);
+          const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain(); const filter = this.ctx.createBiquadFilter();
+          osc.type = 'triangle'; osc.frequency.setValueAtTime(bassFreq, now);
+          filter.type = 'lowpass'; filter.frequency.setValueAtTime(450, now);
+          gain.gain.setValueAtTime(0.18, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+          osc.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination);
+          osc.start(now); osc.stop(now + 0.2);
         }
-
-        // Catchy Disco Arpeggio Melody
         const noteFreq = this.melody[step % this.melody.length];
         if (noteFreq > 0) {
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = 'square';
-          osc.frequency.setValueAtTime(noteFreq, now);
-
-          gain.gain.setValueAtTime(0.06, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
-
-          osc.connect(gain);
-          gain.connect(this.ctx.destination);
-
-          osc.start(now);
-          osc.stop(now + 0.15);
+          const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+          osc.type = 'square'; osc.frequency.setValueAtTime(noteFreq, now);
+          gain.gain.setValueAtTime(0.06, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+          osc.connect(gain); gain.connect(this.ctx.destination);
+          osc.start(now); osc.stop(now + 0.15);
         }
       }
-
       playHiHat(t) {
         if (!this.ctx) return;
         const bufferSize = this.ctx.sampleRate * 0.04;
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
         const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-          data[i] = Math.random() * 2 - 1;
-        }
-
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = buffer;
-
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'highpass';
-        filter.frequency.setValueAtTime(7000, t);
-
-        const gain = this.ctx.createGain();
-        gain.gain.setValueAtTime(0.05, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
-
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.ctx.destination);
-
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const noise = this.ctx.createBufferSource(); noise.buffer = buffer;
+        const filter = this.ctx.createBiquadFilter(); filter.type = 'highpass'; filter.frequency.setValueAtTime(7000, t);
+        const gain = this.ctx.createGain(); gain.gain.setValueAtTime(0.05, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+        noise.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination);
         noise.start(t);
       }
-
       playSnare(t) {
         if (!this.ctx) return;
         const bufferSize = this.ctx.sampleRate * 0.1;
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
         const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-          data[i] = (Math.random() * 2 - 1) * 0.8;
-        }
-
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = buffer;
-
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'bandpass';
-        filter.frequency.setValueAtTime(1200, t);
-
-        const gain = this.ctx.createGain();
-        gain.gain.setValueAtTime(0.18, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.ctx.destination);
-
+        for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * 0.8;
+        const noise = this.ctx.createBufferSource(); noise.buffer = buffer;
+        const filter = this.ctx.createBiquadFilter(); filter.type = 'bandpass'; filter.frequency.setValueAtTime(1200, t);
+        const gain = this.ctx.createGain(); gain.gain.setValueAtTime(0.18, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+        noise.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination);
         noise.start(t);
       }
-
-      // Playful SFX
       playBoing() {
         if (!this.isSFXEnabled) return;
         this.init();
         const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(220, now);
-        osc.frequency.exponentialRampToValueAtTime(750, now + 0.25);
-
-        gain.gain.setValueAtTime(0.25, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
-
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.3);
+        const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+        osc.type = 'sine'; osc.frequency.setValueAtTime(220, now); osc.frequency.exponentialRampToValueAtTime(750, now + 0.25);
+        gain.gain.setValueAtTime(0.25, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+        osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.3);
       }
-
       playChomp() {
         if (!this.isSFXEnabled) return;
         this.init();
         const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(380, now);
-        osc.frequency.exponentialRampToValueAtTime(140, now + 0.12);
-
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.16);
+        const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(380, now); osc.frequency.exponentialRampToValueAtTime(140, now + 0.12);
+        gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.16);
       }
-
       playSparkle() {
         if (!this.isSFXEnabled) return;
         this.init();
         const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
         const now = this.ctx.currentTime;
-
         notes.forEach((freq, idx) => {
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          const t = now + idx * 0.05;
-
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(freq, t);
-
-          gain.gain.setValueAtTime(0.2, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
-
-          osc.connect(gain);
-          gain.connect(this.ctx.destination);
-          osc.start(t);
-          osc.stop(t + 0.25);
+          const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain(); const t = now + idx * 0.05;
+          osc.type = 'sine'; osc.frequency.setValueAtTime(freq, t);
+          gain.gain.setValueAtTime(0.2, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+          osc.connect(gain); gain.connect(this.ctx.destination); osc.start(t); osc.stop(t + 0.25);
         });
       }
-
       playPurr() {
         if (!this.isSFXEnabled) return;
         this.init();
         const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(60, now);
-        osc.frequency.linearRampToValueAtTime(75, now + 0.1);
-        osc.frequency.linearRampToValueAtTime(55, now + 0.2);
-
-        gain.gain.setValueAtTime(0.18, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.26);
+        const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+        osc.type = 'triangle'; osc.frequency.setValueAtTime(60, now);
+        osc.frequency.linearRampToValueAtTime(75, now + 0.1); osc.frequency.linearRampToValueAtTime(55, now + 0.2);
+        gain.gain.setValueAtTime(0.18, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.26);
       }
-
       playPanicVacuum() {
         if (!this.isSFXEnabled) return;
         this.init();
         const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(800, now);
-        osc.frequency.linearRampToValueAtTime(260, now + 0.4);
-
-        gain.gain.setValueAtTime(0.25, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.46);
+        const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(800, now); osc.frequency.linearRampToValueAtTime(260, now + 0.4);
+        gain.gain.setValueAtTime(0.25, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+        osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.46);
       }
-
       playZap() {
         if (!this.isSFXEnabled) return;
         this.init();
         const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(1400, now);
-        osc.frequency.exponentialRampToValueAtTime(200, now + 0.18);
-
-        gain.gain.setValueAtTime(0.28, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.21);
+        const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(1400, now); osc.frequency.exponentialRampToValueAtTime(200, now + 0.18);
+        gain.gain.setValueAtTime(0.28, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.21);
       }
-
       playSplat() {
         if (!this.isSFXEnabled) return;
         this.init();
         const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(400, now);
-        osc.frequency.exponentialRampToValueAtTime(70, now + 0.3);
-
-        gain.gain.setValueAtTime(0.35, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.36);
+        const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+        osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(70, now + 0.3);
+        gain.gain.setValueAtTime(0.35, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.36);
       }
-
       playDerp() {
         if (!this.isSFXEnabled) return;
         this.init();
         const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-
-        // Comical slide whistle wobble
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(340, now);
-        osc.frequency.linearRampToValueAtTime(620, now + 0.12);
-        osc.frequency.linearRampToValueAtTime(210, now + 0.32);
-
-        gain.gain.setValueAtTime(0.26, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
-
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.35);
+        const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+        osc.type = 'triangle'; osc.frequency.setValueAtTime(340, now);
+        osc.frequency.linearRampToValueAtTime(620, now + 0.12); osc.frequency.linearRampToValueAtTime(210, now + 0.32);
+        gain.gain.setValueAtTime(0.26, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
+        osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.35);
       }
     }
-
     const audio = new RetroAudioEngine();
 
     /* ==========================================================================
-       3. THREE.JS PROCEDURAL EEVEE 3D RIG & ANIMATION ENGINE
+       3. HABITAT SYSTEM INSTANCES
+       ========================================================================== */
+    const save = new SaveManager();
+    const bondTracker = new DiscoverySystem.BondTracker(save);
+    const interactionMemory = new DiscoverySystem.InteractionMemory();
+    const resonanceTracker = new DiscoverySystem.ResonanceTracker(save);
+    let uiChrome; // needs window.matchMedia + save, created below
+    const discoveryLog = new DiscoverySystem.DiscoveryLog(save, (entry) => showDiscoveryToast(entry));
+    const photoSystem = new PhotoSystem(save);
+    let cameraController = null;
+    let roomManager = null;
+
+    /* ==========================================================================
+       4. THREE.JS PROCEDURAL EEVEE 3D RIG & ANIMATION ENGINE (protected core)
        ========================================================================== */
     let scene, camera, renderer, controls;
     let eeveeRig = null;
     let discoBall = null;
     let vacuumBot = null;
     let treats = [];
-    let environmentDecor = [];
-    let sandboxFloor = null;
-    let sandboxMotes = null;
 
-    // Animation States
-    let currentForm = 'eevee';
-    let isShiny = false;
-    let activeGameMode = 'sandbox'; // 'sandbox' or 'arcade'
+    let currentForm = save.get('activeForm', 'eevee');
+    let isShiny = save.get('isShiny', false);
+    let activeGameMode = 'sandbox';
     let clock = new THREE.Clock();
+    let isPhotoMode = false;
+    let isChillMode = false;
+    let lastActivityAt = performance.now();
 
-    // Expression & Pose States
-    let currentEmotion = 'happy'; // 'happy', 'derp', 'hearts', 'shocked'
+    let currentEmotion = 'happy';
     let isLoafMode = false;
     let isDiscoMode = false;
     let isVacuumPanicking = false;
     let petSquishFactor = 1.0;
     let treatHungerAngle = 0;
 
-    // Face Texture Generator
     let faceCanvas, faceCtx, faceTexture;
 
-    // Species-Specific Face & Eye Palettes
     const EYE_PALETTES = {
       eevee:    { iris: '#48250F', glow: '#B86F36', pupil: '#1D0E05', heart: '#FF2B6D', blush: 'rgba(255, 120, 150, 0.45)', mouth: '#432616', nose: '#26140A' },
       vaporeon: { iris: '#142C44', glow: '#28628C', pupil: '#0A1724', heart: '#38D0FF', blush: 'rgba(100, 200, 255, 0.40)', mouth: '#123048', nose: '#0E2436' },
@@ -1346,8 +918,7 @@
 
     function initFaceTexture() {
       faceCanvas = document.createElement('canvas');
-      faceCanvas.width = 512;
-      faceCanvas.height = 512;
+      faceCanvas.width = 512; faceCanvas.height = 512;
       faceCtx = faceCanvas.getContext('2d');
       faceTexture = new THREE.CanvasTexture(faceCanvas);
       faceTexture.needsUpdate = true;
@@ -1357,12 +928,8 @@
     function updateFaceExpression(emotion) {
       currentEmotion = emotion;
       if (!faceCtx) return;
-
       faceCtx.clearRect(0, 0, 512, 512);
-
       const pal = EYE_PALETTES[currentForm] || EYE_PALETTES.eevee;
-
-      // Species-Themed Soft Blushing Cheeks
       faceCtx.fillStyle = pal.blush;
       faceCtx.beginPath();
       faceCtx.arc(140, 310, 36, 0, Math.PI * 2);
@@ -1370,131 +937,63 @@
       faceCtx.fill();
 
       if (emotion === 'happy') {
-        // High-Quality Species Anime Eyes
         drawAnimeEye(170, 240, 50, pal);
         drawAnimeEye(342, 240, 50, pal);
-
-        // Species-Themed Cute W-mouth (Pokemon cat/fox mouth)
-        faceCtx.strokeStyle = pal.mouth;
-        faceCtx.lineWidth = 8;
-        faceCtx.lineCap = 'round';
+        faceCtx.strokeStyle = pal.mouth; faceCtx.lineWidth = 8; faceCtx.lineCap = 'round';
         faceCtx.beginPath();
         faceCtx.arc(235, 335, 22, 0.2, Math.PI - 0.2);
         faceCtx.arc(277, 335, 22, 0.2, Math.PI - 0.2);
         faceCtx.stroke();
-
       } else if (emotion === 'hearts') {
-        // Glowing Species-Themed Heart Eyes!
         drawHeartEye(170, 240, 56, pal.heart);
         drawHeartEye(342, 240, 56, pal.heart);
-
-        // Open joyful happy smile
-        faceCtx.fillStyle = pal.heart;
-        faceCtx.strokeStyle = pal.mouth;
-        faceCtx.lineWidth = 8;
-        faceCtx.beginPath();
-        faceCtx.arc(256, 330, 32, 0, Math.PI);
-        faceCtx.closePath();
-        faceCtx.fill();
-        faceCtx.stroke();
-
+        faceCtx.fillStyle = pal.heart; faceCtx.strokeStyle = pal.mouth; faceCtx.lineWidth = 8;
+        faceCtx.beginPath(); faceCtx.arc(256, 330, 32, 0, Math.PI); faceCtx.closePath(); faceCtx.fill(); faceCtx.stroke();
       } else if (emotion === 'derp') {
-        // Googly mismatched crazy eyes!
         drawGooglyEye(170, 240, 55, -15, -15, pal);
         drawGooglyEye(342, 240, 42, 12, 10, pal);
-
-        // Derp tongue sticking out (:P)
-        faceCtx.strokeStyle = pal.mouth;
-        faceCtx.lineWidth = 8;
-        faceCtx.beginPath();
-        faceCtx.arc(256, 325, 20, 0, Math.PI);
-        faceCtx.stroke();
-
-        // Pink floppy tongue
+        faceCtx.strokeStyle = pal.mouth; faceCtx.lineWidth = 8;
+        faceCtx.beginPath(); faceCtx.arc(256, 325, 20, 0, Math.PI); faceCtx.stroke();
         faceCtx.fillStyle = '#FF6B8B';
-        faceCtx.beginPath();
-        faceCtx.arc(268, 355, 18, 0, Math.PI * 2);
-        faceCtx.fill();
-        faceCtx.strokeStyle = pal.mouth;
-        faceCtx.lineWidth = 4;
-        faceCtx.stroke();
-
+        faceCtx.beginPath(); faceCtx.arc(268, 355, 18, 0, Math.PI * 2); faceCtx.fill();
+        faceCtx.strokeStyle = pal.mouth; faceCtx.lineWidth = 4; faceCtx.stroke();
       } else if (emotion === 'shocked') {
-        // Tiny white dot eyes with shock vibration
-        faceCtx.fillStyle = '#FFFFFF';
-        faceCtx.strokeStyle = pal.mouth;
-        faceCtx.lineWidth = 6;
+        faceCtx.fillStyle = '#FFFFFF'; faceCtx.strokeStyle = pal.mouth; faceCtx.lineWidth = 6;
         faceCtx.beginPath();
         faceCtx.arc(170, 240, 48, 0, Math.PI * 2);
         faceCtx.arc(342, 240, 48, 0, Math.PI * 2);
-        faceCtx.fill();
-        faceCtx.stroke();
-
-        // Pinpoint pupils
+        faceCtx.fill(); faceCtx.stroke();
         faceCtx.fillStyle = '#000000';
         faceCtx.beginPath();
         faceCtx.arc(170, 240, 10, 0, Math.PI * 2);
         faceCtx.arc(342, 240, 10, 0, Math.PI * 2);
         faceCtx.fill();
-
-        // O-shaped gasp mouth
         faceCtx.fillStyle = pal.mouth;
-        faceCtx.beginPath();
-        faceCtx.ellipse(256, 350, 24, 38, 0, 0, Math.PI * 2);
-        faceCtx.fill();
+        faceCtx.beginPath(); faceCtx.ellipse(256, 350, 24, 38, 0, 0, Math.PI * 2); faceCtx.fill();
       }
-
-      // Petite triangular button nose
       faceCtx.fillStyle = pal.nose;
       faceCtx.beginPath();
-      faceCtx.moveTo(256, 298);
-      faceCtx.lineTo(247, 287);
-      faceCtx.lineTo(265, 287);
-      faceCtx.closePath();
-      faceCtx.fill();
-
+      faceCtx.moveTo(256, 298); faceCtx.lineTo(247, 287); faceCtx.lineTo(265, 287); faceCtx.closePath(); faceCtx.fill();
       faceTexture.needsUpdate = true;
     }
 
     function drawAnimeEye(x, y, radius, pal) {
       faceCtx.save();
-
-      // Outer Iris Contour
       faceCtx.fillStyle = pal.iris;
-      faceCtx.beginPath();
-      faceCtx.ellipse(x, y, radius * 0.75, radius, 0, 0, Math.PI * 2);
-      faceCtx.fill();
-
-      // Lower Glowing Gradient Sheen
+      faceCtx.beginPath(); faceCtx.ellipse(x, y, radius * 0.75, radius, 0, 0, Math.PI * 2); faceCtx.fill();
       faceCtx.fillStyle = pal.glow;
-      faceCtx.beginPath();
-      faceCtx.ellipse(x, y + 14, radius * 0.58, radius * 0.46, 0, 0, Math.PI * 2);
-      faceCtx.fill();
-
-      // Pupil Style: Slit for Umbreon, White for Espeon, Normal Deep Pupil otherwise
+      faceCtx.beginPath(); faceCtx.ellipse(x, y + 14, radius * 0.58, radius * 0.46, 0, 0, Math.PI * 2); faceCtx.fill();
       if (pal.slit) {
-        // Predatory Cat-Slit Pupil for Umbreon
         faceCtx.fillStyle = pal.pupil;
-        faceCtx.beginPath();
-        faceCtx.ellipse(x, y, radius * 0.16, radius * 0.72, 0, 0, Math.PI * 2);
-        faceCtx.fill();
+        faceCtx.beginPath(); faceCtx.ellipse(x, y, radius * 0.16, radius * 0.72, 0, 0, Math.PI * 2); faceCtx.fill();
       } else if (pal.whitePupil) {
-        // Iconic White Pinpoint Pupil for Espeon
         faceCtx.fillStyle = '#FFFFFF';
-        faceCtx.beginPath();
-        faceCtx.ellipse(x, y - 2, radius * 0.28, radius * 0.38, 0, 0, Math.PI * 2);
-        faceCtx.fill();
+        faceCtx.beginPath(); faceCtx.ellipse(x, y - 2, radius * 0.28, radius * 0.38, 0, 0, Math.PI * 2); faceCtx.fill();
       } else {
-        // Deep Dark Pupil
         faceCtx.fillStyle = pal.pupil;
-        faceCtx.beginPath();
-        faceCtx.ellipse(x, y - 2, radius * 0.42, radius * 0.55, 0, 0, Math.PI * 2);
-        faceCtx.fill();
+        faceCtx.beginPath(); faceCtx.ellipse(x, y - 2, radius * 0.42, radius * 0.55, 0, 0, Math.PI * 2); faceCtx.fill();
       }
-
-      // Specular Highlights
       if (pal.starry) {
-        // Star sparkle highlights for Sylveon
         faceCtx.fillStyle = '#FFFFFF';
         faceCtx.beginPath();
         faceCtx.arc(x - 12, y - 16, radius * 0.32, 0, Math.PI * 2);
@@ -1502,24 +1001,16 @@
         faceCtx.arc(x + 14, y - 10, radius * 0.12, 0, Math.PI * 2);
         faceCtx.fill();
       } else if (pal.diamond) {
-        // Diamond crystal facet highlights for Glaceon
         faceCtx.fillStyle = '#FFFFFF';
         faceCtx.beginPath();
         faceCtx.rect(x - 14, y - 18, radius * 0.38, radius * 0.38);
         faceCtx.arc(x + 8, y + 14, radius * 0.16, 0, Math.PI * 2);
         faceCtx.fill();
       } else {
-        // Standard Anime Specular Highlights
         faceCtx.fillStyle = '#FFFFFF';
-        faceCtx.beginPath();
-        faceCtx.arc(x - 12, y - 16, radius * 0.32, 0, Math.PI * 2);
-        faceCtx.fill();
-
-        faceCtx.beginPath();
-        faceCtx.arc(x + 10, y + 18, radius * 0.16, 0, Math.PI * 2);
-        faceCtx.fill();
+        faceCtx.beginPath(); faceCtx.arc(x - 12, y - 16, radius * 0.32, 0, Math.PI * 2); faceCtx.fill();
+        faceCtx.beginPath(); faceCtx.arc(x + 10, y + 18, radius * 0.16, 0, Math.PI * 2); faceCtx.fill();
       }
-
       faceCtx.restore();
     }
 
@@ -1533,101 +1024,36 @@
       faceCtx.bezierCurveTo(x - size / 2, y + (size + topCurveHeight) / 2, x, y + (size + topCurveHeight) / 1.4, x, y + size);
       faceCtx.bezierCurveTo(x, y + (size + topCurveHeight) / 1.4, x + size / 2, y + (size + topCurveHeight) / 2, x + size / 2, y + topCurveHeight);
       faceCtx.bezierCurveTo(x + size / 2, y, x, y, x, y + topCurveHeight);
-      faceCtx.closePath();
-      faceCtx.fill();
-
-      // Sparkle on heart
+      faceCtx.closePath(); faceCtx.fill();
       faceCtx.fillStyle = '#FFF';
-      faceCtx.beginPath();
-      faceCtx.arc(x - size * 0.2, y + size * 0.2, 5, 0, Math.PI * 2);
-      faceCtx.fill();
+      faceCtx.beginPath(); faceCtx.arc(x - size * 0.2, y + size * 0.2, 5, 0, Math.PI * 2); faceCtx.fill();
       faceCtx.restore();
     }
 
     function drawGooglyEye(x, y, radius, pupilOffsetX, pupilOffsetY, pal) {
       faceCtx.save();
-      faceCtx.fillStyle = '#FFFFFF';
-      faceCtx.strokeStyle = pal.mouth || '#432616';
-      faceCtx.lineWidth = 6;
-      faceCtx.beginPath();
-      faceCtx.arc(x, y, radius, 0, Math.PI * 2);
-      faceCtx.fill();
-      faceCtx.stroke();
-
+      faceCtx.fillStyle = '#FFFFFF'; faceCtx.strokeStyle = pal.mouth || '#432616'; faceCtx.lineWidth = 6;
+      faceCtx.beginPath(); faceCtx.arc(x, y, radius, 0, Math.PI * 2); faceCtx.fill(); faceCtx.stroke();
       faceCtx.fillStyle = pal.iris || '#1D0E05';
-      faceCtx.beginPath();
-      faceCtx.arc(x + pupilOffsetX, y + pupilOffsetY, radius * 0.45, 0, Math.PI * 2);
-      faceCtx.fill();
-
+      faceCtx.beginPath(); faceCtx.arc(x + pupilOffsetX, y + pupilOffsetY, radius * 0.45, 0, Math.PI * 2); faceCtx.fill();
       faceCtx.fillStyle = '#FFFFFF';
-      faceCtx.beginPath();
-      faceCtx.arc(x + pupilOffsetX - 5, y + pupilOffsetY - 5, 4, 0, Math.PI * 2);
-      faceCtx.fill();
+      faceCtx.beginPath(); faceCtx.arc(x + pupilOffsetX - 5, y + pupilOffsetY - 5, 4, 0, Math.PI * 2); faceCtx.fill();
       faceCtx.restore();
     }
 
     /* ==========================================================================
-       4. BUILD NINE DISTINCT PROCEDURAL 3D EEVEELUTION CHARACTERS
-       ========================================================================== */
-
-    // Helper to construct anatomically articulated quadruped legs with sculpted haunches and paws
-    function createArticulatedLeg(thighR, legR, footR, length, mainMat, sockMat, isHind = false) {
-      const leg = new THREE.Group();
-      if (isHind) {
-        // Muscular curved hind haunch
-        const haunchGeo = new THREE.SphereGeometry(thighR * 1.3, 16, 14);
-        haunchGeo.scale(0.85, 1.25, 1.1);
-        haunchGeo.translate(0, 0.15, -0.05);
-        const haunch = new THREE.Mesh(haunchGeo, mainMat);
-        haunch.castShadow = true;
-        leg.add(haunch);
-      }
-      // Upper & lower limb
-      const limbGeo = new THREE.CylinderGeometry(legR * 0.85, legR * 1.1, length, 16);
-      limbGeo.translate(0, -length * 0.45, 0);
-      const limb = new THREE.Mesh(limbGeo, sockMat || mainMat);
-      limb.castShadow = true;
-      leg.add(limb);
-
-      // Sculpted paw with three defined toes
-      const foot = new THREE.Group();
-      foot.position.set(0, -length * 0.88, 0.08);
-      const footBaseGeo = new THREE.SphereGeometry(footR, 16, 12);
-      footBaseGeo.scale(1.0, 0.55, 1.25);
-      const footMesh = new THREE.Mesh(footBaseGeo, sockMat || mainMat);
-      footMesh.castShadow = true;
-      foot.add(footMesh);
-
-      for (let t = -1; t <= 1; t++) {
-        const toeGeo = new THREE.SphereGeometry(footR * 0.38, 10, 8);
-        toeGeo.scale(0.9, 0.7, 1.2);
-        toeGeo.translate(t * footR * 0.45, -footR * 0.15, footR * 0.75);
-        const toe = new THREE.Mesh(toeGeo, sockMat || mainMat);
-        toe.castShadow = true;
-        foot.add(toe);
-      }
-      leg.add(foot);
-      return leg;
-    }
-
-    // 1. EEVEE (The Evolution Pokemon)
-    /* ==========================================================================
-       4. SOURCED 3D EEVEELUTION CHARACTER RIG & ASSET ENGINE
+       5. SOURCED 3D EEVEELUTION CHARACTER RIG & ASSET ENGINE (protected core)
        ========================================================================== */
     const SPECIES_LIST = ['eevee', 'vaporeon', 'jolteon', 'flareon', 'espeon', 'umbreon', 'leafeon', 'glaceon', 'sylveon'];
     const gltfLoader = new THREE.GLTFLoader();
+    const loadProgress = { loaded: 0, total: SPECIES_LIST.length, failed: [] };
 
     function findBone(root, patterns) {
       let found = null;
       root.traverse(c => {
         if (!found && c.isBone) {
           const name = c.name.toLowerCase();
-          for (const p of patterns) {
-            if (p.test(name)) {
-              found = c;
-              break;
-            }
-          }
+          for (const p of patterns) { if (p.test(name)) { found = c; break; } }
         }
       });
       return found;
@@ -1641,12 +1067,10 @@
       SPECIES_LIST.forEach(sp => {
         const wrapper = new THREE.Group();
         wrapper.name = `${sp}_wrapper`;
-
         const inner = new THREE.Group();
         inner.name = `${sp}_inner`;
         wrapper.add(inner);
 
-        // Invisible simplified collider for 100% reliable click raycasting & arcade collisions
         const colliderGeo = new THREE.CylinderGeometry(0.55, 0.55, 1.3, 16);
         const colliderMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
         const hitBox = new THREE.Mesh(colliderGeo, colliderMat);
@@ -1654,43 +1078,29 @@
         hitBox.name = `${sp}_hitBox`;
         wrapper.add(hitBox);
 
-        // Fallback dummy objects for animation loop before GLB completes parsing
-        const dummyHead = new THREE.Object3D();
-        dummyHead.position.set(0, 0.85, 0.4);
+        const dummyHead = new THREE.Object3D(); dummyHead.position.set(0, 0.85, 0.4);
         const dummyEarL = new THREE.Object3D();
         const dummyEarR = new THREE.Object3D();
         const dummyTail = new THREE.Object3D();
         const dummyPaws = [new THREE.Object3D(), new THREE.Object3D(), new THREE.Object3D(), new THREE.Object3D()];
 
         wrapper.userData = {
-          bodyGroup: inner,
-          inner: inner,
-          headGroup: dummyHead,
-          earGroupLeft: dummyEarL,
-          earGroupRight: dummyEarR,
-          tailGroup: dummyTail,
-          paws: dummyPaws,
-          isLoaded: false,
-          updatePalette: (shiny) => {}
+          bodyGroup: inner, inner: inner, headGroup: dummyHead, earGroupLeft: dummyEarL, earGroupRight: dummyEarR,
+          tailGroup: dummyTail, paws: dummyPaws, isLoaded: false, updatePalette: (shiny) => {}
         };
 
         wrapper.visible = (sp === currentForm);
         rig.add(wrapper);
         models[sp] = wrapper;
 
-        // Load genuine 3D model
         gltfLoader.load(`assets/models/${sp}.glb`, (gltf) => {
           const raw = gltf.scene;
           inner.add(raw);
 
-          // Calculate bounding box and scale
           const box = new THREE.Box3().setFromObject(raw);
-          const size = new THREE.Vector3();
-          box.getSize(size);
-          const center = new THREE.Vector3();
-          box.getCenter(center);
+          const size = new THREE.Vector3(); box.getSize(size);
+          const center = new THREE.Vector3(); box.getCenter(center);
 
-          // Proportional heights: Eevee ~0.95m, adult evolutions ~1.35m
           const targetH = (sp === 'eevee' ? 0.95 : 1.35);
           const s = targetH / (size.y || 1);
           raw.scale.setScalar(s);
@@ -1698,62 +1108,43 @@
           raw.position.y = -box.min.y * s;
           raw.position.z = -center.z * s;
 
-          // Mathematical spine vector alignment to +Z (facing player/camera)
           wrapper.updateMatrixWorld(true);
           const headBone = findBone(raw, [/head/, /nose/]);
           const tailBone = findBone(raw, [/tail/]);
           const waistBone = findBone(raw, [/waist/, /origin/, /spine/]);
 
           if (headBone && waistBone) {
-            const headPos = new THREE.Vector3();
-            const waistPos = new THREE.Vector3();
-            headBone.getWorldPosition(headPos);
-            waistBone.getWorldPosition(waistPos);
+            const headPos = new THREE.Vector3(); const waistPos = new THREE.Vector3();
+            headBone.getWorldPosition(headPos); waistBone.getWorldPosition(waistPos);
             const angle = Math.atan2(headPos.x - waistPos.x, headPos.z - waistPos.z);
             wrapper.rotation.y = -angle;
           }
 
-          // Second centering pass: after rotation is applied, re-measure the
-          // world-space bounding box of the inner group and translate wrapper
-          // so the model is exactly at the scene origin (x=0, z=0).
-          // This corrects for FoxoutdaBox diorama objects whose armature origins
-          // sit at extreme world positions (~280 units from origin).
           wrapper.updateMatrixWorld(true);
           const finalBox = new THREE.Box3().setFromObject(inner);
-          const finalCenter = new THREE.Vector3();
-          finalBox.getCenter(finalCenter);
-          // Shift wrapper horizontally so model center lands on (0, ?, 0)
+          const finalCenter = new THREE.Vector3(); finalBox.getCenter(finalCenter);
           wrapper.position.x -= finalCenter.x;
           wrapper.position.z -= finalCenter.z;
-          // Re-ground: ensure paws sit exactly at y=0
           wrapper.updateMatrixWorld(true);
           const groundBox = new THREE.Box3().setFromObject(inner);
           wrapper.position.y -= groundBox.min.y;
 
-          // Cartoon Studio Toon / PBR Lighting & Color Preservation
           const originalMaterials = [];
           raw.traverse(c => {
             if (c.isMesh) {
-              c.castShadow = true;
-              c.receiveShadow = true;
+              c.castShadow = true; c.receiveShadow = true;
               if (c.material) {
                 const mats = Array.isArray(c.material) ? c.material : [c.material];
                 mats.forEach(m => {
                   if ('roughness' in m) m.roughness = 0.52;
                   if ('metalness' in m) m.metalness = 0.05;
                   if (m.map) m.map.encoding = THREE.sRGBEncoding;
-                  originalMaterials.push({
-                    mat: m,
-                    color: m.color ? m.color.clone() : new THREE.Color(0xffffff),
-                    emissive: m.emissive ? m.emissive.clone() : new THREE.Color(0x000000),
-                    emissiveIntensity: m.emissiveIntensity || 0
-                  });
+                  originalMaterials.push({ mat: m, color: m.color ? m.color.clone() : new THREE.Color(0xffffff), emissive: m.emissive ? m.emissive.clone() : new THREE.Color(0x000000), emissiveIntensity: m.emissiveIntensity || 0 });
                 });
               }
             }
           });
 
-          // Animation pointers
           if (headBone) wrapper.userData.headGroup = headBone;
           if (tailBone) wrapper.userData.tailGroup = tailBone;
           const earL = findBone(raw, [/lear/, /ear.*l/, /left.*ear/]);
@@ -1761,44 +1152,32 @@
           if (earL) wrapper.userData.earGroupLeft = earL;
           if (earR) wrapper.userData.earGroupRight = earR;
 
-          // Find form-specific special features
           if (sp === 'espeon') {
             let gemMesh = null;
-            raw.traverse(c => {
-              if (c.isMesh && (c.material?.name?.includes('107') || c.name.includes('107'))) gemMesh = c;
-            });
+            raw.traverse(c => { if (c.isMesh && (c.material?.name?.includes('107') || c.name.includes('107'))) gemMesh = c; });
             wrapper.userData.psychicGem = gemMesh || new THREE.Mesh(new THREE.SphereGeometry(0.04), new THREE.MeshStandardMaterial({ color: 0xFF1144, emissive: 0xFF1144 }));
           } else if (sp === 'umbreon') {
             let ringMat = null;
             raw.traverse(c => {
               if (c.isMesh && c.material) {
                 const m = Array.isArray(c.material) ? c.material[0] : c.material;
-                if (m.name.includes('body_a') || m.name.includes('ring') || m.name.includes('body_b')) {
-                  ringMat = m;
-                }
+                if (m.name.includes('body_a') || m.name.includes('ring') || m.name.includes('body_b')) ringMat = m;
               }
             });
             wrapper.userData.umbreonRingMat = ringMat;
           } else if (sp === 'sylveon') {
             const ribbons = [];
-            raw.traverse(c => {
-              if (c.isBone && (c.name.toLowerCase().includes('feeler') || c.name.toLowerCase().includes('ribbon'))) {
-                ribbons.push(c);
-              }
-            });
+            raw.traverse(c => { if (c.isBone && (c.name.toLowerCase().includes('feeler') || c.name.toLowerCase().includes('ribbon'))) ribbons.push(c); });
             wrapper.userData.sylveonRibbons = ribbons.length > 0 ? ribbons : [dummyEarL, dummyEarR];
           } else if (sp === 'vaporeon') {
             const fluke = findBone(raw, [/fluke/, /endtail/, /tail.*4/, /tail.*3/]);
             wrapper.userData.vaporeonFluke = fluke || tailBone;
           } else if (sp === 'glaceon') {
             const bangs = [];
-            raw.traverse(c => {
-              if (c.isBone && (c.name.toLowerCase().includes('feeler') || c.name.toLowerCase().includes('bang'))) bangs.push(c);
-            });
+            raw.traverse(c => { if (c.isBone && (c.name.toLowerCase().includes('feeler') || c.name.toLowerCase().includes('bang'))) bangs.push(c); });
             wrapper.userData.glaceonBangs = bangs;
           }
 
-          // Shiny Palette Swapper
           wrapper.userData.updatePalette = (shiny) => {
             originalMaterials.forEach(({ mat, color, emissive, emissiveIntensity }) => {
               if (shiny) {
@@ -1807,29 +1186,17 @@
                     mat.color.setHex(0x38D8FF);
                     if (mat.emissive) { mat.emissive.setHex(0x00A2FF); mat.emissiveIntensity = 0.85; }
                   }
-                } else if (sp === 'vaporeon') {
-                  mat.color.setHex(0xE577DD);
-                } else if (sp === 'jolteon') {
-                  mat.color.setHex(0xA8E43A);
-                } else if (sp === 'flareon') {
-                  mat.color.setHex(0xFFB845);
-                } else if (sp === 'espeon') {
-                  mat.color.setHex(0x4EE855);
-                } else if (sp === 'eevee') {
-                  mat.color.setHex(0xEDE9DF);
-                } else if (sp === 'leafeon') {
-                  mat.color.setHex(0x85E072);
-                } else if (sp === 'glaceon') {
-                  mat.color.setHex(0x9CE8FF);
-                } else if (sp === 'sylveon') {
-                  mat.color.setHex(0x75D8FF);
-                }
+                } else if (sp === 'vaporeon') { mat.color.setHex(0xE577DD); }
+                else if (sp === 'jolteon') { mat.color.setHex(0xA8E43A); }
+                else if (sp === 'flareon') { mat.color.setHex(0xFFB845); }
+                else if (sp === 'espeon') { mat.color.setHex(0x4EE855); }
+                else if (sp === 'eevee') { mat.color.setHex(0xEDE9DF); }
+                else if (sp === 'leafeon') { mat.color.setHex(0x85E072); }
+                else if (sp === 'glaceon') { mat.color.setHex(0x9CE8FF); }
+                else if (sp === 'sylveon') { mat.color.setHex(0x75D8FF); }
               } else {
                 mat.color.copy(color);
-                if (mat.emissive) {
-                  mat.emissive.copy(emissive);
-                  mat.emissiveIntensity = emissiveIntensity;
-                }
+                if (mat.emissive) { mat.emissive.copy(emissive); mat.emissiveIntensity = emissiveIntensity; }
               }
             });
           };
@@ -1838,85 +1205,87 @@
           if (currentForm === sp) {
             wrapper.userData.updatePalette(isShiny);
             Object.assign(rig.userData, wrapper.userData);
+            if (cameraController) cameraController.setModelBounds(wrapper);
           }
+
+          loadProgress.loaded++;
+          updateLoadingUI();
         }, undefined, (err) => {
           console.error(`Failed to load ${sp}.glb:`, err);
+          loadProgress.loaded++;
+          loadProgress.failed.push(sp);
+          updateLoadingUI();
         });
       });
 
-      rig.userData = {
-        models,
-        ...models[currentForm].userData,
-        initialY: 0
-      };
-
+      rig.userData = { models, ...models[currentForm].userData, initialY: 0 };
       return rig;
+    }
+
+    function updateLoadingUI() {
+      const pct = Math.round((loadProgress.loaded / loadProgress.total) * 100);
+      const bar = document.getElementById('loading-bar');
+      const text = document.getElementById('loading-text');
+      const errEl = document.getElementById('loading-error');
+      if (bar) bar.style.width = pct + '%';
+      if (text) text.textContent = loadProgress.loaded < loadProgress.total ? `Loading Eeveelutions… ${pct}%` : 'Ready!';
+      if (loadProgress.failed.length && errEl) {
+        errEl.textContent = `Some forms couldn't load (${loadProgress.failed.join(', ')}) — the rest of the habitat still works.`;
+      }
+      if (loadProgress.loaded >= loadProgress.total) {
+        setTimeout(() => {
+          const overlay = document.getElementById('loading-overlay');
+          if (overlay) overlay.classList.add('hidden');
+        }, 250);
+      }
     }
 
     function applyFormVisuals(formKey, shiny = false) {
       if (!eeveeRig) return;
       const models = eeveeRig.userData.models;
       if (!models || !models[formKey]) return;
-
-      // Only active model is visible
-      for (const [key, m] of Object.entries(models)) {
-        m.visible = (key === formKey);
-      }
-
-      // Update palette for normal vs shiny
+      for (const [key, m] of Object.entries(models)) m.visible = (key === formKey);
       const activeM = models[formKey];
-      if (activeM.userData.updatePalette) {
-        activeM.userData.updatePalette(shiny);
-      }
-
-      // Sync active model pointers to eeveeRig.userData so animation loop directly animates them
+      if (activeM.userData.updatePalette) activeM.userData.updatePalette(shiny);
       Object.assign(eeveeRig.userData, activeM.userData);
-
-      // Re-draw face canvas for this species eye colors and style
       updateFaceExpression(currentEmotion);
+      if (cameraController && activeM.userData.isLoaded) cameraController.setModelBounds(activeM);
     }
 
+    /* ==========================================================================
+       6. FORM SELECTION, SHINY, LORE (extended with bond + camera framing)
+       ========================================================================== */
     function selectEeveelution(formKey) {
       if (formKey === currentForm) return;
       currentForm = formKey;
+      save.set('activeForm', formKey);
+      if (roomManager) roomManager.setActiveForm(formKey);
 
-      // Highlight active UI Pill
-      document.querySelectorAll('.evo-pill').forEach(pill => {
-        pill.classList.toggle('active', pill.getAttribute('data-form') === formKey);
-      });
-
-      // Update Fact Sheet
+      renderSpeciesStrip();
       updateFactSheet(formKey);
+      bondTracker.bump(formKey, 2);
 
-      // Trigger Anime Evolution Fanfare & 3D Pirouette
       audio.playSparkle();
       triggerConfetti();
       triggerEvolutionVortex(formKey);
-
-      // Show silly speech bubble
       showSpeech(getRandomSillyCry(formKey));
-
-      // Apply 3D Morph
       applyFormVisuals(formKey, isShiny);
 
-      // Squash and stretch jump animation
       if (eeveeRig) {
-        if (activeGameMode === 'arcade') {
-          arcadeJumpY = 1.2;
-          arcadeJumpVel = 0.35;
-        } else {
-          eeveeRig.position.y = 1.6;
-        }
+        if (activeGameMode === 'arcade') { arcadeJumpY = 1.2; arcadeJumpVel = 0.35; }
+        else { eeveeRig.position.y = 1.6; }
         petSquishFactor = 1.35;
       }
     }
 
     function toggleShinyMode() {
       isShiny = !isShiny;
+      save.set('isShiny', isShiny);
       const btn = document.getElementById('btn-shiny');
-      btn.classList.toggle('is-shiny', isShiny);
-      btn.innerHTML = isShiny ? "<span>🌟</span> SHINY ACTIVE!" : "<span>✨</span> Shiny Mode";
-
+      if (btn) {
+        btn.classList.toggle('active', isShiny);
+        btn.innerHTML = isShiny ? "✨ SHINY ACTIVE!" : "✨ Shiny Mode";
+      }
       audio.playSparkle();
       triggerConfetti();
       applyFormVisuals(currentForm, isShiny);
@@ -1926,18 +1295,14 @@
     function updateFactSheet(formKey) {
       const data = EEVEELUTION_DATA[formKey];
       if (!data) return;
-
       document.getElementById('fact-form-name').textContent = `🌟 ${data.name}`;
-      const randomFact = data.facts[Math.floor(Math.random() * data.facts.length)];
+      const randomFact = interactionMemory.pick('fact_' + formKey, data.facts);
       document.getElementById('fact-text-main').textContent = randomFact;
-      const randomQuote = data.sillyQuotes[Math.floor(Math.random() * data.sillyQuotes.length)];
+      const randomQuote = interactionMemory.pick('quote_' + formKey, data.sillyQuotes);
       document.getElementById('fact-silly-quote').textContent = randomQuote;
     }
 
-    function shuffleRandomFact() {
-      updateFactSheet(currentForm);
-      audio.playBoing();
-    }
+    function shuffleRandomFact() { updateFactSheet(currentForm); audio.playBoing(); }
 
     function getRandomSillyCry(formKey) {
       const cries = {
@@ -1952,7 +1317,7 @@
         sylveon: ["*Dragon slayer ribbon hugs!*", "Feel the love and sparkles! 💖", "Cute pastel ribbons of pure steel!"]
       };
       const list = cries[formKey] || cries.eevee;
-      return list[Math.floor(Math.random() * list.length)];
+      return interactionMemory.pick('cry_' + formKey, list);
     }
 
     function showSpeech(text) {
@@ -1960,73 +1325,70 @@
       el.textContent = text;
       el.classList.add('visible');
       clearTimeout(el.hideTimeout);
-      el.hideTimeout = setTimeout(() => {
-        el.classList.remove('visible');
-      }, 3500);
+      el.hideTimeout = setTimeout(() => el.classList.remove('visible'), 3500);
+    }
+
+    function showDiscoveryToast(entry) {
+      const el = document.getElementById('discovery-toast');
+      el.textContent = '📔 ' + (entry.label || 'New discovery!');
+      el.classList.add('visible');
+      clearTimeout(el.hideTimeout);
+      el.hideTimeout = setTimeout(() => el.classList.remove('visible'), 3800);
+      renderJournal();
     }
 
     function triggerConfetti() {
-      if (typeof confetti === 'function') {
-        confetti({
-          particleCount: 45,
-          spread: 70,
-          origin: { y: 0.65 }
-        });
-      }
+      if (typeof confetti === 'function') confetti({ particleCount: 45, spread: 70, origin: { y: 0.65 } });
     }
 
     /* ==========================================================================
-       6. INTERACTIVE TOYS & GAGS (PETTING, TREATS, DISCO, ROOMBA PANIC)
+       7. INTERACTIVE TOYS & GAGS (petting, treats, disco, roomba — protected core,
+          extended with personality scaling + bond)
        ========================================================================== */
+    function personality() { return DiscoverySystem.PERSONALITIES[currentForm] || DiscoverySystem.PERSONALITIES.eevee; }
+    function toyPref(kind) { return (DiscoverySystem.TOY_PREFERENCES[currentForm] || {})[kind] || 1.0; }
+
     function feedTreat(type) {
       audio.playBoing();
       updateFaceExpression('hearts');
-      showSpeech(type === 'berry' ? "OM NOM NOM! 🍓 So juicy!" : "MEGA CHONK PUFF! 🧁 Fluff overload!");
+      bondTracker.bump(currentForm, 2);
+      const pref = toyPref(type);
+      const lines = type === 'berry'
+        ? ["OM NOM NOM! 🍓 So juicy!", "Berry received with maximum enthusiasm!", "Snap! Gone in one bite."]
+        : ["MEGA CHONK PUFF! 🧁 Fluff overload!", "Instant floof upgrade unlocked.", "The puff has been accepted."];
+      showSpeech(interactionMemory.pick('feed_' + type, lines));
 
-      // Slingshot a 3D Treat Projectile into the scene!
       const treatMesh = new THREE.Mesh(
         new THREE.DodecahedronGeometry(0.4),
         new THREE.MeshToonMaterial({ color: type === 'berry' ? 0xFF2D55 : 0xFFB300 })
       );
-
-      // Spawn directly in front of camera lens regardless of orbit orientation
       const camDir = new THREE.Vector3();
       camera.getWorldDirection(camDir);
       const spawnPos = camera.position.clone().addScaledVector(camDir, 1.2);
       spawnPos.y += (Math.random() - 0.5) * 0.3;
       treatMesh.position.copy(spawnPos);
 
-      // Target Eevee's mouth in world space
       const mouthPos = new THREE.Vector3();
-      if (eeveeRig) {
-        eeveeRig.userData.headGroup.getWorldPosition(mouthPos);
-        mouthPos.y -= 0.1;
-      } else {
-        mouthPos.set(0, 1.8, 1);
-      }
+      if (eeveeRig) { eeveeRig.userData.headGroup.getWorldPosition(mouthPos); mouthPos.y -= 0.1; }
+      else mouthPos.set(0, 1.8, 1);
 
-      // Parabolic flight arc
-      const flightTime = 0.85; // seconds
+      const flightTime = 0.85;
       const throwDelta = mouthPos.clone().sub(spawnPos);
       const gravityAcc = 9.8 * 0.55;
       const vx = throwDelta.x / flightTime;
       const vz = throwDelta.z / flightTime;
       const vy = (throwDelta.y + 0.5 * gravityAcc * flightTime * flightTime) / flightTime;
 
-      treatMesh.userData = {
-        velocity: new THREE.Vector3(vx, vy, vz),
-        type: type
-      };
+      treatMesh.userData = { velocity: new THREE.Vector3(vx, vy, vz), type, pref };
       scene.add(treatMesh);
       treats.push(treatMesh);
-
-      // Eevee stretches forward eagerly
       treatHungerAngle = 0.45;
     }
 
     function triggerDiscoDance() {
       isDiscoMode = !isDiscoMode;
       audio.init();
+      bondTracker.bump(currentForm, 1);
       if (isDiscoMode) {
         audio.startBGM();
         document.getElementById('btn-music').textContent = '⏸️';
@@ -2043,63 +1405,35 @@
       if (discoBall) return;
       discoBall = new THREE.Group();
       discoBall.position.set(0, 6.2, 0);
-
-      // Mirror sphere
-      const sphereMat = new THREE.MeshStandardMaterial({
-        color: 0xDDDDDD,
-        metalness: 0.95,
-        roughness: 0.1
-      });
+      const sphereMat = new THREE.MeshStandardMaterial({ color: 0xDDDDDD, metalness: 0.95, roughness: 0.1 });
       const sphere = new THREE.Mesh(new THREE.SphereGeometry(1.2, 24, 24), sphereMat);
       discoBall.add(sphere);
-
-      // Colorful Spotlight
       const spotLight = new THREE.PointLight(0xFF00AA, 2.5, 20);
       spotLight.position.set(0, 0, 0);
       discoBall.add(spotLight);
       discoBall.userData.spotLight = spotLight;
-
       scene.add(discoBall);
     }
 
-    function removeDiscoBall() {
-      if (discoBall) {
-        scene.remove(discoBall);
-        discoBall = null;
-      }
-    }
+    function removeDiscoBall() { if (discoBall) { scene.remove(discoBall); discoBall = null; } }
 
     function triggerLoafMode() {
       isLoafMode = !isLoafMode;
       audio.playPurr();
-      if (isLoafMode) {
-        updateFaceExpression('happy');
-        showSpeech("🍞 Pure Bread Loaf Mode! Paws fully tucked!");
-        petSquishFactor = 0.65;
-      } else {
-        showSpeech("Un-loafing! Paws are back!");
-        petSquishFactor = 1.0;
-      }
+      bondTracker.bump(currentForm, 1);
+      if (isLoafMode) { updateFaceExpression('happy'); showSpeech("🍞 Pure Bread Loaf Mode! Paws fully tucked!"); petSquishFactor = 0.65; }
+      else { showSpeech("Un-loafing! Paws are back!"); petSquishFactor = 1.0; }
     }
 
     function triggerDerpMode() {
       audio.playDerp();
       updateFaceExpression('derp');
       petSquishFactor = 1.25;
-      const derpQuotes = [
-        "DERP! Blep! No thoughts, head empty! 🤪",
-        "Full silly mode engaged! *bork*",
-        ":P :P :P *tongue wiggles*",
-        "100% goofy energy right here!"
-      ];
-      showSpeech(derpQuotes[Math.floor(Math.random() * derpQuotes.length)]);
+      bondTracker.bump(currentForm, 1);
+      const derpQuotes = ["DERP! Blep! No thoughts, head empty! 🤪", "Full silly mode engaged! *bork*", ":P :P :P *tongue wiggles*", "100% goofy energy right here!"];
+      showSpeech(interactionMemory.pick('derp', derpQuotes));
       triggerConfetti();
-
-      setTimeout(() => {
-        if (!isVacuumPanicking && activeGameMode === 'sandbox') {
-          updateFaceExpression('happy');
-        }
-      }, 3500);
+      setTimeout(() => { if (!isVacuumPanicking && activeGameMode === 'sandbox') updateFaceExpression('happy'); }, 3500);
     }
 
     function summonVacuum() {
@@ -2108,8 +1442,6 @@
       audio.playPanicVacuum();
       updateFaceExpression('shocked');
       showSpeech("🚨 AHHHH! THE EVIL NOISY DISC OF DOOM! RUN!");
-
-      // Spawn 3D Vacuum Roomba
       if (!vacuumBot) {
         vacuumBot = new THREE.Group();
         const bodyGeo = new THREE.CylinderGeometry(1.1, 1.1, 0.4, 28);
@@ -2117,23 +1449,16 @@
         const body = new THREE.Mesh(bodyGeo, bodyMat);
         body.position.y = 0.2;
         vacuumBot.add(body);
-
-        // Glowing red evil eyes
         const eyeMat = new THREE.MeshBasicMaterial({ color: 0xFF0000 });
         const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), eyeMat);
         eyeL.position.set(-0.4, 0.3, 0.9);
-        const eyeR = eyeL.clone();
-        eyeR.position.x = 0.4;
-        vacuumBot.add(eyeL);
-        vacuumBot.add(eyeR);
-
+        const eyeR = eyeL.clone(); eyeR.position.x = 0.4;
+        vacuumBot.add(eyeL); vacuumBot.add(eyeR);
         vacuumBot.position.set(-8, 0, -4);
         scene.add(vacuumBot);
       }
-
       vacuumBot.visible = true;
       vacuumBot.position.set(-8, 0, -3);
-
       setTimeout(() => {
         isVacuumPanicking = false;
         updateFaceExpression('happy');
@@ -2142,52 +1467,110 @@
       }, 5500);
     }
 
+    /* New lightweight interactions (GAME-03 call, body-region-aware petting extension, brush) */
+    function callEeveelution() {
+      audio.playBoing();
+      updateFaceExpression('happy');
+      bondTracker.bump(currentForm, 1);
+      discoveryLog.checkCombo(roomManager ? roomManager.current?.id : null, currentForm, 'call');
+      showSpeech(interactionMemory.pick('call', ["*perks up instantly and looks right at you*", "*leans in, full attention*", "*ears swivel toward you immediately*"]));
+      if (eeveeRig) { petSquishFactor = 1.15; eeveeRig.position.y = Math.max(eeveeRig.position.y, 0.15); }
+    }
+
+    function brushEeveelution() {
+      audio.playPurr();
+      bondTracker.bump(currentForm, 2);
+      updateFaceExpression('hearts');
+      showSpeech(interactionMemory.pick('brush', ["*happy shivers* right there!", "Fur is now 12% floofier.", "*leans into the brush*"]));
+    }
+
+    function triggerRoomProp() {
+      if (!roomManager || !roomManager.current) return;
+      const found = roomManager.current.built.interactables.find(i => i.kind === 'prop');
+      if (found) found.onActivate();
+    }
+
+    /* ==========================================================================
+       8. PHOTO MODE (quick screenshot preserved + upgraded cinematic mode)
+       ========================================================================== */
     function snapSillyPhoto() {
       audio.playBoing();
-      // Flash screen effect
       const flash = document.createElement('div');
-      flash.style.position = 'fixed';
-      flash.style.top = '0';
-      flash.style.left = '0';
-      flash.style.width = '100vw';
-      flash.style.height = '100vh';
-      flash.style.backgroundColor = '#FFFFFF';
-      flash.style.zIndex = '999';
-      flash.style.transition = 'opacity 0.4s ease';
+      flash.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#fff;z-index:999;transition:opacity 0.4s ease;';
       document.body.appendChild(flash);
+      setTimeout(() => { flash.style.opacity = '0'; setTimeout(() => flash.remove(), 400); }, 50);
 
-      setTimeout(() => {
-        flash.style.opacity = '0';
-        setTimeout(() => flash.remove(), 400);
-      }, 50);
-
-      // Render high-res screenshot
       renderer.render(scene, camera);
       const dataURL = renderer.domElement.toDataURL('image/png');
       const link = document.createElement('a');
       link.download = `eevee_goofy_moment_${currentForm}.png`;
       link.href = dataURL;
       link.click();
-
       showSpeech("📸 Cheeeese! Goofy snapshot saved!");
     }
 
+    function enterPhotoMode() {
+      isPhotoMode = true;
+      document.body.classList.add('photo-mode');
+      uiChrome.pushEscape(exitPhotoMode);
+      if (controls) controls.enabled = true;
+    }
+    function exitPhotoMode() {
+      isPhotoMode = false;
+      document.body.classList.remove('photo-mode');
+      uiChrome.removeEscape(exitPhotoMode);
+    }
+    function capturePhotoModeShot() {
+      audio.playBoing();
+      const activeModel = eeveeRig.userData.models[currentForm];
+      const activeBehavior = isDiscoMode || isLoafMode || isVacuumPanicking || currentEmotion !== 'happy';
+      const roomDiscoveredThisVisit = roomManager && roomManager.current ? !!roomManager._justDiscovered : false;
+      const scoreResult = photoSystem.score(activeModel, camera, { activeBehavior, roomDiscoveredThisVisit });
+      photoSystem.recordPhoto({ form: currentForm, room: roomManager && roomManager.current ? roomManager.current.id : 'conservatory', score: scoreResult });
+
+      renderer.render(scene, camera);
+      const dataURL = renderer.domElement.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `eevee_moment_${currentForm}_${scoreResult.total}.png`;
+      link.href = dataURL;
+      link.click();
+
+      const toast = document.getElementById('moment-toast');
+      toast.textContent = `Moment: ${scoreResult.total}/100 — ${photoSystem.tierFor(scoreResult.total)}`;
+      toast.classList.add('visible');
+      clearTimeout(toast.hideTimeout);
+      toast.hideTimeout = setTimeout(() => toast.classList.remove('visible'), 3200);
+    }
+
     /* ==========================================================================
-       7. ACTIVE ARCADE MINI-GAME: "THE GREAT STONE DASH & MUNCH"
+       9. ACTIVE ARCADE MINI-GAME: "THE GREAT STONE DASH & MUNCH" (protected core,
+          extended with room-flavored track theming GAME-18)
        ========================================================================== */
     let arcadeRunning = false;
     let arcadeScore = 0;
     let arcadeLives = 3;
     let arcadeSpeed = 0.28;
-    let arcadeTrackZ = 0;
     let arcadePlayerX = 0;
     let arcadeTargetX = 0;
     let arcadeJumpY = 0;
     let arcadeJumpVel = 0;
-    let arcadeItems = []; // Falling stones & hazards
+    let arcadeItems = [];
     let arcadeTrackTiles = [];
     let powerupTimer = 0;
     let activePowerup = null;
+
+    const ARCADE_TRACK_THEMES = {
+      conservatory: { base: 40, sat: 70, light: 78 },
+      eevee:    { base: 30, sat: 75, light: 72 },
+      vaporeon: { base: 200, sat: 75, light: 68 },
+      jolteon:  { base: 55, sat: 90, light: 70 },
+      flareon:  { base: 15, sat: 85, light: 62 },
+      espeon:   { base: 280, sat: 65, light: 72 },
+      umbreon:  { base: 230, sat: 40, light: 30 },
+      leafeon:  { base: 100, sat: 60, light: 55 },
+      glaceon:  { base: 190, sat: 65, light: 80 },
+      sylveon:  { base: 330, sat: 70, light: 82 }
+    };
 
     function switchGameMode(mode) {
       if (mode === activeGameMode) return;
@@ -2195,62 +1578,38 @@
 
       document.getElementById('btn-mode-sandbox').classList.toggle('active', mode === 'sandbox');
       document.getElementById('btn-mode-arcade').classList.toggle('active', mode === 'arcade');
-      document.getElementById('current-mode-label').textContent = mode === 'sandbox' ? "PLAYGROUND" : "ARCADE DASH";
 
-      const sidePanel = document.getElementById('side-toy-panel');
-      const bottomDock = document.getElementById('bottom-dock');
-      const speechBubble = document.getElementById('speech-bubble');
       const arcadeHud = document.getElementById('arcade-hud');
       const arcadeHelp = document.getElementById('arcade-help');
+      const hideInArcade = document.querySelectorAll('.hud-hide-in-photo');
 
       if (mode === 'arcade') {
-        sidePanel.style.display = 'none';
-        if (bottomDock) bottomDock.style.display = 'none';
-        if (speechBubble) speechBubble.style.display = 'none';
+        hideInArcade.forEach(el => el.style.visibility = 'hidden');
         arcadeHud.style.display = 'flex';
         arcadeHelp.style.display = 'block';
         startArcadeGame();
       } else {
-        sidePanel.style.display = 'flex';
-        if (bottomDock) bottomDock.style.display = 'block';
-        if (speechBubble) speechBubble.style.display = 'block';
+        hideInArcade.forEach(el => el.style.visibility = '');
         arcadeHud.style.display = 'none';
         arcadeHelp.style.display = 'none';
         stopArcadeGame();
       }
+      closeDrawer();
     }
 
-    let arcadeHighScore = parseInt(localStorage.getItem('eevee_dash_highscore') || '0', 10);
+    let arcadeHighScore = save.get('highScore', 0);
 
     function startArcadeGame() {
       arcadeRunning = true;
-      arcadeScore = 0;
-      arcadeLives = 3;
-      arcadePlayerX = 0;
-      arcadeTargetX = 0;
-      arcadeJumpY = 0;
-      arcadeJumpVel = 0;
-      arcadeSpeed = 0.32;
-      powerupTimer = 0;
-      activePowerup = null;
+      arcadeScore = 0; arcadeLives = 3; arcadePlayerX = 0; arcadeTargetX = 0;
+      arcadeJumpY = 0; arcadeJumpVel = 0; arcadeSpeed = 0.32; powerupTimer = 0; activePowerup = null;
 
-      // Clear any leftover arcade items to prevent spawn traps
       arcadeItems.forEach(item => scene.remove(item.mesh));
       arcadeItems = [];
 
-      // Cleanly reset any active sandbox goofy states
-      if (isLoafMode) {
-        isLoafMode = false;
-        petSquishFactor = 1.0;
-      }
-      if (isDiscoMode) {
-        isDiscoMode = false;
-        removeDiscoBall();
-      }
-      if (isVacuumPanicking) {
-        isVacuumPanicking = false;
-        if (vacuumBot) vacuumBot.visible = false;
-      }
+      if (isLoafMode) { isLoafMode = false; petSquishFactor = 1.0; }
+      if (isDiscoMode) { isDiscoMode = false; removeDiscoBall(); }
+      if (isVacuumPanicking) { isVacuumPanicking = false; if (vacuumBot) vacuumBot.visible = false; }
       updateFaceExpression('happy');
 
       document.getElementById('gameover-modal').style.display = 'none';
@@ -2259,57 +1618,63 @@
       audio.startBGM();
       document.getElementById('btn-music').textContent = '⏸️';
 
-      // Reset controls & set camera to 3rd person chase camera
       controls.enabled = false;
       camera.position.set(0, 3.8, 6.5);
       camera.lookAt(0, 1.5, -2);
 
-      // Build Endless Bouncy Track
-      if (sandboxFloor) sandboxFloor.visible = false;
-      if (sandboxMotes) sandboxMotes.visible = false;
+      if (roomManager && roomManager.current) {
+        roomManager.current.built.group.visible = false;
+        roomManager.current.built.lights.forEach(l => { l.visible = false; });
+      }
+      ensureArcadeLights();
       setupArcadeTrack();
+    }
+
+    let arcadeLightRig = null;
+    function ensureArcadeLights() {
+      if (arcadeLightRig) { arcadeLightRig.forEach(l => { l.visible = true; }); return; }
+      const hemi = new THREE.HemisphereLight(0xffffff, 0x556080, 0.75);
+      const sun = new THREE.DirectionalLight(0xfff6e0, 0.9);
+      sun.position.set(3, 8, 4);
+      arcadeLightRig = [hemi, sun];
+      arcadeLightRig.forEach(l => scene.add(l));
+    }
+    function hideArcadeLights() {
+      if (arcadeLightRig) arcadeLightRig.forEach(l => { l.visible = false; });
     }
 
     function stopArcadeGame() {
       arcadeRunning = false;
       controls.enabled = true;
-      camera.position.set(0, 2.5, 6);
-      controls.target.set(0, 1.2, 0);
+      if (cameraController) cameraController.resetCamera();
 
-      // Restore sandbox platform floor
-      if (sandboxFloor) sandboxFloor.visible = true;
-      if (sandboxMotes) sandboxMotes.visible = true;
+      hideArcadeLights();
+      if (roomManager && roomManager.current) {
+        roomManager.current.built.group.visible = true;
+        roomManager.current.built.lights.forEach(l => { l.visible = true; });
+      }
 
-      // Clear arcade items
       arcadeItems.forEach(item => scene.remove(item.mesh));
       arcadeItems = [];
       arcadeTrackTiles.forEach(tile => scene.remove(tile));
       arcadeTrackTiles = [];
 
-      if (isLoafMode) {
-        isLoafMode = false;
-        petSquishFactor = 1.0;
-      }
+      if (isLoafMode) { isLoafMode = false; petSquishFactor = 1.0; }
       updateFaceExpression('happy');
 
-      if (eeveeRig) {
-        eeveeRig.position.set(0, 0, 0);
-        eeveeRig.rotation.set(0, 0, 0);
-      }
+      if (eeveeRig) { eeveeRig.position.set(0, 0, 0); eeveeRig.rotation.set(0, 0, 0); }
     }
 
     function setupArcadeTrack() {
-      // Clear existing
       arcadeTrackTiles.forEach(tile => scene.remove(tile));
       arcadeTrackTiles = [];
+      const roomId = roomManager && roomManager.current ? roomManager.current.id : 'conservatory';
+      const theme = ARCADE_TRACK_THEMES[roomId] || ARCADE_TRACK_THEMES[currentForm] || ARCADE_TRACK_THEMES.conservatory;
 
-      // Create 24 repeating floating rainbow tiles
       for (let i = 0; i < 24; i++) {
         const tileGeo = new THREE.BoxGeometry(6.5, 0.4, 4);
-        const hue = (i * 15) % 360;
-        const tileMat = new THREE.MeshToonMaterial({
-          color: new THREE.Color(`hsl(${hue}, 85%, 72%)`)
-        });
+        const hue = (theme.base + i * 6) % 360;
+        const tileMat = new THREE.MeshToonMaterial({ color: new THREE.Color(`hsl(${hue}, ${theme.sat}%, ${theme.light}%)`) });
         const tile = new THREE.Mesh(tileGeo, tileMat);
         tile.position.set(0, -0.2, -i * 4);
         tile.receiveShadow = true;
@@ -2318,239 +1683,120 @@
       }
     }
 
-    function restartArcadeGame() {
-      document.getElementById('gameover-modal').style.display = 'none';
-      startArcadeGame();
-    }
+    function restartArcadeGame() { document.getElementById('gameover-modal').style.display = 'none'; startArcadeGame(); }
 
     function updateArcadeHUD() {
       document.getElementById('arcade-score').textContent = String(Math.floor(arcadeScore)).padStart(4, '0');
       const bestEl = document.getElementById('arcade-best-score');
-      if (bestEl) {
-        bestEl.textContent = String(Math.max(arcadeHighScore, Math.floor(arcadeScore))).padStart(4, '0');
-      }
-
+      if (bestEl) bestEl.textContent = String(Math.max(arcadeHighScore, Math.floor(arcadeScore))).padStart(4, '0');
       let heartsStr = "";
-      for (let i = 0; i < 3; i++) {
-        heartsStr += (i < arcadeLives) ? "❤️" : "🖤";
-      }
+      for (let i = 0; i < 3; i++) heartsStr += (i < arcadeLives) ? "❤️" : "🖤";
       document.getElementById('arcade-lives').textContent = heartsStr;
-
       const powerupBadge = document.getElementById('arcade-powerup-badge');
       if (powerupTimer > 0 && activePowerup) {
         powerupBadge.style.display = 'flex';
         document.getElementById('powerup-desc').textContent = `${activePowerup.toUpperCase()} POWER ACTIVE! (${Math.ceil(powerupTimer)}s)`;
-      } else {
-        powerupBadge.style.display = 'none';
-      }
+      } else { powerupBadge.style.display = 'none'; }
     }
 
     function spawnArcadeItem() {
       if (!arcadeRunning) return;
-
       const isHazard = Math.random() < 0.45;
-      const laneX = (Math.floor(Math.random() * 3) - 1) * 1.8; // -1.8, 0, 1.8
+      const laneX = (Math.floor(Math.random() * 3) - 1) * 1.8;
 
       if (isHazard) {
-        // Banana Peel or Voltorb Hazard
         const isBanana = Math.random() < 0.5;
         let hazardMesh;
         if (isBanana) {
-          hazardMesh = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.1, 0.35, 0.6, 8),
-            new THREE.MeshToonMaterial({ color: 0xFFDE00 })
-          );
+          hazardMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.35, 0.6, 8), new THREE.MeshToonMaterial({ color: 0xFFDE00 }));
           hazardMesh.rotation.x = Math.PI / 2.5;
         } else {
-          // Rolling Voltorb ball
-          hazardMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(0.4, 16, 16),
-            new THREE.MeshToonMaterial({ color: 0xFF2222 })
-          );
+          hazardMesh = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), new THREE.MeshToonMaterial({ color: 0xFF2222 }));
         }
         hazardMesh.position.set(laneX, 0.35, -45);
         scene.add(hazardMesh);
-
-        arcadeItems.push({
-          mesh: hazardMesh,
-          isHazard: true,
-          type: isBanana ? 'banana' : 'voltorb'
-        });
-
+        arcadeItems.push({ mesh: hazardMesh, isHazard: true, type: isBanana ? 'banana' : 'voltorb' });
       } else {
-        // Evolution Stone!
         const stones = ['water', 'thunder', 'fire', 'leaf', 'ice', 'sun', 'moon', 'ribbon'];
         const stoneType = stones[Math.floor(Math.random() * stones.length)];
-        const stoneColors = {
-          water: 0x33A6FF,
-          thunder: 0xFFDD00,
-          fire: 0xFF5522,
-          leaf: 0x55DD33,
-          ice: 0x88EEFF,
-          sun: 0xFFAA11,
-          moon: 0x333344,
-          ribbon: 0xFFAACC
-        };
-
-        const stoneMesh = new THREE.Mesh(
-          new THREE.OctahedronGeometry(0.48),
-          new THREE.MeshStandardMaterial({
-            color: stoneColors[stoneType],
-            emissive: stoneColors[stoneType],
-            emissiveIntensity: 0.4,
-            roughness: 0.2
-          })
-        );
+        const stoneColors = { water: 0x33A6FF, thunder: 0xFFDD00, fire: 0xFF5522, leaf: 0x55DD33, ice: 0x88EEFF, sun: 0xFFAA11, moon: 0x333344, ribbon: 0xFFAACC };
+        const stoneMesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.48), new THREE.MeshStandardMaterial({ color: stoneColors[stoneType], emissive: stoneColors[stoneType], emissiveIntensity: 0.4, roughness: 0.2 }));
         stoneMesh.position.set(laneX, 0.8, -45);
         scene.add(stoneMesh);
-
-        arcadeItems.push({
-          mesh: stoneMesh,
-          isHazard: false,
-          type: stoneType
-        });
+        arcadeItems.push({ mesh: stoneMesh, isHazard: false, type: stoneType });
       }
     }
 
     function updateArcadePhysics(dt) {
       if (!arcadeRunning) return;
-
-      // Delta-time scale normalized to 60fps
       const frameScale = Math.min(2.5, dt * 60);
       const moveStep = arcadeSpeed * frameScale;
 
-      // Score grows with distance traveled
       arcadeScore += dt * 45;
       arcadeSpeed = Math.min(0.65, 0.32 + (arcadeScore / 8000));
-
-      // Steer Eevee smoothly (framerate-independent damping)
       arcadePlayerX += (arcadeTargetX - arcadePlayerX) * (1 - Math.exp(-12 * dt));
 
-      // Jump Physics
       if (arcadeJumpY > 0 || arcadeJumpVel > 0) {
         arcadeJumpY += arcadeJumpVel * frameScale;
         arcadeJumpVel -= 0.038 * frameScale;
-        if (arcadeJumpY <= 0) {
-          arcadeJumpY = 0;
-          arcadeJumpVel = 0;
-        }
+        if (arcadeJumpY <= 0) { arcadeJumpY = 0; arcadeJumpVel = 0; }
       }
 
       if (eeveeRig) {
         eeveeRig.position.x = arcadePlayerX;
         eeveeRig.position.y = arcadeJumpY;
         eeveeRig.position.z = 0;
-        // Bouncy running wobble
         eeveeRig.rotation.z = Math.sin(clock.getElapsedTime() * 14) * 0.08;
         eeveeRig.rotation.y = Math.PI + (arcadeTargetX - arcadePlayerX) * -0.3;
       }
 
-      // Camera follows player smoothly
       camera.position.x = arcadePlayerX * 0.4;
 
-      // Move Track Tiles (Infinite conveyor)
       arcadeTrackTiles.forEach(tile => {
         tile.position.z += moveStep;
-        if (tile.position.z > 8) {
-          tile.position.z -= 24 * 4;
-        }
+        if (tile.position.z > 8) tile.position.z -= 24 * 4;
       });
 
-      // Spawn items periodically
-      if (Math.random() < 0.045) {
-        spawnArcadeItem();
-      }
+      if (Math.random() < 0.045) spawnArcadeItem();
 
-      // Update Active Power-up Timer
-      if (powerupTimer > 0) {
-        powerupTimer -= dt;
-        if (powerupTimer <= 0) {
-          activePowerup = null;
-        }
-      }
+      if (powerupTimer > 0) { powerupTimer -= dt; if (powerupTimer <= 0) activePowerup = null; }
 
-      // Move Items & Collision Detection
       for (let i = arcadeItems.length - 1; i >= 0; i--) {
         const item = arcadeItems[i];
         item.mesh.position.z += moveStep;
         item.mesh.rotation.y += 0.05 * frameScale;
 
-        // Collision Check with Eevee
         const dx = Math.abs(item.mesh.position.x - arcadePlayerX);
         const dz = Math.abs(item.mesh.position.z - 0);
         const dy = Math.abs(item.mesh.position.y - (arcadeJumpY + 0.5));
 
         if (dx < 0.9 && dz < 0.9 && dy < 0.9) {
-          // HIT!
           if (item.isHazard) {
-            if (activePowerup) {
-              // Shield / Invincibility destroys hazard
-              audio.playZap();
-              triggerConfetti();
-              arcadeScore += 150;
-            } else {
-              // Player takes damage!
-              audio.playDerp();
-              audio.playSplat();
+            if (activePowerup) { audio.playZap(); triggerConfetti(); arcadeScore += 150; }
+            else {
+              audio.playDerp(); audio.playSplat();
               arcadeLives--;
               petSquishFactor = 0.55;
               updateFaceExpression('derp');
               showSpeech("WHOA! 360 BANANA SLIP! 🍌");
-
-              if (eeveeRig) {
-                eeveeRig.rotation.y += Math.PI * 2;
-              }
-
-              setTimeout(() => {
-                if (arcadeRunning && arcadeLives > 0) {
-                  updateFaceExpression('happy');
-                }
-              }, 1400);
-
-              if (arcadeLives <= 0) {
-                // Game Over!
-                endArcadeGame();
-                return;
-              }
+              if (eeveeRig) eeveeRig.rotation.y += Math.PI * 2;
+              setTimeout(() => { if (arcadeRunning && arcadeLives > 0) updateFaceExpression('happy'); }, 1400);
+              if (arcadeLives <= 0) { endArcadeGame(); return; }
             }
           } else {
-            // Collected Evolution Stone!
-            audio.playSparkle();
-            triggerConfetti();
-            arcadeScore += 250;
-
-            // Trigger mid-dash evolution!
-            const formMap = {
-              water: 'vaporeon',
-              thunder: 'jolteon',
-              fire: 'flareon',
-              leaf: 'leafeon',
-              ice: 'glaceon',
-              sun: 'espeon',
-              moon: 'umbreon',
-              ribbon: 'sylveon'
-            };
+            audio.playSparkle(); triggerConfetti(); arcadeScore += 250;
+            const formMap = { water: 'vaporeon', thunder: 'jolteon', fire: 'flareon', leaf: 'leafeon', ice: 'glaceon', sun: 'espeon', moon: 'umbreon', ribbon: 'sylveon' };
             const newForm = formMap[item.type] || 'jolteon';
             selectEeveelution(newForm);
-
-            // Grant Super Powerup
             activePowerup = newForm;
             powerupTimer = 6.0;
           }
-
-          // Remove item mesh
           scene.remove(item.mesh);
           arcadeItems.splice(i, 1);
           continue;
         }
-
-        // Clean up items that passed behind player
-        if (item.mesh.position.z > 6) {
-          scene.remove(item.mesh);
-          arcadeItems.splice(i, 1);
-        }
+        if (item.mesh.position.z > 6) { scene.remove(item.mesh); arcadeItems.splice(i, 1); }
       }
-
       updateArcadeHUD();
     }
 
@@ -2559,295 +1805,340 @@
       audio.playSplat();
       const finalScore = Math.floor(arcadeScore);
       let isNewRecord = false;
-      if (finalScore > arcadeHighScore) {
-        arcadeHighScore = finalScore;
-        localStorage.setItem('eevee_dash_highscore', arcadeHighScore.toString());
-        isNewRecord = true;
-      }
-      document.getElementById('gameover-final-score').innerHTML = `Final Score: ${finalScore}` + 
+      if (save.recordHighScore(finalScore)) { arcadeHighScore = finalScore; isNewRecord = true; }
+      document.getElementById('gameover-final-score').innerHTML = `Final Score: ${finalScore}` +
         (isNewRecord ? `<br><span style="color:#d86900; font-size:1.15rem; font-weight:800;">🎉 NEW PERSONAL BEST! 🎉</span>` : `<br><span style="font-size:0.85rem; color:#888;">Personal Best: ${arcadeHighScore}</span>`);
       document.getElementById('gameover-modal').style.display = 'flex';
       triggerConfetti();
     }
 
-    /* Keyboard Shortcuts (Arcade steering & Sandbox hotkeys) */
+    /* ==========================================================================
+       10. HUD WIRING — drawer, wheel, lore, settings, species strip, density
+       ========================================================================== */
+    function toggleDrawer() {
+      const el = document.getElementById('control-drawer');
+      const fab = document.getElementById('drawer-fab');
+      const opening = !el.classList.contains('open');
+      el.classList.toggle('open', opening);
+      fab.setAttribute('aria-expanded', String(opening));
+      if (opening) { uiChrome.pushEscape(closeDrawer); renderRoomGrid(); renderAtmosphereRow(); }
+      else uiChrome.removeEscape(closeDrawer);
+    }
+    function closeDrawer() {
+      document.getElementById('control-drawer').classList.remove('open');
+      document.getElementById('drawer-fab').setAttribute('aria-expanded', 'false');
+      uiChrome.removeEscape(closeDrawer);
+    }
+
+    function toggleInteractionWheel() {
+      const el = document.getElementById('interaction-wheel');
+      const opening = !el.classList.contains('open');
+      el.classList.toggle('open', opening);
+      if (opening) uiChrome.pushEscape(closeInteractionWheel);
+      else uiChrome.removeEscape(closeInteractionWheel);
+    }
+    function closeInteractionWheel() {
+      document.getElementById('interaction-wheel').classList.remove('open');
+      uiChrome.removeEscape(closeInteractionWheel);
+    }
+
+    let loreOpen = false;
+    function toggleLoreDrawer() {
+      loreOpen = !loreOpen;
+      const el = document.getElementById('lore-drawer');
+      el.classList.toggle('open', loreOpen);
+      document.getElementById('lore-fab').setAttribute('aria-expanded', String(loreOpen));
+      if (loreOpen) uiChrome.pushEscape(closeLoreDrawer); else uiChrome.removeEscape(closeLoreDrawer);
+    }
+    function closeLoreDrawer() {
+      loreOpen = false;
+      document.getElementById('lore-drawer').classList.remove('open');
+      document.getElementById('lore-fab').setAttribute('aria-expanded', 'false');
+      uiChrome.removeEscape(closeLoreDrawer);
+    }
+    function setLoreTab(tab) {
+      document.getElementById('tab-lore').classList.toggle('active', tab === 'lore');
+      document.getElementById('tab-journal').classList.toggle('active', tab === 'journal');
+      document.getElementById('lore-panel').style.display = tab === 'lore' ? 'block' : 'none';
+      document.getElementById('journal-panel').style.display = tab === 'journal' ? 'block' : 'none';
+      if (tab === 'journal') renderJournal();
+    }
+    function renderJournal() {
+      const panel = document.getElementById('journal-panel');
+      const entries = discoveryLog.allEntries();
+      if (!entries.length) { panel.innerHTML = '<div class="journal-empty">Nothing observed yet — explore a habitat and interact to fill this in.</div>'; return; }
+      panel.innerHTML = entries.map(e => `<div class="journal-entry">${e.label}</div>`).join('');
+    }
+
+    function openSettings() {
+      document.getElementById('settings-backdrop').classList.add('open');
+      document.getElementById('settings-sheet').classList.add('open');
+      document.getElementById('set-density').value = save.get('ui.density', 'minimal');
+      document.getElementById('set-reduced-motion').checked = !!save.get('ui.reducedMotion', false);
+      document.getElementById('set-music').checked = audio.isMusicPlaying;
+      document.getElementById('set-sfx').checked = audio.isSFXEnabled;
+      document.getElementById('set-quality').value = save.get('ui.quality', 'high');
+      document.getElementById('set-sensitivity').value = save.get('ui.cameraSensitivity', 1.0);
+      document.getElementById('set-ambience').value = save.get('ui.ambienceLevel', 0.8);
+      document.getElementById('set-autofollow').checked = !!save.get('ui.cameraAutoFollow', false);
+      uiChrome.pushEscape(closeSettings);
+    }
+    function closeSettings() {
+      document.getElementById('settings-backdrop').classList.remove('open');
+      document.getElementById('settings-sheet').classList.remove('open');
+      uiChrome.removeEscape(closeSettings);
+    }
+    function onSetDensity(v) { uiChrome.applyDensity(v); }
+    function onSetReducedMotion(v) { uiChrome.setReducedMotion(v); if (cameraController) cameraController.setReducedMotion(v); }
+    function onSetMusic(v) { if (v) audio.startBGM(); else audio.stopBGM(); document.getElementById('btn-music').textContent = v ? '⏸️' : '🎵'; save.set('ui.musicOn', v); }
+    function onSetSfx(v) { audio.isSFXEnabled = v; document.getElementById('btn-sound').textContent = v ? '🔊' : '🔇'; save.set('ui.sfxOn', v); }
+    function onSetQuality(v) {
+      save.set('ui.quality', v);
+      const dprMap = { high: Math.min(window.devicePixelRatio, 2), medium: Math.min(window.devicePixelRatio, 1.4), low: 1 };
+      renderer.setPixelRatio(dprMap[v] || 1);
+      const densityScale = { high: 1, medium: 0.7, low: 0.4 }[v] || 1;
+      if (roomManager && roomManager.current) roomManager.current.built.particleFields.forEach(pf => pf.setDensityScale(densityScale));
+    }
+    function onSetSensitivity(v) { save.set('ui.cameraSensitivity', parseFloat(v)); if (cameraController) cameraController.setSensitivity(parseFloat(v)); }
+    function onSetAmbience(v) { save.set('ui.ambienceLevel', parseFloat(v)); }
+    function onSetAutoFollow(v) { save.set('ui.cameraAutoFollow', v); }
+
+    function renderSpeciesStrip() {
+      const strip = document.getElementById('species-strip');
+      strip.innerHTML = '';
+      SPECIES_LIST.forEach((sp, i) => {
+        const data = EEVEELUTION_DATA[sp];
+        const btn = document.createElement('button');
+        btn.className = 'species-token interactive' + (sp === currentForm ? ' active' : '');
+        btn.dataset.form = sp;
+        btn.setAttribute('role', 'tab');
+        btn.setAttribute('aria-selected', String(sp === currentForm));
+        btn.setAttribute('aria-label', `${data.name} (key ${i + 1})`);
+        btn.innerHTML = `${data.icon}<span class="token-tip">${data.name.split(' (')[0]} · ${data.type}</span>`;
+        btn.onclick = () => selectEeveelution(sp);
+        strip.appendChild(btn);
+      });
+    }
+
+    function renderRoomGrid() {
+      const grid = document.getElementById('room-grid');
+      grid.innerHTML = '';
+      global_ROOM_ORDER().forEach(id => {
+        const def = ROOM_DEFINITIONS[id];
+        const btn = document.createElement('button');
+        btn.textContent = def.displayName.split(' — ')[0].replace('The ', '');
+        btn.className = roomManager && roomManager.current && roomManager.current.id === id ? 'active' : '';
+        btn.onclick = () => { roomManager.goTo(id); closeDrawer(); };
+        grid.appendChild(btn);
+      });
+    }
+    function global_ROOM_ORDER() { return ROOM_ORDER; }
+
+    function renderAtmosphereRow() {
+      const row = document.getElementById('atmosphere-row');
+      row.innerHTML = '';
+      if (!roomManager || !roomManager.current) return;
+      const built = roomManager.current.built;
+      const unlocked = save.get(`atmosphereUnlocked.${roomManager.current.id}`, []);
+      built.atmosphereVariants.forEach((v, idx) => {
+        const isUnlocked = idx === 0 || unlocked.includes(v.id);
+        const btn = document.createElement('button');
+        btn.className = 'drawer-btn' + (idx === roomManager.current.atmosphereIndex ? ' active' : '');
+        btn.textContent = isUnlocked ? v.label : '🔒 ' + v.label;
+        btn.disabled = !isUnlocked;
+        btn.onclick = () => { roomManager.setAtmosphere(v.id); renderAtmosphereRow(); };
+        row.appendChild(btn);
+      });
+    }
+
+    function roomLabelFor(id) { return ROOM_DEFINITIONS[id] ? ROOM_DEFINITIONS[id].displayName : id; }
+
+    function showRoomToast(roomId, built) {
+      const def = ROOM_DEFINITIONS[roomId];
+      document.getElementById('room-toast-name').textContent = def.displayName;
+      document.getElementById('room-toast-mood').textContent = def.mood;
+      document.getElementById('room-breadcrumb').textContent = def.displayName.split(' — ')[0];
+      const toast = document.getElementById('room-toast');
+      toast.classList.add('visible');
+      clearTimeout(toast.hideTimeout);
+      toast.hideTimeout = setTimeout(() => toast.classList.remove('visible'), 3400);
+      // Unlock a second atmosphere variant once the room has been visited (Part VII).
+      if (built.atmosphereVariants[1]) roomManager.unlockAtmosphereVariant(roomId, built.atmosphereVariants[1].id);
+      document.getElementById('wheel-room-prop').title = 'Room interaction';
+      renderRoomGrid();
+    }
+
+    function toggleChillMode() {
+      isChillMode = !isChillMode;
+      document.getElementById('btn-chill').classList.toggle('active', isChillMode);
+      if (isChillMode) {
+        uiChrome.applyDensity('minimal');
+        if (arcadeRunning) switchGameMode('sandbox');
+        showSpeech('🌙 Chill Mode — just watching now.');
+      } else {
+        showSpeech('Back to normal.');
+      }
+      closeDrawer();
+    }
+
+    /* ==========================================================================
+       11. AUDIO UI CONTROLS
+       ========================================================================== */
+    function initAudioUserGesture() {
+      audio.init(); audio.startBGM();
+      document.getElementById('audio-prompt').style.display = 'none';
+      document.getElementById('btn-music').textContent = '⏸️';
+    }
+    function toggleMusic() {
+      audio.init();
+      const btn = document.getElementById('btn-music');
+      if (audio.isMusicPlaying) { audio.stopBGM(); btn.textContent = '🎵'; }
+      else { audio.startBGM(); btn.textContent = '⏸️'; }
+      document.getElementById('audio-prompt').style.display = 'none';
+    }
+    function toggleSFX() {
+      audio.isSFXEnabled = !audio.isSFXEnabled;
+      document.getElementById('btn-sound').textContent = audio.isSFXEnabled ? '🔊' : '🔇';
+    }
+
+    let evolutionSpinTimer = 0;
+    let evolutionParticles = [];
+    function spawnEvolutionParticles(formKey) {
+      const data = EEVEELUTION_DATA[formKey];
+      if (!data) return;
+      const col = isShiny ? (data.colorShiny || 0xFFFFFF) : (data.colorNormal || 0xFFDD44);
+      const particleGroup = new THREE.Group();
+      const geo = new THREE.SphereGeometry(0.12, 8, 8);
+      const mat = new THREE.MeshBasicMaterial({ color: col });
+      for (let i = 0; i < 22; i++) {
+        const p = new THREE.Mesh(geo, mat);
+        const angle = (i / 22) * Math.PI * 2;
+        p.position.set(Math.cos(angle) * 0.4, 1.3, Math.sin(angle) * 0.4);
+        p.userData = { vx: Math.cos(angle) * 4.2 + (Math.random() - 0.5), vy: 1.5 + Math.random() * 2.5, vz: Math.sin(angle) * 4.2 + (Math.random() - 0.5), life: 1.0 };
+        particleGroup.add(p);
+      }
+      scene.add(particleGroup);
+      evolutionParticles.push(particleGroup);
+    }
+    function triggerEvolutionVortex(formKey) {
+      evolutionSpinTimer = uiChrome.reducedMotion ? 0.2 : 0.65;
+      spawnEvolutionParticles(formKey || currentForm);
+    }
+
+    /* ==========================================================================
+       12. KEYBOARD & POINTER INPUT (existing gameplay hotkeys preserved + new
+           camera / drawer / escape hotkeys, none conflicting)
+       ========================================================================== */
     window.addEventListener('keydown', (e) => {
-      // If Game Over modal is shown, Space or Enter restarts the arcade run
+      if (e.key === 'Escape') { if (uiChrome.handleEscape()) e.preventDefault(); return; }
+
       const gameoverModal = document.getElementById('gameover-modal');
       if (gameoverModal && gameoverModal.style.display === 'flex') {
-        if (e.key === ' ' || e.key === 'Enter') {
-          e.preventDefault();
-          restartArcadeGame();
-          return;
-        }
+        if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); restartArcadeGame(); return; }
       }
 
-      // In Arcade Mode:
       if (arcadeRunning) {
-        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
-          e.preventDefault();
-          arcadeTargetX = Math.max(-2.2, arcadeTargetX - 1.8);
-        } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
-          e.preventDefault();
-          arcadeTargetX = Math.min(2.2, arcadeTargetX + 1.8);
-        } else if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
-          e.preventDefault();
-          if (arcadeJumpY === 0) {
-            arcadeJumpVel = 0.45;
-            audio.playBoing();
-          }
-        }
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); arcadeTargetX = Math.max(-2.2, arcadeTargetX - 1.8); }
+        else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { e.preventDefault(); arcadeTargetX = Math.min(2.2, arcadeTargetX + 1.8); }
+        else if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { e.preventDefault(); if (arcadeJumpY === 0) { arcadeJumpVel = 0.45; audio.playBoing(); } }
         return;
       }
 
-      // In Sandbox Mode:
-      // Number shortcuts 1-9 to swap between all 9 Eeveelutions
+      if (e.key === 'Tab' && !e.target.closest('.interactive')) {
+        e.preventDefault();
+        toggleDrawer();
+        return;
+      }
+
       const formKeys = ['eevee', 'vaporeon', 'jolteon', 'flareon', 'espeon', 'umbreon', 'leafeon', 'glaceon', 'sylveon'];
       const num = parseInt(e.key, 10);
-      if (num >= 1 && num <= 9) {
-        selectEeveelution(formKeys[num - 1]);
-      } else if (e.key === 's' || e.key === 'S') {
-        toggleShinyMode();
-      } else if (e.key === 'd' || e.key === 'D') {
-        triggerDiscoDance();
-      } else if (e.key === 'l' || e.key === 'L') {
-        triggerLoafMode();
-      } else if (e.key === 'p' || e.key === 'P') {
-        triggerDerpMode();
-      } else if (e.key === ' ') {
+      if (num >= 1 && num <= 9) { selectEeveelution(formKeys[num - 1]); }
+      else if (e.key === 's' || e.key === 'S') { toggleShinyMode(); }
+      else if (e.key === 'd' || e.key === 'D') { triggerDiscoDance(); }
+      else if (e.key === 'l' || e.key === 'L') { triggerLoafMode(); }
+      else if (e.key === 'p' || e.key === 'P') { triggerDerpMode(); }
+      else if (e.key === 'c' || e.key === 'C') { if (cameraController) cameraController.cyclePreset(); }
+      else if (e.key === 'f' || e.key === 'F') { if (cameraController) cameraController.applyPreset('portrait'); }
+      else if (e.key === 'r' || e.key === 'R') { if (cameraController) cameraController.resetCamera(); }
+      else if (e.key === ' ') {
         e.preventDefault();
-        // Space in sandbox mode: Eevee hops with a joyful boing!
         audio.playBoing();
         petSquishFactor = 1.35;
         if (eeveeRig) eeveeRig.position.y = 0.8;
       }
     });
 
-    // Touch / Mouse dragging for Arcade Mode with swipe-jump
     let isMouseDown = false;
     let pointerStartY = 0;
     window.addEventListener('pointerdown', (e) => {
       if (e.target.closest('.interactive')) return;
       isMouseDown = true;
       pointerStartY = e.clientY;
-      if (arcadeRunning) {
-        const normX = (e.clientX / window.innerWidth) * 2 - 1;
-        arcadeTargetX = normX * 2.5;
-      }
+      if (arcadeRunning) { const normX = (e.clientX / window.innerWidth) * 2 - 1; arcadeTargetX = normX * 2.5; }
     });
-
     window.addEventListener('pointermove', (e) => {
       if (arcadeRunning && isMouseDown) {
         if (e.target.closest('.interactive')) return;
         const normX = (e.clientX / window.innerWidth) * 2 - 1;
         arcadeTargetX = normX * 2.5;
-
-        // Swipe up gesture detection to jump
-        if (pointerStartY - e.clientY > 45 && arcadeJumpY === 0) {
-          arcadeJumpVel = 0.45;
-          audio.playBoing();
-          pointerStartY = e.clientY;
-        }
+        if (pointerStartY - e.clientY > 45 && arcadeJumpY === 0) { arcadeJumpVel = 0.45; audio.playBoing(); pointerStartY = e.clientY; }
       }
     });
-
     window.addEventListener('pointerup', () => { isMouseDown = false; });
 
     /* ==========================================================================
-       8. INITIALIZE THREE.JS SCENE, LIGHTS & ENVIRONMENT
+       13. INITIALIZE THREE.JS SCENE, HABITAT HOUSE & PETTING/DIEGETIC INPUT
        ========================================================================== */
     function initThreeScene() {
       const canvas = document.getElementById('webgl-canvas');
       scene = new THREE.Scene();
-      scene.background = null; // transparent to allow rich CSS background gradient
+      scene.background = null;
 
-      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-      camera.position.set(0, 2.6, 7.8);
+      camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.05, 100);
+      camera.position.set(2.2, 1.9, 5.2);
 
-      renderer = new THREE.WebGLRenderer({
-        canvas: canvas,
-        antialias: true,
-        alpha: true,
-        preserveDrawingBuffer: true
-      });
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-      // Orbit Controls (Sandbox Mode)
-      controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.06;
-      controls.maxPolarAngle = Math.PI / 2 + 0.05;
-      controls.minDistance = 4.0;
-      controls.maxDistance = 14;
-      controls.target.set(0, 1.35, 0);
+      uiChrome = new UIChrome({ save, fadeDelay: 3200 });
+      document.documentElement.dataset.reducedMotion = uiChrome.reducedMotion ? 'true' : 'false';
+      uiChrome.applyDensity(save.get('ui.density', 'minimal'));
+      uiChrome.registerFadeTargets(Array.from(document.querySelectorAll('.fadeable')));
 
-      // Studio Lighting: Rich Hemisphere for vibrant toon ambient shading + Warm Key Sun + Cool Back-Rim Light
-      const hemiLight = new THREE.HemisphereLight(0xFFF2E6, 0x55667D, 0.45);
-      scene.add(hemiLight);
+      cameraController = new CameraController(camera, canvas, { reducedMotion: uiChrome.reducedMotion, sensitivity: save.get('ui.cameraSensitivity', 1.0) });
+      controls = cameraController.controls;
 
-      const mainSun = new THREE.DirectionalLight(0xFFFAF2, 0.85);
-      mainSun.position.set(5, 11, 6);
-      mainSun.castShadow = true;
-      mainSun.shadow.mapSize.width = 2048;
-      mainSun.shadow.mapSize.height = 2048;
-      mainSun.shadow.camera.near = 0.5;
-      mainSun.shadow.camera.far = 25;
-      mainSun.shadow.bias = -0.0005;
-      scene.add(mainSun);
-
-      const softRimLight = new THREE.DirectionalLight(0x82C8FF, 0.45);
-      softRimLight.position.set(-6, 4.5, -4);
-      scene.add(softRimLight);
-
-      const warmUnderLight = new THREE.DirectionalLight(0xFFDFC0, 0.22);
-      warmUnderLight.position.set(3, -4, 2);
-      scene.add(warmUnderLight);
-
-      // Stylized Floating Island Pedestal (Lush layered meadow + carved stone base + soft contact shadow)
-      const islandGroup = new THREE.Group();
-      islandGroup.name = "FloatingPedestal";
-
-      // 1. Carved Sandstone Base
-      const stoneGeo = new THREE.CylinderGeometry(5.2, 5.6, 0.5, 48);
-      const stoneMat = new THREE.MeshToonMaterial({ color: 0xDCD4CA, roughness: 0.85 });
-      const stoneMesh = new THREE.Mesh(stoneGeo, stoneMat);
-      stoneMesh.position.y = -0.35;
-      stoneMesh.receiveShadow = true;
-      islandGroup.add(stoneMesh);
-
-      // Stone rim bevel
-      const rimGeo = new THREE.TorusGeometry(5.2, 0.12, 12, 48);
-      const rimMesh = new THREE.Mesh(rimGeo, stoneMat);
-      rimMesh.rotation.x = Math.PI / 2;
-      rimMesh.position.y = -0.1;
-      islandGroup.add(rimMesh);
-
-      // 2. Vibrant Anime Grass Top Cap (Surface rests flush at y = 0.0)
-      const grassGeo = new THREE.CylinderGeometry(5.12, 5.18, 0.2, 48);
-      const grassMat = new THREE.MeshToonMaterial({ color: 0x76CE48, roughness: 0.8 });
-      const grassMesh = new THREE.Mesh(grassGeo, grassMat);
-      grassMesh.position.y = -0.1;
-      grassMesh.receiveShadow = true;
-      islandGroup.add(grassMesh);
-
-      // 3. Soft Dark Contact Shadow Disc under character
-      const shadowGeo = new THREE.CircleGeometry(2.1, 32);
-      const shadowMat = new THREE.MeshBasicMaterial({
-        color: 0x1A2E20,
-        transparent: true,
-        opacity: 0.28,
-        depthWrite: false
+      roomManager = new RoomManager({
+        scene, save, discoveryLog, resonance: resonanceTracker, cameraController,
+        roomLabel: roomLabelFor,
+        onRoomEnter: (roomId, built) => { showRoomToast(roomId, built); renderRoomGrid(); }
       });
-      const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
-      shadowMesh.rotation.x = -Math.PI / 2;
-      shadowMesh.position.y = 0.005;
-      islandGroup.add(shadowMesh);
+      roomManager.setActiveForm(currentForm);
+      roomManager.onDiscoveryFeedback = (found) => { if (found) showDiscoveryToast(found); };
 
-      // 4. Decorative Inlaid Cobblestones & Tiny Daisy Tufts
-      const pebbleMat = new THREE.MeshToonMaterial({ color: 0xBFB6A8 });
-      const petalMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
-      const centerMat = new THREE.MeshBasicMaterial({ color: 0xFFD23F });
-
-      const pebblePositions = [
-        [-2.8, -1.2, 0.5], [-2.3, -1.8, 0.4], [2.6, 1.4, 0.45], [3.1, 0.8, 0.35],
-        [-1.6, 3.2, 0.38], [1.2, 3.4, 0.42], [3.4, -2.1, 0.4]
-      ];
-      pebblePositions.forEach(([px, pz, r]) => {
-        const peb = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.1, 0.04, 12), pebbleMat);
-        peb.position.set(px, 0.015, pz);
-        peb.receiveShadow = true;
-        islandGroup.add(peb);
-      });
-
-      // Tiny field daisies
-      const flowerPositions = [
-        [-3.2, 1.2], [-3.0, 2.1], [3.2, -1.1], [2.8, -2.4], [-1.8, -3.2], [2.2, 2.9]
-      ];
-      flowerPositions.forEach(([fx, fz]) => {
-        const flower = new THREE.Group();
-        flower.position.set(fx, 0.02, fz);
-        const center = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), centerMat);
-        flower.add(center);
-        for (let p = 0; p < 5; p++) {
-          const ang = (p / 5) * Math.PI * 2;
-          const petal = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 6), petalMat);
-          petal.geometry.scale(1.6, 0.5, 1.0);
-          petal.position.set(Math.cos(ang) * 0.1, 0, Math.sin(ang) * 0.1);
-          petal.rotation.y = -ang;
-          flower.add(petal);
-        }
-        islandGroup.add(flower);
-      });
-
-      scene.add(islandGroup);
-      environmentDecor.push(islandGroup);
-      sandboxFloor = islandGroup;
-
-      // 5. Magical Ambient Sparkle / Dust Motes
-      const moteGeo = new THREE.BufferGeometry();
-      const moteCount = 45;
-      const moteCoords = new Float32Array(moteCount * 3);
-      for (let i = 0; i < moteCount; i++) {
-        moteCoords[i * 3] = (Math.random() - 0.5) * 10;
-        moteCoords[i * 3 + 1] = 0.5 + Math.random() * 4.5;
-        moteCoords[i * 3 + 2] = (Math.random() - 0.5) * 10;
-      }
-      moteGeo.setAttribute('position', new THREE.BufferAttribute(moteCoords, 3));
-      const moteMat = new THREE.PointsMaterial({
-        color: 0xFFF3C7,
-        size: 0.12,
-        transparent: true,
-        opacity: 0.65,
-        blending: THREE.AdditiveBlending
-      });
-      const ambientMotes = new THREE.Points(moteGeo, moteMat);
-      scene.add(ambientMotes);
-      environmentDecor.push(ambientMotes);
-      sandboxMotes = ambientMotes;
-
-      // Decorative Floating Clouds
-      for (let i = 0; i < 6; i++) {
-        const cloud = createStylizedCloud();
-        cloud.position.set(
-          (Math.random() - 0.5) * 16,
-          3.5 + Math.random() * 3,
-          -4 - Math.random() * 8
-        );
-        scene.add(cloud);
-        environmentDecor.push(cloud);
-      }
-
-      // Initialize Face Texture & Character Rig
       initFaceTexture();
       eeveeRig = createEeveeRig();
       window.eeveeRig = eeveeRig;
       scene.add(eeveeRig);
 
-      // Click/Petting Raycaster on Eevee
-      setupPettingInteraction(canvas);
+      renderSpeciesStrip();
+      renderJournal();
 
-      // Handle Window Resize
-      window.addEventListener('resize', onWindowResize);
-    }
+      roomManager.goTo(save.get('lastRoom', 'conservatory'));
 
-    function createStylizedCloud() {
-      const cloudGroup = new THREE.Group();
-      const cloudMat = new THREE.MeshBasicMaterial({
-        color: 0xFFFFFF,
-        transparent: true,
-        opacity: 0.75
-      });
-      const puffCount = 4 + Math.floor(Math.random() * 3);
-      for (let i = 0; i < puffCount; i++) {
-        const r = 0.5 + Math.random() * 0.6;
-        const puff = new THREE.Mesh(new THREE.SphereGeometry(r, 14, 14), cloudMat);
-        puff.position.set((i - puffCount / 2) * 0.7, Math.random() * 0.3, Math.random() * 0.3);
-        cloudGroup.add(puff);
+      if (!uiChrome.hasSeenHint('orbit')) {
+        const hint = document.getElementById('camera-hint');
+        hint.classList.add('visible');
+        uiChrome.markHintSeen('orbit');
+        setTimeout(() => hint.classList.remove('visible'), 6000);
       }
-      return cloudGroup;
+
+      setupPettingInteraction(canvas);
+      window.addEventListener('resize', onWindowResize);
+      uiChrome.reportActivity();
     }
 
     function setupPettingInteraction(canvas) {
@@ -2855,54 +2146,87 @@
       const mouse = new THREE.Vector2();
       let isPetting = false;
       let lastPurrTime = 0;
+      let lastClickTime = 0;
+      const reticle = document.getElementById('reticle');
 
-      canvas.addEventListener('pointerdown', (e) => {
-        if (activeGameMode !== 'sandbox') return;
-
+      function ndcFromEvent(e) {
         mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        return mouse;
+      }
+
+      canvas.addEventListener('pointerdown', (e) => {
+        if (activeGameMode !== 'sandbox' || isPhotoMode) return;
+        ndcFromEvent(e);
         raycaster.setFromCamera(mouse, camera);
 
-        const intersects = raycaster.intersectObjects(eeveeRig.children, true);
-        if (intersects.length > 0) {
-          // Petting triggered!
+        const petHits = raycaster.intersectObjects(eeveeRig.children, true);
+        if (petHits.length > 0) {
           isPetting = true;
-          controls.enabled = false; // Pause OrbitControls so user can rub/tickle without camera rotating
+          controls.enabled = false;
           audio.playPurr();
-          petSquishFactor = 0.78; // Squish down
+          petSquishFactor = 0.78;
           updateFaceExpression('hearts');
+          bondTracker.bump(currentForm, 1);
 
-          const petResponses = [
-            "*Happy purrs and tail wags!* 🥰",
-            "Right behind the ears! Perfect spot!",
-            "Eevee loved that! Friendship +10! ✨",
-            "*Soft puppy snuffles*",
-            "Tickle tickle tickle! *ear wiggles*",
-            "*Borb squish mode activated!*"
-          ];
-          showSpeech(petResponses[Math.floor(Math.random() * petResponses.length)]);
+          const region = petHits[0].point.y > 1.0 ? 'head' : (petHits[0].point.z > 0.3 ? 'back' : 'side');
+          const regionResponses = {
+            head: ["Right behind the ears! Perfect spot!", "*Happy ear wiggles*"],
+            back: ["*Soft puppy snuffles*", "Tickle tickle tickle!"],
+            side: ["*Borb squish mode activated!*", "*Happy purrs and tail wags!* 🥰"]
+          };
+          showSpeech(interactionMemory.pick('pet_' + region, regionResponses[region] || regionResponses.side));
           triggerConfetti();
+
+          const now = performance.now();
+          if (now - lastClickTime < 380) {
+            cameraController.focusOnPoint(mouse.x, mouse.y, eeveeRig);
+          }
+          lastClickTime = now;
+          return;
+        }
+
+        // Diegetic interaction: doors, room props, mementos.
+        if (roomManager) {
+          const meshes = roomManager.getInteractableMeshes();
+          const hits = raycaster.intersectObjects(meshes, true);
+          if (hits.length) {
+            let obj = hits[0].object;
+            while (obj && !obj.userData.interactable) obj = obj.parent;
+            if (obj && obj.userData.interactable) {
+              obj.userData.interactable.onActivate();
+              audio.playBoing();
+            }
+          }
         }
       });
 
       window.addEventListener('pointermove', (e) => {
         if (isPetting && activeGameMode === 'sandbox') {
-          // Dynamic stroking jiggle
           petSquishFactor = 0.78 + Math.sin(Date.now() * 0.03) * 0.12;
           const now = Date.now();
-          if (now - lastPurrTime > 380) {
-            audio.playPurr();
-            lastPurrTime = now;
+          if (now - lastPurrTime > 380) { audio.playPurr(); lastPurrTime = now; }
+        }
+
+        // Hover reticle (UX-11): only in sandbox, outside drawers/UI.
+        if (activeGameMode === 'sandbox' && !isPhotoMode && !e.target.closest('.interactive') && roomManager && eeveeRig) {
+          ndcFromEvent(e);
+          raycaster.setFromCamera(mouse, camera);
+          const targets = [...eeveeRig.children, ...roomManager.getInteractableMeshes()];
+          const hits = raycaster.intersectObjects(targets, true);
+          if (hits.length) {
+            reticle.style.left = e.clientX + 'px';
+            reticle.style.top = e.clientY + 'px';
+            reticle.classList.add('visible');
+            canvas.classList.add('hover-interactive');
+          } else {
+            reticle.classList.remove('visible');
+            canvas.classList.remove('hover-interactive');
           }
         }
       });
 
-      window.addEventListener('pointerup', () => {
-        if (isPetting) {
-          isPetting = false;
-          controls.enabled = true; // Restore camera orbit controls
-        }
-      });
+      window.addEventListener('pointerup', () => { if (isPetting) { isPetting = false; controls.enabled = true; } });
     }
 
     function onWindowResize() {
@@ -2912,31 +2236,23 @@
     }
 
     /* ==========================================================================
-       9. MASTER ANIMATION & RENDER LOOP
+       14. MASTER ANIMATION & RENDER LOOP
        ========================================================================== */
+    let idleCineTimer = 0;
     function animate() {
       requestAnimationFrame(animate);
-
-      const dt = clock.getDelta();
+      const dt = Math.min(clock.getDelta(), 0.1);
       const elapsed = clock.getElapsedTime();
 
-      // Target squish factor (bread loaf mode vs normal)
       const targetSquish = isLoafMode ? 0.65 : 1.0;
       petSquishFactor += (targetSquish - petSquishFactor) * 0.12;
 
-      // 1. Sandbox Mode Procedural Animations
       if (activeGameMode === 'sandbox' && eeveeRig) {
         const u = eeveeRig.userData;
+        const pers = personality();
+        const breath = Math.sin(elapsed * 2.8 * pers.breathRate) * 0.035;
+        u.bodyGroup.scale.set(1.0 / petSquishFactor + breath * 0.5, petSquishFactor + breath, 1.0 / petSquishFactor + breath * 0.5);
 
-        // Dynamic Idle Breathing & Squish
-        const breath = Math.sin(elapsed * 2.8) * 0.035;
-        u.bodyGroup.scale.set(
-          1.0 / petSquishFactor + breath * 0.5,
-          petSquishFactor + breath,
-          1.0 / petSquishFactor + breath * 0.5
-        );
-
-        // Loaf mode tucks paws inwards and upwards underneath fluff
         u.paws.forEach((paw) => {
           const baseY = 0.65;
           paw.position.y = baseY + (isLoafMode ? 0.28 : 0);
@@ -2944,66 +2260,37 @@
           paw.scale.set(pScale, pScale, pScale);
         });
 
-        // Floppy Ear Spring Physics (Gentle bob + twitch)
         const earBob = Math.sin(elapsed * 3.5) * 0.08;
         u.earGroupLeft.rotation.z = 0.55 + earBob + (Math.sin(elapsed * 7) > 0.95 ? 0.2 : 0);
         u.earGroupRight.rotation.z = -0.55 - earBob - (Math.sin(elapsed * 7.5) > 0.95 ? 0.2 : 0);
 
-        // Sinusoidal Tail Wag
         const wagSpeed = isDiscoMode ? 16 : (currentEmotion === 'hearts' ? 12 : 5);
         u.tailGroup.rotation.y = Math.sin(elapsed * wagSpeed) * 0.45;
         u.tailGroup.rotation.x = 0.1 + Math.sin(elapsed * (wagSpeed * 0.5)) * 0.15;
 
-        // Form-specific dynamic shader & attachment animations
         if (currentForm === 'espeon' && u.psychicGem) {
           const pulse = (Math.sin(elapsed * 6) + 1) * 0.5;
           u.psychicGem.material.emissiveIntensity = 0.6 + pulse * 1.5;
         } else if (currentForm === 'umbreon' && u.umbreonRingMat) {
           const ringPulse = (Math.sin(elapsed * 4) + 1) * 0.5;
-          if (isShiny) {
-            u.umbreonRingMat.color.setHSL(0.52, 1.0, 0.45 + ringPulse * 0.35);
-          } else {
-            u.umbreonRingMat.color.setHSL(0.14, 1.0, 0.45 + ringPulse * 0.35);
-          }
+          if (isShiny) u.umbreonRingMat.color.setHSL(0.52, 1.0, 0.45 + ringPulse * 0.35);
+          else u.umbreonRingMat.color.setHSL(0.14, 1.0, 0.45 + ringPulse * 0.35);
         } else if (currentForm === 'jolteon' && u.jolteonSpikesGroup) {
           u.jolteonSpikesGroup.rotation.y = (Math.random() - 0.5) * 0.04;
         } else if (currentForm === 'sylveon' && u.sylveonRibbons) {
-          u.sylveonRibbons.forEach((rib, idx) => {
-            rib.rotation.z = Math.sin(elapsed * 3.2 + idx * 1.4) * 0.26;
-            rib.rotation.x = Math.cos(elapsed * 2.5 + idx) * 0.16;
-          });
+          u.sylveonRibbons.forEach((rib, idx) => { rib.rotation.z = Math.sin(elapsed * 3.2 + idx * 1.4) * 0.26; rib.rotation.x = Math.cos(elapsed * 2.5 + idx) * 0.16; });
         } else if (currentForm === 'vaporeon' && u.vaporeonFluke) {
           u.vaporeonFluke.rotation.x = -0.35 + Math.sin(elapsed * 3.5) * 0.18;
         } else if (currentForm === 'glaceon' && u.glaceonBangs) {
-          u.glaceonBangs.forEach((bang, idx) => {
-            const sign = idx === 0 ? 1 : -1;
-            bang.rotation.z = sign * 0.15 + Math.sin(elapsed * 3 + idx) * 0.08;
-          });
+          u.glaceonBangs.forEach((bang, idx) => { const sign = idx === 0 ? 1 : -1; bang.rotation.z = sign * 0.15 + Math.sin(elapsed * 3 + idx) * 0.08; });
         }
 
-        // Drift Ambient Sparkle Motes
-        if (sandboxMotes && sandboxFloor && sandboxFloor.visible) {
-          const pos = sandboxMotes.geometry.attributes.position.array;
-          for (let i = 0; i < pos.length; i += 3) {
-            pos[i + 1] += Math.sin(elapsed * 1.5 + i) * 0.003 + 0.002;
-            pos[i] += Math.cos(elapsed * 0.8 + i) * 0.002;
-            if (pos[i + 1] > 5.2) pos[i + 1] = 0.4;
-          }
-          sandboxMotes.geometry.attributes.position.needsUpdate = true;
-        }
+        if (treatHungerAngle > 0) { treatHungerAngle -= dt * 0.5; u.headGroup.rotation.x = -treatHungerAngle; }
+        else { u.headGroup.rotation.x = Math.sin(elapsed * 1.5) * 0.05; }
 
-        // Head tracking / Treat hunger look
-        if (treatHungerAngle > 0) {
-          treatHungerAngle -= dt * 0.5;
-          u.headGroup.rotation.x = -treatHungerAngle;
-        } else {
-          u.headGroup.rotation.x = Math.sin(elapsed * 1.5) * 0.05;
-        }
-
-        // Check if performing 3D Anime Evolution Pirouette
         if (evolutionSpinTimer > 0) {
           evolutionSpinTimer -= dt;
-          eeveeRig.rotation.y += dt * 18; // smooth 3D pirouette spin!
+          eeveeRig.rotation.y += dt * 18;
           eeveeRig.position.y = Math.sin((0.65 - evolutionSpinTimer) / 0.65 * Math.PI) * 0.85;
         } else if (isDiscoMode) {
           eeveeRig.position.y = Math.abs(Math.sin(elapsed * 8)) * 0.45;
@@ -3011,157 +2298,66 @@
           if (discoBall) {
             discoBall.rotation.y += 0.02;
             const spot = discoBall.userData.spotLight;
-            if (spot) {
-              spot.color.setHSL((elapsed * 0.3) % 1, 0.9, 0.6);
-            }
+            if (spot) spot.color.setHSL((elapsed * 0.3) % 1, 0.9, 0.6);
           }
         } else if (isLoafMode) {
           eeveeRig.position.y = -0.32;
         } else if (!isVacuumPanicking) {
-          eeveeRig.rotation.y = Math.sin(elapsed * 0.6) * 0.15;
+          eeveeRig.rotation.y = Math.sin(elapsed * 0.6 * pers.breathRate) * 0.15;
           eeveeRig.position.y = 0;
         }
 
-        // Roomba Panic Run
         if (isVacuumPanicking && vacuumBot) {
           vacuumBot.position.x = Math.sin(elapsed * 3) * 3.5;
           vacuumBot.position.z = Math.cos(elapsed * 2) * 2;
           vacuumBot.rotation.y = elapsed * 4;
-
-          // Eevee scampers in terror
           eeveeRig.position.x = -vacuumBot.position.x * 0.7;
           eeveeRig.position.z = -vacuumBot.position.z * 0.7;
           eeveeRig.rotation.y = elapsed * 12;
           eeveeRig.position.y = Math.abs(Math.sin(elapsed * 18)) * 0.5;
         }
 
-        // Update Flying Treat Projectiles
         const mouthWorldPos = new THREE.Vector3();
         u.headGroup.getWorldPosition(mouthWorldPos);
-        mouthWorldPos.y -= 0.15;
-        mouthWorldPos.z += 0.8;
+        mouthWorldPos.y -= 0.15; mouthWorldPos.z += 0.8;
 
         for (let i = treats.length - 1; i >= 0; i--) {
           const t = treats[i];
           t.position.addScaledVector(t.userData.velocity, dt);
-          t.userData.velocity.y -= 9.8 * dt * 0.55; // Gravity
-
-          // Check if treat reached Eevee's mouth
+          t.userData.velocity.y -= 9.8 * dt * 0.55;
           if (t.position.distanceTo(mouthWorldPos) < 1.35) {
-            audio.playChomp();
-            triggerConfetti();
-            updateFaceExpression('hearts');
-
-            if (t.userData.type === 'puff') {
-              // Gigantamax floof mode: inflate Eevee!
-              petSquishFactor = 1.9;
-              showSpeech("CHONK! Maximum gigantamax floof unlocked! 🧁");
-            } else {
-              petSquishFactor = 1.35;
-              showSpeech("Munch munch munch! Delicious berry! 🍓");
-            }
-
-            scene.remove(t);
-            treats.splice(i, 1);
-          } else if (t.position.y < -1) {
-            scene.remove(t);
-            treats.splice(i, 1);
-          }
+            audio.playChomp(); triggerConfetti(); updateFaceExpression('hearts');
+            const pref = t.userData.pref || 1.0;
+            if (t.userData.type === 'puff') { petSquishFactor = 1.6 + 0.3 * pref; showSpeech("CHONK! Maximum gigantamax floof unlocked! 🧁"); }
+            else { petSquishFactor = 1.2 + 0.15 * pref; showSpeech("Munch munch munch! Delicious berry! 🍓"); }
+            scene.remove(t); treats.splice(i, 1);
+          } else if (t.position.y < -1) { scene.remove(t); treats.splice(i, 1); }
         }
 
-        // Update Evolution Burst Particles
         for (let i = evolutionParticles.length - 1; i >= 0; i--) {
           const group = evolutionParticles[i];
           let anyAlive = false;
           group.children.forEach(p => {
             p.userData.life -= dt * 1.8;
-            if (p.userData.life > 0) {
-              anyAlive = true;
-              p.position.x += p.userData.vx * dt;
-              p.position.y += p.userData.vy * dt;
-              p.position.z += p.userData.vz * dt;
-              p.scale.setScalar(p.userData.life);
-            } else {
-              p.visible = false;
-            }
+            if (p.userData.life > 0) { anyAlive = true; p.position.x += p.userData.vx * dt; p.position.y += p.userData.vy * dt; p.position.z += p.userData.vz * dt; p.scale.setScalar(p.userData.life); }
+            else p.visible = false;
           });
-          if (!anyAlive) {
-            scene.remove(group);
-            evolutionParticles.splice(i, 1);
-          }
+          if (!anyAlive) { scene.remove(group); evolutionParticles.splice(i, 1); }
         }
 
-        controls.update();
+        if (roomManager) roomManager.update(dt, elapsed);
+        cameraController.update(dt);
+
+        // Idle cinematography (Chill Mode only; Part XVII). Respects reduced motion.
+        if (isChillMode && !cameraController.isTransitioning && !uiChrome.reducedMotion) {
+          idleCineTimer += dt;
+          if (idleCineTimer > 12) { idleCineTimer = 0; cameraController.cyclePreset(); }
+        } else { idleCineTimer = 0; }
       }
 
-      // 2. Arcade Mode Runner Loop
-      if (activeGameMode === 'arcade') {
-        updateArcadePhysics(dt);
-      }
+      if (activeGameMode === 'arcade') updateArcadePhysics(dt);
 
-      // Render Scene
       renderer.render(scene, camera);
-    }
-
-    /* ==========================================================================
-       10. AUDIO UI CONTROLS & INITIALIZATION
-       ========================================================================== */
-    function initAudioUserGesture() {
-      audio.init();
-      audio.startBGM();
-      document.getElementById('audio-prompt').style.display = 'none';
-      document.getElementById('btn-music').textContent = '⏸️';
-    }
-
-    function toggleMusic() {
-      audio.init();
-      const btn = document.getElementById('btn-music');
-      if (audio.isMusicPlaying) {
-        audio.stopBGM();
-        btn.textContent = '🎵';
-      } else {
-        audio.startBGM();
-        btn.textContent = '⏸️';
-      }
-      document.getElementById('audio-prompt').style.display = 'none';
-    }
-
-    function toggleSFX() {
-      audio.isSFXEnabled = !audio.isSFXEnabled;
-      const btn = document.getElementById('btn-sound');
-      btn.textContent = audio.isSFXEnabled ? '🔊' : '🔇';
-    }
-
-    let evolutionSpinTimer = 0;
-    let evolutionParticles = [];
-
-    function spawnEvolutionParticles(formKey) {
-      const data = EEVEELUTION_DATA[formKey];
-      if (!data) return;
-      const col = isShiny ? (data.colorShiny || 0xFFFFFF) : (data.colorNormal || 0xFFDD44);
-      const particleGroup = new THREE.Group();
-      const geo = new THREE.SphereGeometry(0.12, 8, 8);
-      const mat = new THREE.MeshBasicMaterial({ color: col });
-
-      for (let i = 0; i < 22; i++) {
-        const p = new THREE.Mesh(geo, mat);
-        const angle = (i / 22) * Math.PI * 2;
-        p.position.set(Math.cos(angle) * 0.4, 1.3, Math.sin(angle) * 0.4);
-        p.userData = {
-          vx: Math.cos(angle) * 4.2 + (Math.random() - 0.5),
-          vy: 1.5 + Math.random() * 2.5,
-          vz: Math.sin(angle) * 4.2 + (Math.random() - 0.5),
-          life: 1.0
-        };
-        particleGroup.add(p);
-      }
-      scene.add(particleGroup);
-      evolutionParticles.push(particleGroup);
-    }
-
-    function triggerEvolutionVortex(formKey) {
-      evolutionSpinTimer = 0.65;
-      spawnEvolutionParticles(formKey || currentForm);
     }
 
     // Expose eeveeApp for runtime inspection & programmatic testing
@@ -3180,34 +2376,30 @@
       get arcadeScore() { return arcadeScore; },
       get currentEmotion() { return currentEmotion; },
       get eeveeRig() { return eeveeRig; },
-      get sandboxFloor() { return sandboxFloor; },
-      get sandboxMotes() { return sandboxMotes; },
       get renderer() { return renderer; },
       get scene() { return scene; },
       get camera() { return camera; },
-      selectEeveelution,
-      toggleShinyMode,
-      updateFaceExpression,
-      triggerLoafMode,
-      triggerDerpMode,
-      triggerDiscoDance,
-      startArcadeGame,
-      stopArcadeGame,
+      get roomManager() { return roomManager; },
+      get cameraController() { return cameraController; },
+      get save() { return save; },
+      get isPhotoMode() { return isPhotoMode; },
+      get isChillMode() { return isChillMode; },
+      selectEeveelution, toggleShinyMode, updateFaceExpression,
+      triggerLoafMode, triggerDerpMode, triggerDiscoDance, summonVacuum, feedTreat, callEeveelution,
+      startArcadeGame, stopArcadeGame, switchGameMode,
+      enterPhotoMode, exitPhotoMode, capturePhotoModeShot,
+      goToRoom: (id) => roomManager && roomManager.goTo(id),
       startApp
     };
 
-    // Start Everything when DOM is Ready
     function startApp() {
       if (eeveeRig) return;
       initThreeScene();
       animate();
-      updateFactSheet('eevee');
+      updateFactSheet(currentForm);
     }
-    if (document.readyState === 'loading') {
-      window.addEventListener('DOMContentLoaded', startApp);
-    } else {
-      startApp();
-    }
+    if (document.readyState === 'loading') window.addEventListener('DOMContentLoaded', startApp);
+    else startApp();
   </script>
 </body>
 </html>

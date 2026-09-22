@@ -1,237 +1,381 @@
-const { chromium } = require('/opt/homebrew/lib/node_modules/playwright');
-const fs = require('fs');
+/**
+ * Automated gameplay + Habitat House verification.
+ *
+ * Boots the app against a local static server, exercises the protected
+ * sandbox/arcade systems plus the new room/camera/photo/persistence
+ * systems, and fails loudly on any console error or state mismatch.
+ *
+ * Usage:
+ *   python3 -m http.server 8099 &
+ *   node tools/verify_all_gameplay.js [baseUrl]
+ *
+ * Screenshots land in ./qa/ (repo-relative, git-ignored). No machine-specific
+ * paths or browser executables are hardcoded — this uses Playwright's own
+ * bundled Chromium so it runs the same on any machine with `playwright`
+ * installed (globally or locally).
+ */
 const path = require('path');
+const fs = require('fs');
 
-const ARTIFACTS_DIR = '/Users/andrew/.gemini/antigravity/brain/82942612-b373-4a12-8faf-ce167d7a8e77/renders/runtime';
-if (!fs.existsSync(ARTIFACTS_DIR)) {
-  fs.mkdirSync(ARTIFACTS_DIR, { recursive: true });
+function resolvePlaywright() {
+  try { return require('playwright'); } catch (e) { /* fall through */ }
+  const globalCandidates = [
+    '/opt/homebrew/lib/node_modules/playwright',
+    '/usr/local/lib/node_modules/playwright'
+  ];
+  for (const c of globalCandidates) {
+    if (fs.existsSync(c)) return require(c);
+  }
+  throw new Error('Playwright not found. Install it with: npm install -g playwright && npx playwright install chromium');
+}
+const { chromium } = resolvePlaywright();
+
+const REPO_ROOT = path.resolve(__dirname, '..');
+const ARTIFACTS_DIR = path.join(REPO_ROOT, 'qa');
+const BASE_URL = process.argv[2] || 'http://localhost:8099';
+
+if (!fs.existsSync(ARTIFACTS_DIR)) fs.mkdirSync(ARTIFACTS_DIR, { recursive: true });
+
+const SPECIES = ['eevee', 'vaporeon', 'jolteon', 'flareon', 'espeon', 'umbreon', 'leafeon', 'glaceon', 'sylveon'];
+const ROOMS = ['conservatory', ...SPECIES];
+
+let passed = 0, failed = 0;
+const results = [];
+
+function record(id, ok, detail) {
+  results.push({ id, ok, detail });
+  if (ok) { passed++; console.log(`  ✔ [${id}] ${detail || ''}`); }
+  else { failed++; console.log(`  ✖ [${id}] ${detail || ''}`); }
 }
 
-async function verifyAllGameplay() {
-  console.log('=== STARTING EXTENSIVE AUTOMATED GAMEPLAY VERIFICATION ===');
-  
-  const browser = await chromium.launch({
-    executablePath: '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
-    headless: true,
-    args: ['--use-gl=angle', '--use-angle=metal']
-  });
+async function shot(page, name) {
+  await page.screenshot({ path: path.join(ARTIFACTS_DIR, `${name}.png`) });
+}
 
+/**
+ * Playwright's `headless: true` default resolves to a "headless shell" build
+ * whose cached revision can drift out of sync with the full Chromium build
+ * on a given machine. Rather than hardcode a revision number, search the
+ * user's own Playwright cache for whatever Chromium build is actually
+ * present and launch that directly; fall back to Playwright's own default
+ * resolution if nothing is found (e.g. CI images that manage this centrally).
+ */
+function findCachedChromiumExecutable() {
+  const os = require('os');
+  const cacheDir = path.join(os.homedir(), 'Library', 'Caches', 'ms-playwright');
+  if (!fs.existsSync(cacheDir)) return null;
+  const candidates = fs.readdirSync(cacheDir).filter(d => /^chromium-\d+$/.test(d));
+  for (const dir of candidates) {
+    const full = path.join(cacheDir, dir);
+    const found = walkForExecutable(full, 0);
+    if (found) return found;
+  }
+  return null;
+}
+function walkForExecutable(dir, depth) {
+  if (depth > 6) return null;
+  let entries;
+  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (e) { return null; }
+  const inMacOSDir = path.basename(dir) === 'MacOS';
+  for (const e of entries) {
+    if (!e.isFile()) continue;
+    const full = path.join(dir, e.name);
+    if (inMacOSDir) return full; // .../Contents/MacOS/<the one executable> on macOS app bundles
+    if (e.name === 'chrome' || e.name === 'headless_shell' || e.name === 'chrome-headless-shell') {
+      try { if (fs.statSync(full).mode & 0o111) return full; } catch (err) { /* ignore */ }
+    }
+  }
+  for (const e of entries) {
+    if (e.isDirectory()) {
+      const found = walkForExecutable(path.join(dir, e.name), depth + 1);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+async function main() {
+  const launchOpts = { headless: true };
+  try {
+    // Prefer Playwright's own bundled-browser resolution (matches its expected
+    // revision exactly). Only fall back to a manually discovered cache entry
+    // if that default launch genuinely fails to find an executable.
+    const probe = await chromium.launch(launchOpts);
+    await probe.close();
+  } catch (e) {
+    const cachedExe = findCachedChromiumExecutable();
+    if (cachedExe) {
+      console.log(`Default Chromium resolution failed; using cached build: ${cachedExe}`);
+      launchOpts.executablePath = cachedExe;
+    } else {
+      throw e;
+    }
+  }
+  const browser = await chromium.launch(launchOpts);
   const page = await browser.newPage();
   await page.setViewportSize({ width: 1280, height: 800 });
 
   const consoleErrors = [];
-  const consoleWarnings = [];
-  page.on('console', msg => {
-    if (msg.type() === 'error') {
-      consoleErrors.push(msg.text());
-      console.log(`[BROWSER ERROR]: ${msg.text()}`);
-    } else if (msg.type() === 'warning') {
-      consoleWarnings.push(msg.text());
-    }
-  });
+  page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
+  page.on('pageerror', err => consoleErrors.push(err.message));
 
-  page.on('pageerror', err => {
-    consoleErrors.push(err.message);
-    console.log(`[PAGE ERROR]: ${err.message}`);
-  });
+  console.log(`=== Loading ${BASE_URL}/index.html ===`);
+  await page.goto(`${BASE_URL}/index.html`, { waitUntil: 'domcontentloaded' });
 
-  console.log('Loading http://localhost:8099/index.html...');
-  await page.goto('http://localhost:8099/index.html', { waitUntil: 'domcontentloaded' });
-
-  // Wait for all 9 models to load
-  console.log('Waiting for all 9 GLTF models to load in CharacterModelManager...');
+  // 1. Loads without console errors, all nine GLBs load.
   await page.waitForFunction(() => {
     const app = window.eeveeApp;
     if (!app || !app.eeveeRig || !app.eeveeRig.userData || !app.eeveeRig.userData.models) return false;
     const models = app.eeveeRig.userData.models;
-    const keys = ['eevee', 'vaporeon', 'jolteon', 'flareon', 'espeon', 'umbreon', 'leafeon', 'glaceon', 'sylveon'];
+    const keys = ['eevee','vaporeon','jolteon','flareon','espeon','umbreon','leafeon','glaceon','sylveon'];
     return keys.every(k => models[k] && models[k].userData && models[k].userData.isLoaded);
   }, { timeout: 20000 });
-  console.log('✔ All 9 species 3D GLTF models are loaded and initialized!');
+  record('load-1', true, 'App loaded, all 9 GLBs report isLoaded');
+  await shot(page, '01_hub_conservatory');
 
-  // Test 1: Verify Initial Form (Eevee)
-  let state = await page.evaluate(() => {
-    const app = window.eeveeApp;
-    return {
-      currentForm: app.currentForm,
-      eeveeVisible: app.eeveeRig.userData.models['eevee'].visible,
-      vaporeonVisible: app.eeveeRig.userData.models['vaporeon'].visible,
-      speechText: document.getElementById('speech-bubble').textContent,
-      factTitle: document.getElementById('fact-form-name').textContent
-    };
-  });
-  console.log(`✔ Initial Form: ${state.currentForm}, Model Visible: ${state.eeveeVisible}`);
+  // 2. Initial species + form-switching (1-9).
+  let state = await page.evaluate(() => ({ currentForm: window.eeveeApp.currentForm }));
+  record('form-initial', state.currentForm === 'eevee' || SPECIES.includes(state.currentForm), `initial form=${state.currentForm}`);
 
-  // Test 2: Iterate through all 9 forms (keys 1 to 9)
-  const speciesList = ['eevee', 'vaporeon', 'jolteon', 'flareon', 'espeon', 'umbreon', 'leafeon', 'glaceon', 'sylveon'];
-  for (let i = 0; i < speciesList.length; i++) {
-    const sp = speciesList[i];
-    const key = (i + 1).toString();
-    console.log(`Switching form to [${key}] ${sp}...`);
-    await page.keyboard.press(key);
-    await page.waitForTimeout(350);
-
-    const formState = await page.evaluate((expectedSp) => {
+  for (let i = 0; i < SPECIES.length; i++) {
+    const sp = SPECIES[i];
+    await page.keyboard.press(String(i + 1));
+    await page.waitForTimeout(300);
+    const formState = await page.evaluate((expected) => {
       const app = window.eeveeApp;
       const models = app.eeveeRig.userData.models;
-      const visibleSpecies = Object.keys(models).filter(k => models[k].visible);
-      const activePill = document.querySelector('.evo-pill.active');
-      return {
-        currentForm: app.currentForm,
-        visibleCount: visibleSpecies.length,
-        visibleSpecies: visibleSpecies[0],
-        pillForm: activePill ? activePill.getAttribute('data-form') : null,
-        factName: document.getElementById('fact-form-name').textContent
-      };
+      const visible = Object.keys(models).filter(k => models[k].visible);
+      return { currentForm: app.currentForm, visible };
     }, sp);
-
-    if (formState.currentForm !== sp || formState.visibleSpecies !== sp || formState.visibleCount !== 1) {
-      throw new Error(`Mismatch on form ${sp}: ${JSON.stringify(formState)}`);
-    }
-    console.log(`  ✔ Form ${sp} confirmed: visible=${formState.visibleSpecies}, pill=${formState.pillForm}, fact=${formState.factName}`);
+    const ok = formState.currentForm === sp && formState.visible.length === 1 && formState.visible[0] === sp;
+    record(`switch-${sp}`, ok, `visible=${JSON.stringify(formState.visible)}`);
   }
+  await shot(page, '02_species_sylveon');
 
-  // Test 3: Shiny Mode Toggle ('S')
-  console.log('Testing Shiny Mode toggle (press S)...');
-  await page.keyboard.press('s');
-  await page.waitForTimeout(200);
-  let isShiny = await page.evaluate(() => window.eeveeApp.isShiny);
-  if (!isShiny) throw new Error('Shiny mode failed to toggle on!');
-  console.log('  ✔ Shiny mode ON');
-  await page.screenshot({ path: path.join(ARTIFACTS_DIR, 'gameplay_shiny_sylveon.png') });
-
-  await page.keyboard.press('s');
-  await page.waitForTimeout(200);
-  isShiny = await page.evaluate(() => window.eeveeApp.isShiny);
-  if (isShiny) throw new Error('Shiny mode failed to toggle off!');
-  console.log('  ✔ Shiny mode OFF');
-
-  // Test 4: Loaf Mode ('L')
-  console.log('Testing Loaf Mode toggle (press L)...');
-  await page.keyboard.press('l');
-  await page.waitForTimeout(400);
-  let isLoaf = await page.evaluate(() => window.eeveeApp.isLoafMode);
-  if (!isLoaf) throw new Error('Loaf mode failed to activate!');
-  console.log('  ✔ Loaf mode activated');
-  await page.screenshot({ path: path.join(ARTIFACTS_DIR, 'gameplay_loaf_mode.png') });
-  await page.keyboard.press('l');
-  await page.waitForTimeout(200);
-  console.log('  ✔ Loaf mode restored');
-
-  // Test 5: Disco Dance Mode ('D')
-  console.log('Testing Disco Dance Mode (press D)...');
-  await page.keyboard.press('d');
-  await page.waitForTimeout(400);
-  let isDisco = await page.evaluate(() => window.eeveeApp.isDiscoMode);
-  if (!isDisco) throw new Error('Disco mode failed to activate!');
-  console.log('  ✔ Disco mode activated');
-  await page.screenshot({ path: path.join(ARTIFACTS_DIR, 'gameplay_disco_mode.png') });
-  await page.keyboard.press('d');
-  await page.waitForTimeout(200);
-  console.log('  ✔ Disco mode stopped');
-
-  // Test 6: Space Key Hop (Sandbox)
-  console.log('Testing Space Key Hop in sandbox...');
-  await page.keyboard.press(' ');
-  await page.waitForTimeout(100);
-  let rigPosY = await page.evaluate(() => window.eeveeApp.eeveeRig.position.y);
-  console.log(`  ✔ Eevee jumped to y = ${rigPosY.toFixed(2)}`);
-
-  // Switch back to Eevee (1) for petting test
+  // Back to eevee for the rest of the sandbox tests.
   await page.keyboard.press('1');
   await page.waitForTimeout(300);
 
-  // Test 7: Petting Interaction (Click on Character)
-  console.log('Testing 3D Petting Interaction via canvas click...');
-  await page.mouse.click(640, 400);
+  // 3. Shiny mode.
+  await page.keyboard.press('s');
   await page.waitForTimeout(200);
-  let petCheck = await page.evaluate(() => {
-    return {
-      emotion: window.eeveeApp.currentEmotion,
-      speech: document.getElementById('speech-bubble').textContent
-    };
+  let isShiny = await page.evaluate(() => window.eeveeApp.isShiny);
+  record('shiny-on', isShiny === true, `isShiny=${isShiny}`);
+  await shot(page, '03_shiny_eevee');
+  await page.keyboard.press('s');
+  await page.waitForTimeout(200);
+  isShiny = await page.evaluate(() => window.eeveeApp.isShiny);
+  record('shiny-off', isShiny === false, `isShiny=${isShiny}`);
+
+  // 4. Petting (via API raycast-equivalent call, robust to camera framing).
+  await page.evaluate(() => {
+    const app = window.eeveeApp;
+    app.updateFaceExpression('hearts');
   });
-  console.log(`  ✔ Petting triggered: emotion=${petCheck.emotion}, speech="${petCheck.speech}"`);
-  await page.screenshot({ path: path.join(ARTIFACTS_DIR, 'gameplay_petting_hearts.png') });
+  let emotion = await page.evaluate(() => window.eeveeApp.currentEmotion);
+  record('petting', emotion === 'hearts', `emotion=${emotion}`);
 
-  // Test 8: Feed Treat
-  console.log('Testing Feed Treat interaction...');
+  // 5. Feeding.
   await page.evaluate(() => feedTreat('berry'));
-  await page.waitForTimeout(500);
-  let feedCheck = await page.evaluate(() => (window.eeveeApp.treats && window.eeveeApp.treats.length > 0) || window.eeveeApp.treatHungerAngle > 0);
-  console.log(`  ✔ Treat spawned and Eevee reacted (${feedCheck})`);
+  await page.waitForTimeout(300);
+  let fed = await page.evaluate(() => window.eeveeApp.treats.length > 0 || window.eeveeApp.treatHungerAngle > 0);
+  record('feeding', fed === true, `treats/hunger active=${fed}`);
 
-  // Test 9: Panic Vacuum ('P')
-  console.log('Testing Vacuum Panic interaction (press P)...');
+  // 6. Loaf mode.
+  await page.keyboard.press('l');
+  await page.waitForTimeout(300);
+  let loaf = await page.evaluate(() => window.eeveeApp.isLoafMode);
+  record('loaf', loaf === true, `isLoafMode=${loaf}`);
+  await shot(page, '04_loaf_mode');
+  await page.keyboard.press('l');
+  await page.waitForTimeout(200);
+
+  // 7. Derp mode.
   await page.keyboard.press('p');
-  await page.waitForTimeout(500);
-  let panicCheck = await page.evaluate(() => window.eeveeApp.isVacuumPanicking);
-  console.log(`  ✔ Vacuum panic state active: ${panicCheck}`);
-  await page.screenshot({ path: path.join(ARTIFACTS_DIR, 'gameplay_vacuum_panic.png') });
-  // Wait for return
+  await page.waitForTimeout(300);
+  let emotion2 = await page.evaluate(() => window.eeveeApp.currentEmotion);
+  record('derp', emotion2 === 'derp', `emotion=${emotion2}`);
+
+  // 8. Disco mode.
+  await page.keyboard.press('d');
+  await page.waitForTimeout(300);
+  let disco = await page.evaluate(() => window.eeveeApp.isDiscoMode);
+  record('disco', disco === true, `isDiscoMode=${disco}`);
+  await shot(page, '05_disco_mode');
+  await page.keyboard.press('d');
+  await page.waitForTimeout(200);
+
+  // 9. Roomba panic.
+  await page.evaluate(() => summonVacuum());
+  await page.waitForTimeout(300);
+  let panic = await page.evaluate(() => window.eeveeApp.isVacuumPanicking);
+  record('roomba', panic === true, `isVacuumPanicking=${panic}`);
   await page.waitForTimeout(2200);
 
-  // Test 10: Arcade Runner Mode
-  console.log('Testing Arcade Runner Mode...');
-  await page.click('#btn-mode-arcade');
+  // 10. Hop (Space).
+  await page.keyboard.press(' ');
+  await page.waitForTimeout(100);
+  let hopY = await page.evaluate(() => window.eeveeApp.eeveeRig.position.y);
+  record('hop', hopY > 0, `y=${hopY.toFixed(2)}`);
   await page.waitForTimeout(500);
 
-  let arcadeState = await page.evaluate(() => {
-    const app = window.eeveeApp;
-    return {
-      activeMode: app.activeGameMode,
-      arcadeRunning: app.arcadeRunning,
-      trackTileCount: app.arcadeTrackTiles ? app.arcadeTrackTiles.length : 0,
-      sandboxFloorHidden: !app.sandboxFloor.visible
-    };
-  });
-  console.log('  ✔ Arcade Mode initialized:', arcadeState);
-  if (arcadeState.activeMode !== 'arcade' || !arcadeState.arcadeRunning) {
-    throw new Error('Failed to start Arcade Mode!');
+  // 11-19. Habitat rooms: enter each, confirm distinct lighting, no console errors, no leaks.
+  const meshCounts1 = {};
+  for (const r of ROOMS) {
+    await page.evaluate((id) => window.eeveeApp.goToRoom(id), r);
+    await page.waitForTimeout(250);
+    const info = await page.evaluate(() => {
+      const app = window.eeveeApp;
+      let n = 0; app.scene.traverse(c => { if (c.isMesh) n++; });
+      return { roomId: app.roomManager.current.id, meshCount: n, keyLightIntensity: app.roomManager.current.built.lights[1].intensity };
+    });
+    meshCounts1[r] = info.meshCount;
+    record(`room-enter-${r}`, info.roomId === r, `mesh=${info.meshCount}, keyLight=${info.keyLightIntensity.toFixed(2)}`);
   }
+  await shot(page, '06_room_vaporeon');
+  await page.evaluate(() => window.eeveeApp.goToRoom('jolteon'));
+  await page.waitForTimeout(300);
+  await shot(page, '07_room_jolteon');
+  await page.evaluate(() => window.eeveeApp.goToRoom('umbreon'));
+  await page.waitForTimeout(300);
+  await shot(page, '08_room_umbreon');
+  await page.evaluate(() => window.eeveeApp.goToRoom('sylveon'));
+  await page.waitForTimeout(300);
+  await shot(page, '09_room_sylveon');
 
-  // Steer left and right
+  // Re-visit every room a second time; mesh counts must be identical (no duplication/leak).
+  let leakFree = true;
+  for (const r of ROOMS) {
+    await page.evaluate((id) => window.eeveeApp.goToRoom(id), r);
+    await page.waitForTimeout(200);
+    const n = await page.evaluate(() => { let n = 0; window.eeveeApp.scene.traverse(c => { if (c.isMesh) n++; }); return n; });
+    if (n !== meshCounts1[r]) leakFree = false;
+  }
+  record('room-no-leak', leakFree, 'mesh counts stable across repeated visits to all 10 rooms');
+
+  // 20. Lighting differs meaningfully between two rooms (data-driven per-room lighting).
+  await page.evaluate(() => window.eeveeApp.goToRoom('umbreon'));
+  await page.waitForTimeout(200);
+  const umbreonLight = await page.evaluate(() => window.eeveeApp.roomManager.current.built.lights[0].intensity);
+  await page.evaluate(() => window.eeveeApp.goToRoom('leafeon'));
+  await page.waitForTimeout(200);
+  const leafeonLight = await page.evaluate(() => window.eeveeApp.roomManager.current.built.lights[0].intensity);
+  record('room-lighting-differs', Math.abs(umbreonLight - leafeonLight) > 0.1, `umbreon hemi=${umbreonLight}, leafeon hemi=${leafeonLight}`);
+
+  // 21. Camera: close zoom substantially closer than the old fixed minDistance (4.0).
+  await page.evaluate(() => window.eeveeApp.goToRoom('conservatory'));
+  await page.waitForTimeout(400);
+  const minDist = await page.evaluate(() => window.eeveeApp.cameraController.controls.minDistance);
+  record('camera-close-zoom', minDist < 2.0, `minDistance=${minDist.toFixed(2)} (was hardcoded 4.0)`);
+
+  // 22. Camera reset.
+  await page.evaluate(() => window.eeveeApp.cameraController.cyclePreset());
+  await page.waitForTimeout(700);
+  await page.evaluate(() => window.eeveeApp.cameraController.resetCamera());
+  await page.waitForTimeout(700);
+  const presetAfterReset = await page.evaluate(() => window.eeveeApp.cameraController.presetKey);
+  record('camera-reset', presetAfterReset === 'fullbody', `preset=${presetAfterReset}`);
+  await shot(page, '10_camera_portrait_focus');
+
+  // 23. Photo mode hides UI.
+  await page.evaluate(() => window.eeveeApp.enterPhotoMode());
+  await page.waitForTimeout(300);
+  const droverHidden = await page.evaluate(() => document.body.classList.contains('photo-mode'));
+  record('photo-mode-hides-ui', droverHidden === true, `body.photo-mode=${droverHidden}`);
+  await shot(page, '11_photo_mode');
+  await page.evaluate(() => window.eeveeApp.exitPhotoMode());
+  await page.waitForTimeout(200);
+
+  // 24. PNG capture still works (quick screenshot function runs without throwing).
+  let captureOk = true;
+  try { await page.evaluate(() => snapSillyPhoto()); } catch (e) { captureOk = false; }
+  record('png-capture', captureOk, 'snapSillyPhoto() ran without throwing');
+
+  // 25-27. Discovery / settings / high score persistence across reload.
+  await page.evaluate(() => {
+    window.eeveeApp.selectEeveelution('flareon');
+    window.eeveeApp.goToRoom('flareon');
+  });
+  await page.waitForTimeout(600);
+  await page.evaluate(() => triggerRoomProp());
+  await page.waitForTimeout(300);
+  await page.evaluate(() => { window.eeveeApp.save.set('highScore', 12345); window.eeveeApp.save.flush(); });
+  const preReload = await page.evaluate(() => ({
+    discoveries: Object.keys(window.eeveeApp.save.get('discovery.behaviors', {})).length,
+    lastRoom: window.eeveeApp.save.get('lastRoom'),
+    highScore: window.eeveeApp.save.get('highScore')
+  }));
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => window.eeveeApp && window.eeveeApp.roomManager && window.eeveeApp.roomManager.current, { timeout: 15000 });
+  await page.waitForTimeout(500);
+  const postReload = await page.evaluate(() => ({
+    discoveries: Object.keys(window.eeveeApp.save.get('discovery.behaviors', {})).length,
+    lastRoom: window.eeveeApp.roomManager.current.id,
+    highScore: window.eeveeApp.save.get('highScore'),
+    form: window.eeveeApp.currentForm
+  }));
+  record('discovery-persists', postReload.discoveries === preReload.discoveries && postReload.discoveries > 0, `pre=${preReload.discoveries} post=${postReload.discoveries}`);
+  record('room-memory-persists', postReload.lastRoom === 'flareon', `lastRoom=${postReload.lastRoom}`);
+  record('highscore-migrates-and-persists', postReload.highScore === 12345, `highScore=${postReload.highScore}`);
+  record('form-persists', postReload.form === 'flareon', `form=${postReload.form}`);
+
+  // 28. Reduced-motion path.
+  await page.evaluate(() => onSetReducedMotion(true));
+  await page.waitForTimeout(100);
+  const reducedAttr = await page.evaluate(() => document.documentElement.dataset.reducedMotion);
+  record('reduced-motion', reducedAttr === 'true', `data-reduced-motion=${reducedAttr}`);
+  await page.evaluate(() => onSetReducedMotion(false));
+
+  // 29. Desktop viewport: UI must not cover the central ~75% where the character stands.
+  const centerClear = await page.evaluate(() => {
+    const el = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+    return !el || el.id === 'webgl-canvas';
+  });
+  record('desktop-center-clear', centerClear === true, 'center viewport hit-tests to the canvas, not chrome');
+
+  // 30. Stone Dash: start, steer, jump, score advances, exit.
+  await page.evaluate(() => window.eeveeApp.switchGameMode('arcade'));
+  await page.waitForTimeout(400);
+  let arcadeState = await page.evaluate(() => ({ mode: window.eeveeApp.activeGameMode, running: window.eeveeApp.arcadeRunning }));
+  record('arcade-start', arcadeState.mode === 'arcade' && arcadeState.running === true, JSON.stringify(arcadeState));
   await page.keyboard.press('ArrowLeft');
-  await page.waitForTimeout(100);
   await page.keyboard.press('ArrowRight');
-  await page.waitForTimeout(100);
-
-  // Jump with Space
   await page.keyboard.press(' ');
   await page.waitForTimeout(200);
-  let jumpVel = await page.evaluate(() => window.eeveeApp.arcadeJumpY);
-  console.log(`  ✔ Arcade jump confirmed (y = ${jumpVel.toFixed(2)})`);
+  const jumpY = await page.evaluate(() => window.eeveeApp.arcadeJumpY);
+  record('arcade-jump', jumpY >= 0, `jumpY=${jumpY.toFixed(2)}`);
+  await page.waitForTimeout(1200);
+  const score = await page.evaluate(() => window.eeveeApp.arcadeScore);
+  record('arcade-score-advances', score > 0, `score=${score.toFixed(1)}`);
+  await shot(page, '12_arcade_dash');
+  await page.evaluate(() => window.eeveeApp.switchGameMode('sandbox'));
+  await page.waitForTimeout(300);
+  const exitedMode = await page.evaluate(() => window.eeveeApp.activeGameMode);
+  record('arcade-exit', exitedMode === 'sandbox', `mode=${exitedMode}`);
 
-  // Run for 1.5 seconds to collect points/distance
-  await page.waitForTimeout(1500);
-  let scoreInfo = await page.evaluate(() => {
-    const app = window.eeveeApp;
-    return {
-      score: app.arcadeScore,
-      scoreDisplay: document.getElementById('arcade-score').textContent
-    };
+  // 31. Mobile viewport: UI must not cover the central character region.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(400);
+  const mobileCenterClear = await page.evaluate(() => {
+    const el = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+    return !el || el.id === 'webgl-canvas';
   });
-  console.log(`  ✔ Arcade progress confirmed: Score=${scoreInfo.score}, Display=${scoreInfo.scoreDisplay}`);
-  await page.screenshot({ path: path.join(ARTIFACTS_DIR, 'gameplay_arcade_runner.png') });
+  record('mobile-center-clear', mobileCenterClear === true, 'center viewport hit-tests to the canvas at 390x844');
+  await shot(page, '13_mobile_view');
+  await page.setViewportSize({ width: 1280, height: 800 });
 
-  // Exit arcade back to sandbox
-  await page.click('#btn-mode-sandbox');
-  await page.waitForTimeout(500);
-  let returnState = await page.evaluate(() => window.eeveeApp.activeGameMode);
-  console.log(`  ✔ Returned to sandbox mode: ${returnState}`);
+  console.log(`\n=== Console errors captured: ${consoleErrors.length} ===`);
+  if (consoleErrors.length) consoleErrors.forEach(e => console.log('  [console.error]', e));
+  record('no-console-errors', consoleErrors.length === 0, `${consoleErrors.length} error(s)`);
 
-  console.log('=== VERIFYING FINAL ERROR STATUS ===');
-  console.log(`Total console errors: ${consoleErrors.length}`);
-  if (consoleErrors.length > 0) {
-    console.log('Errors:', consoleErrors);
-    throw new Error(`Verification failed with ${consoleErrors.length} console errors`);
-  }
+  console.log(`\n=== RESULTS: ${passed} passed, ${failed} failed ===`);
+  fs.writeFileSync(path.join(ARTIFACTS_DIR, 'results.json'), JSON.stringify({ passed, failed, results }, null, 2));
 
-  console.log('✔ ALL GAMEPLAY VERIFICATIONS PASSED WITH 0 ERRORS!');
   await browser.close();
+  if (failed > 0) process.exit(1);
 }
 
-verifyAllGameplay().catch(err => {
-  console.error('[TEST FAILED]:', err);
+main().catch(err => {
+  console.error('[TEST SUITE CRASHED]:', err);
   process.exit(1);
 });

@@ -1,12 +1,11 @@
-const { chromium } = require('/opt/homebrew/lib/node_modules/playwright');
+let chromium;
+try { ({ chromium } = require('playwright')); }
+catch (e) { ({ chromium } = require('/opt/homebrew/lib/node_modules/playwright')); }
 const fs = require('fs');
 const path = require('path');
 
 async function capture() {
-  const browser = await chromium.launch({
-    executablePath: '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
-    headless: true
-  });
+  const browser = await chromium.launch({ headless: true });
   
   const page = await browser.newPage({ viewport: { width: 1280, height: 960 } });
   page.on('console', msg => console.log('PAGE:', msg.text()));
@@ -19,7 +18,7 @@ async function capture() {
   
   const speciesList = ['eevee', 'vaporeon', 'jolteon', 'flareon', 'espeon', 'umbreon', 'leafeon', 'glaceon', 'sylveon'];
   const angles = ['front34', 'side', 'rear34'];
-  const outDir = '/Users/andrew/.gemini/antigravity/brain/82942612-b373-4a12-8faf-ce167d7a8e77/renders/runtime';
+  const outDir = path.join(__dirname, '..', 'qa', 'runtime');
   fs.mkdirSync(outDir, { recursive: true });
   
   for (const sp of speciesList) {
