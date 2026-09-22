@@ -2461,6 +2461,7 @@
       // Unlock a second atmosphere variant once the room has been visited (Part VII).
       if (built.atmosphereVariants[1]) roomManager.unlockAtmosphereVariant(roomId, built.atmosphereVariants[1].id);
       document.getElementById('wheel-room-prop').title = 'Room interaction';
+      updateAbilityButton();
       renderRoomGrid();
     }
 
@@ -2611,6 +2612,7 @@
         scene, save, discoveryLog, resonance: resonanceTracker, cameraController, worldState,
         roomLabel: roomLabelFor,
         onDoorTravelRequested: beginDoorTravel,
+        onEvolutionRequested: requestPhysicalEvolution,
         onRoomEnter: (roomId, built, entry) => {
           toyRetrieval = null;
           clearPlacedTreats();
@@ -2637,6 +2639,25 @@
       scene.add(eeveeRig);
       creatureActor = new CreatureActorSystem.CreatureActor({ root: eeveeRig, species: currentForm });
       window.creatureActor = creatureActor;
+
+      abilitySystem = new EeveePhase6System.AbilitySystem({ worldState, roomManager });
+      evolutionController = new EeveePhase6System.EvolutionController({
+        actor: creatureActor,
+        getCurrentSpecies: () => currentForm,
+        isSpeciesReady: species => {
+          const model = eeveeRig && eeveeRig.userData.models ? eeveeRig.userData.models[species] : null;
+          return !!(model && model.userData && model.userData.isLoaded);
+        },
+        reducedMotion: () => !!(uiChrome && uiChrome.reducedMotion),
+        onStage: handleEvolutionStage,
+        onSwap: targetSpecies => setCurrentFormCore(targetSpecies, 4),
+        onComplete: targetSpecies => {
+          if (behaviorScheduler) behaviorScheduler.recordInteraction('evolution', { species: targetSpecies });
+        }
+      });
+      window.abilitySystem = abilitySystem;
+      window.evolutionController = evolutionController;
+
       creatureManager = new CreatureManagerSystem.CreatureManager({
         scene,
         onSocialEvent: handleSocialEvent
@@ -2743,6 +2764,28 @@
         raycaster.setFromCamera(mouse, camera);
         gestureStart = { x: e.clientX, y: e.clientY };
         gestureBounds = null;
+
+        if (evolutionController && evolutionController.isActive() &&
+            (evolutionController.state === 'approach' || evolutionController.state === 'ready') &&
+            roomManager) {
+          const evolutionMeshes = roomManager.current.built.interactables
+            .filter(i => i.kind === 'evolution')
+            .map(i => i.object3D);
+          const evolutionHits = raycaster.intersectObjects(evolutionMeshes, true);
+          if (evolutionHits.length) {
+            let obj = evolutionHits[0].object;
+            while (obj && (!obj.userData.interactable || obj.userData.interactable.kind !== 'evolution')) obj = obj.parent;
+            if (obj && obj.userData.interactable) {
+              obj.userData.interactable.onActivate();
+              audio.playBoing();
+              return;
+            }
+          }
+        }
+
+        const evolutionLocked = evolutionController &&
+          (evolutionController.state === 'charge' || evolutionController.state === 'reveal');
+        if (evolutionLocked) return;
 
         if (interactionSystem) {
           const propHits = raycaster.intersectObjects(interactionSystem.getManipulableObjects(), true);
@@ -3035,11 +3078,14 @@
 
         const specialActionActive = evolutionSpinTimer > 0 || isDiscoMode || isLoafMode || isVacuumPanicking || treats.some(t => !t.userData.directManipulation) || treatHungerAngle > 0;
         const doorTravelActive = !!doorTravel;
+        const evolutionActive = !!(evolutionController && evolutionController.isActive());
+        const evolutionMovementLocked = !!(evolutionController &&
+          (evolutionController.state === 'charge' || evolutionController.state === 'reveal'));
         if (behaviorScheduler && creatureActor) {
           const actorStateBefore = creatureActor.getDebugState();
           behaviorScheduler.update(dt, {
             idle: actorStateBefore.state === 'idle' && !actorStateBefore.target,
-            specialAction: specialActionActive || doorTravelActive,
+            specialAction: specialActionActive || doorTravelActive || evolutionActive,
             userActive: performance.now() - lastActivityAt < 2200
           });
         }
@@ -3048,7 +3094,7 @@
         if (creatureManager) {
           creatureManager.update(dt, elapsed, {
             primary: {
-              suspended: specialActionActive,
+              suspended: specialActionActive || evolutionMovementLocked,
               reducedMotion: !!(uiChrome && uiChrome.reducedMotion),
               chillMode: isChillMode,
               cameraPosition: camera ? camera.position : null
@@ -3059,18 +3105,19 @@
               chillMode: isChillMode,
               cameraPosition: null
             },
-            socialSuspended: specialActionActive || doorTravelActive || activeGameMode !== 'sandbox',
+            socialSuspended: specialActionActive || doorTravelActive || evolutionActive || activeGameMode !== 'sandbox',
             reducedMotion: !!(uiChrome && uiChrome.reducedMotion),
             userActive: userRecentlyActive
           });
         } else if (creatureActor) {
           creatureActor.update(dt, elapsed, {
-            suspended: specialActionActive,
+            suspended: specialActionActive || evolutionMovementLocked,
             reducedMotion: !!(uiChrome && uiChrome.reducedMotion),
             chillMode: isChillMode,
             cameraPosition: camera ? camera.position : null
           });
         }
+        if (evolutionController) evolutionController.update(dt);
         updateDoorTravel(dt);
         updateToyRetrieval(dt);
 
@@ -3167,13 +3214,16 @@
       get interactionSystemState() { return interactionSystem ? interactionSystem.getDebugState() : null; },
       get behaviorScheduler() { return behaviorScheduler; },
       get behaviorState() { return behaviorScheduler ? behaviorScheduler.getDebugState() : null; },
+      get abilitySystem() { return abilitySystem; },
+      get evolutionState() { return evolutionController ? evolutionController.getDebugState() : null; },
       get worldState() { return worldState; },
       get habitatState() { return worldState.getDebugState(roomManager && roomManager.current ? roomManager.current.id : 'conservatory'); },
       get doorTravelState() { return doorTravel ? { targetId: doorTravel.targetId, sourceRoomId: doorTravel.sourceRoomId, stage: doorTravel.stage } : null; },
       get save() { return save; },
       get isPhotoMode() { return isPhotoMode; },
       get isChillMode() { return isChillMode; },
-      selectEeveelution, toggleShinyMode, updateFaceExpression,
+      selectEeveelution, toggleShinyMode, updateFaceExpression, useSpeciesAbility,
+      requestPhysicalEvolution,
       triggerLoafMode, triggerDerpMode, triggerDiscoDance, summonVacuum, feedTreat, placeTreatForInteraction, clearPlacedTreats, callEeveelution, brushEeveelution,
       startArcadeGame, stopArcadeGame, switchGameMode,
       enterPhotoMode, exitPhotoMode, capturePhotoModeShot,
