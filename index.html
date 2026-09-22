@@ -519,6 +519,7 @@
 
   <!-- Habitat House modules -->
   <script src="src/persistence.js"></script>
+  <script src="src/habitat-state.js"></script>
   <script src="src/render-effects.js"></script>
   <script src="src/discovery-system.js"></script>
   <script src="src/photo-system.js"></script>
@@ -873,6 +874,7 @@
        3. HABITAT SYSTEM INSTANCES
        ========================================================================== */
     const save = new SaveManager();
+    const worldState = new HabitatWorldStateSystem.HabitatWorldState(save);
     const bondTracker = new DiscoverySystem.BondTracker(save);
     const interactionMemory = new DiscoverySystem.InteractionMemory();
     const creatureMemory = new CreatureBehaviorSystem.CreatureMemory(save);
@@ -887,6 +889,7 @@
     let interactionSystem = null;
     let behaviorScheduler = null;
     let toyRetrieval = null;
+    let doorTravel = null;
 
     /* ==========================================================================
        4. THREE.JS PROCEDURAL EEVEE 3D RIG & ANIMATION ENGINE (protected core)
@@ -1328,11 +1331,85 @@
       if (lines[event.type]) showSpeech(lines[event.type]);
     }
 
+    function cancelDoorTravel() {
+      if (!doorTravel) return false;
+      if (doorTravel.glow && doorTravel.originalOpacity != null) doorTravel.glow.material.opacity = doorTravel.originalOpacity;
+      doorTravel = null;
+      return true;
+    }
+
+    function beginDoorTravel(request) {
+      if (!request || !request.targetId || !roomManager) return false;
+      if (doorTravel || activeGameMode !== 'sandbox' || isPhotoMode) return false;
+      if (!creatureActor || !request.doorObject) {
+        roomManager.goTo(request.targetId, { entryFrom: request.sourceRoomId, viaDoor: true });
+        return true;
+      }
+
+      const doorWorld = request.doorObject.getWorldPosition(new THREE.Vector3());
+      const center = creatureActor.navCenter ? creatureActor.navCenter.clone() : new THREE.Vector3();
+      const approach = doorWorld.clone();
+      approach.y = 0;
+      const inward = center.clone().sub(approach);
+      inward.y = 0;
+      if (inward.lengthSq() > 0.0001) inward.normalize().multiplyScalar(0.72);
+      approach.add(inward);
+
+      const glow = request.doorObject.userData && request.doorObject.userData.glow ? request.doorObject.userData.glow : null;
+      doorTravel = {
+        targetId: request.targetId,
+        sourceRoomId: request.sourceRoomId,
+        doorObject: request.doorObject,
+        glow,
+        originalOpacity: glow && glow.material ? glow.material.opacity : null,
+        approach,
+        stage: 'approach',
+        elapsed: 0
+      };
+      creatureActor.clearBehaviorState();
+      creatureActor.moveTo(approach, { source: 'door' });
+      creatureActor.lookAtWorld(doorWorld, 2.5);
+      showSpeech('Going through the habitat door.');
+      return true;
+    }
+
+    function updateDoorTravel(dt) {
+      if (!doorTravel || !creatureActor || !roomManager) return;
+      doorTravel.elapsed += dt;
+      if (doorTravel.stage === 'approach') {
+        const dx = creatureActor.root.position.x - doorTravel.approach.x;
+        const dz = creatureActor.root.position.z - doorTravel.approach.z;
+        const arrived = Math.sqrt(dx * dx + dz * dz) < 0.16 || (!creatureActor.target && creatureActor.state === 'idle');
+        if (!arrived && doorTravel.elapsed < 5) return;
+        doorTravel.stage = 'threshold';
+        doorTravel.elapsed = 0;
+        creatureActor.hold(uiChrome && uiChrome.reducedMotion ? 0.05 : 0.18);
+        if (doorTravel.glow && doorTravel.glow.material) doorTravel.glow.material.opacity = 1;
+        return;
+      }
+
+      const thresholdTime = uiChrome && uiChrome.reducedMotion ? 0.04 : 0.18;
+      if (doorTravel.elapsed < thresholdTime) return;
+      const request = doorTravel;
+      if (request.glow && request.originalOpacity != null && request.glow.material) request.glow.material.opacity = request.originalOpacity;
+      doorTravel = null;
+      roomManager.goTo(request.targetId, {
+        entryFrom: request.sourceRoomId,
+        viaDoor: true
+      });
+    }
+
+    function goToRoomImmediate(id) {
+      cancelDoorTravel();
+      return roomManager && roomManager.goTo(id);
+    }
+
     /* ==========================================================================
        6. FORM SELECTION, SHINY, LORE (extended with bond + camera framing)
        ========================================================================== */
     function selectEeveelution(formKey) {
       if (formKey === currentForm) return;
+      cancelDoorTravel();
       if (creatureManager) creatureManager.deactivateAllCompanions();
       currentForm = formKey;
       save.set('activeForm', formKey);
@@ -1675,6 +1752,13 @@
       if (!release || !creatureActor) return;
       const object = release.object;
       const world = object.getWorldPosition(new THREE.Vector3());
+      const placementId = object.userData && object.userData.placeableId;
+      const releaseSpeed = release.velocity ? release.velocity.length() : 0;
+      if (placementId && (release.kind === 'furniture' || releaseSpeed < 0.15)) {
+        const saved = roomManager && roomManager.capturePlacement(object);
+        if (saved) showSpeech(release.kind === 'furniture' ? "Placed. The room will remember that." : "Leaving that toy exactly there.");
+        return;
+      }
       if (release.kind === 'food') {
         creatureActor.lookAtWorld(world, 2.0);
         creatureActor.moveTo(world, { source: 'food' });
@@ -1747,6 +1831,7 @@
           meta.velocity.set(0, 0, 0);
           interactionSystem.haptic([8, 20, 8]);
           if (behaviorScheduler) behaviorScheduler.recordInteraction('toyRetrieve', { toy: meta.kind });
+          if (object.userData && object.userData.placeableId && roomManager) roomManager.capturePlacement(object);
           showSpeech("Returned. Throw it again. Obviously.");
           toyRetrieval = null;
         }
@@ -1883,6 +1968,7 @@
 
     function switchGameMode(mode) {
       if (mode === activeGameMode) return;
+      if (mode === 'arcade') cancelDoorTravel();
       if (creatureManager && mode === 'arcade') creatureManager.deactivateAllCompanions();
       activeGameMode = mode;
 
@@ -2243,7 +2329,7 @@
         const btn = document.createElement('button');
         btn.textContent = def.displayName.split(' — ')[0].replace('The ', '');
         btn.className = roomManager && roomManager.current && roomManager.current.id === id ? 'active' : '';
-        btn.onclick = () => { roomManager.goTo(id); closeDrawer(); };
+        btn.onclick = () => { goToRoomImmediate(id); closeDrawer(); };
         grid.appendChild(btn);
       });
     }
@@ -2271,7 +2357,8 @@
     function showRoomToast(roomId, built) {
       const def = ROOM_DEFINITIONS[roomId];
       document.getElementById('room-toast-name').textContent = def.displayName;
-      document.getElementById('room-toast-mood').textContent = def.mood;
+      const narrative = roomManager && roomManager.current ? roomManager.current.narrativeState : null;
+      document.getElementById('room-toast-mood').textContent = narrative ? `${def.mood} — State: ${narrative.label}` : def.mood;
       document.getElementById('room-breadcrumb').textContent = def.displayName.split(' — ')[0];
       const toast = document.getElementById('room-toast');
       toast.classList.add('visible');
@@ -2427,17 +2514,21 @@
       controls = cameraController.controls;
 
       roomManager = new RoomManager({
-        scene, save, discoveryLog, resonance: resonanceTracker, cameraController,
+        scene, save, discoveryLog, resonance: resonanceTracker, cameraController, worldState,
         roomLabel: roomLabelFor,
-        onRoomEnter: (roomId, built) => {
+        onDoorTravelRequested: beginDoorTravel,
+        onRoomEnter: (roomId, built, entry) => {
           toyRetrieval = null;
           clearPlacedTreats();
-          if (creatureActor) creatureActor.enterRoom(roomId, built);
+          if (creatureActor) creatureActor.enterRoom(roomId, built, { spawnPoint: entry && entry.entryPoint });
           if (interactionSystem) interactionSystem.registerRoom(built.group);
           if (behaviorScheduler) behaviorScheduler.enterRoom(roomId);
           if (creatureManager) {
             creatureManager.setRoom(roomId, built);
             syncConservatoryCompanion();
+          }
+          if (entry && entry.viaDoor && entry.continuePoint && creatureActor) {
+            creatureActor.moveTo(entry.continuePoint, { source: 'door-exit' });
           }
           showRoomToast(roomId, built);
           renderRoomGrid();
@@ -2553,7 +2644,7 @@
       }
 
       canvas.addEventListener('pointerdown', (e) => {
-        if (activeGameMode !== 'sandbox' || isPhotoMode) return;
+        if (activeGameMode !== 'sandbox' || isPhotoMode || doorTravel) return;
         ndcFromEvent(e);
         raycaster.setFromCamera(mouse, camera);
         gestureStart = { x: e.clientX, y: e.clientY };
@@ -2849,11 +2940,12 @@
         if (interactionSystem) interactionSystem.update(dt);
 
         const specialActionActive = evolutionSpinTimer > 0 || isDiscoMode || isLoafMode || isVacuumPanicking || treats.some(t => !t.userData.directManipulation) || treatHungerAngle > 0;
+        const doorTravelActive = !!doorTravel;
         if (behaviorScheduler && creatureActor) {
           const actorStateBefore = creatureActor.getDebugState();
           behaviorScheduler.update(dt, {
             idle: actorStateBefore.state === 'idle' && !actorStateBefore.target,
-            specialAction: specialActionActive,
+            specialAction: specialActionActive || doorTravelActive,
             userActive: performance.now() - lastActivityAt < 2200
           });
         }
@@ -2873,7 +2965,7 @@
               chillMode: isChillMode,
               cameraPosition: null
             },
-            socialSuspended: specialActionActive || activeGameMode !== 'sandbox',
+            socialSuspended: specialActionActive || doorTravelActive || activeGameMode !== 'sandbox',
             reducedMotion: !!(uiChrome && uiChrome.reducedMotion),
             userActive: userRecentlyActive
           });
@@ -2885,6 +2977,7 @@
             cameraPosition: camera ? camera.position : null
           });
         }
+        updateDoorTravel(dt);
         updateToyRetrieval(dt);
 
         const mouthWorldPos = new THREE.Vector3();
@@ -2980,6 +3073,9 @@
       get interactionSystemState() { return interactionSystem ? interactionSystem.getDebugState() : null; },
       get behaviorScheduler() { return behaviorScheduler; },
       get behaviorState() { return behaviorScheduler ? behaviorScheduler.getDebugState() : null; },
+      get worldState() { return worldState; },
+      get habitatState() { return worldState.getDebugState(roomManager && roomManager.current ? roomManager.current.id : 'conservatory'); },
+      get doorTravelState() { return doorTravel ? { targetId: doorTravel.targetId, sourceRoomId: doorTravel.sourceRoomId, stage: doorTravel.stage } : null; },
       get save() { return save; },
       get isPhotoMode() { return isPhotoMode; },
       get isChillMode() { return isChillMode; },
@@ -2987,7 +3083,14 @@
       triggerLoafMode, triggerDerpMode, triggerDiscoDance, summonVacuum, feedTreat, placeTreatForInteraction, clearPlacedTreats, callEeveelution, brushEeveelution,
       startArcadeGame, stopArcadeGame, switchGameMode,
       enterPhotoMode, exitPhotoMode, capturePhotoModeShot,
-      goToRoom: (id) => roomManager && roomManager.goTo(id),
+      goToRoom: goToRoomImmediate,
+      travelThroughDoor: (targetId) => {
+        if (!roomManager || !roomManager.current) return false;
+        const entry = roomManager.current.built.interactables.find(i => i.kind === 'door' && i.object3D && i.object3D.userData && i.object3D.userData.portalTarget === targetId);
+        if (!entry) return false;
+        entry.onActivate();
+        return true;
+      },
       moveCreatureTo: (x, z) => creatureActor && creatureActor.moveTo(new THREE.Vector3(x, 0, z), { manual: true }),
       lookCreatureAt: (x, y, z) => creatureActor && creatureActor.lookAtWorld(new THREE.Vector3(x, y || 0, z), 1.5),
       requestBondGesture: () => behaviorScheduler && behaviorScheduler.requestBondGesture('debug'),
