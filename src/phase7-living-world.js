@@ -107,15 +107,27 @@
       this.noiseGain = null;
       this.filter = null;
       this.lastKey = null;
+      this.suspended = false;
       this.level = this.save ? Number(this.save.get('ui.ambienceLevel', 0.8)) : 0.8;
     }
+
+    _targetGain() { return this.suspended ? 0 : this.level * 0.22; }
 
     setLevel(value) {
       this.level = Math.max(0, Math.min(1, Number(value) || 0));
       if (this.master && this.audio && this.audio.ctx) {
         const t = this.audio.ctx.currentTime;
         this.master.gain.cancelScheduledValues(t);
-        this.master.gain.setTargetAtTime(this.level * 0.22, t, 0.12);
+        this.master.gain.setTargetAtTime(this._targetGain(), t, 0.12);
+      }
+    }
+
+    setSuspended(value) {
+      this.suspended = !!value;
+      if (this.master && this.audio && this.audio.ctx) {
+        const t = this.audio.ctx.currentTime;
+        this.master.gain.cancelScheduledValues(t);
+        this.master.gain.setTargetAtTime(this._targetGain(), t, 0.1);
       }
     }
 
@@ -123,7 +135,7 @@
       if (!this.audio || !this.audio.ctx || this.master) return !!this.master;
       const ctx = this.audio.ctx;
       this.master = ctx.createGain();
-      this.master.gain.value = this.level * 0.22;
+      this.master.gain.value = this._targetGain();
       this.master.connect(ctx.destination);
 
       this.tone = ctx.createOscillator();
@@ -208,6 +220,7 @@
 
     setSuspended(value) {
       this.suspended = !!value;
+      if (this.audioDirector) this.audioDirector.setSuspended(this.suspended);
       if (this.suspended && this.scene) this.scene.fog = null;
       else if (!this.suspended && this.state) this._applyState(this.state);
     }
@@ -233,44 +246,57 @@
       const root = new THREE.Group();
       root.name = 'phase7_living_world';
 
+      const vistaGeo = new THREE.PlaneGeometry(8, 4.6);
       const vistaMat = new THREE.MeshBasicMaterial({ color: 0x9ac8e2, side: THREE.DoubleSide, transparent: true, opacity: 0.82, depthWrite: false });
-      const vista = new THREE.Mesh(new THREE.PlaneGeometry(8, 4.6), vistaMat);
+      const vista = new THREE.Mesh(vistaGeo, vistaMat);
       vista.position.set(0, 2.4, -5.2);
       root.add(vista);
 
-      const lifeMat = new THREE.MeshBasicMaterial({ color: 0xffefaa, transparent: true, opacity: 0.72 });
-      const lifeGeo = new THREE.SphereGeometry(0.045, 6, 6);
-      const life = new THREE.Group();
-      for (let i = 0; i < 12; i++) {
-        const m = new THREE.Mesh(lifeGeo, lifeMat);
+      const lifeCount = 12;
+      const lifePositions = new Float32Array(lifeCount * 3);
+      const lifeSeeds = new Float32Array(lifeCount);
+      for (let i = 0; i < lifeCount; i++) {
         const a = i * 2.399963;
         const r = 0.8 + (i % 4) * 0.55;
-        m.position.set(Math.cos(a) * r, 0.65 + (i % 5) * 0.32, Math.sin(a) * r);
-        m.userData.seed = i * 0.77;
-        life.add(m);
+        lifePositions[i * 3] = Math.cos(a) * r;
+        lifePositions[i * 3 + 1] = 0.65 + (i % 5) * 0.32;
+        lifePositions[i * 3 + 2] = Math.sin(a) * r;
+        lifeSeeds[i] = i * 0.77;
       }
+      const lifeGeo = new THREE.BufferGeometry();
+      lifeGeo.setAttribute('position', new THREE.BufferAttribute(lifePositions, 3));
+      lifeGeo.setDrawRange(0, lifeCount);
+      const lifeMat = new THREE.PointsMaterial({ color: 0xffefaa, size: 0.09, transparent: true, opacity: 0.72, depthWrite: false });
+      const life = new THREE.Points(lifeGeo, lifeMat);
       root.add(life);
 
-      const weatherMat = new THREE.MeshBasicMaterial({ color: 0xbfe8ff, transparent: true, opacity: 0.46 });
-      const weatherGeo = new THREE.SphereGeometry(0.025, 5, 5);
-      const weather = new THREE.Group();
-      for (let i = 0; i < 30; i++) {
-        const p = new THREE.Mesh(weatherGeo, weatherMat);
-        p.position.set(((i * 37) % 100) / 14 - 3.5, 0.4 + ((i * 53) % 100) / 20, ((i * 71) % 100) / 16 - 3.1);
-        p.userData.seed = i * 1.13;
-        weather.add(p);
+      const weatherCount = 30;
+      const weatherPositions = new Float32Array(weatherCount * 3);
+      for (let i = 0; i < weatherCount; i++) {
+        weatherPositions[i * 3] = ((i * 37) % 100) / 14 - 3.5;
+        weatherPositions[i * 3 + 1] = 0.4 + ((i * 53) % 100) / 20;
+        weatherPositions[i * 3 + 2] = ((i * 71) % 100) / 16 - 3.1;
       }
+      const weatherGeo = new THREE.BufferGeometry();
+      weatherGeo.setAttribute('position', new THREE.BufferAttribute(weatherPositions, 3));
+      weatherGeo.setDrawRange(0, 0);
+      const weatherMat = new THREE.PointsMaterial({ color: 0xbfe8ff, size: 0.055, transparent: true, opacity: 0.46, depthWrite: false });
+      const weather = new THREE.Points(weatherGeo, weatherMat);
       root.add(weather);
+
       this.built.group.add(root);
       const targetBuilt = this.built;
-      const livingLayer = { root, vista, life, weather, materials: [vistaMat, lifeMat, weatherMat], geometries: [lifeGeo, weatherGeo] };
+      const livingLayer = {
+        root, vista, life, weather, lifeSeeds,
+        materials: [vistaMat, lifeMat, weatherMat],
+        geometries: [vistaGeo, lifeGeo, weatherGeo]
+      };
       targetBuilt.phase7Living = livingLayer;
 
       const priorDispose = targetBuilt.disposeExtra ? targetBuilt.disposeExtra.bind(targetBuilt) : null;
       targetBuilt.disposeExtra = () => {
         livingLayer.materials.forEach(m => { if (m && m.dispose) m.dispose(); });
         livingLayer.geometries.forEach(g => { if (g && g.dispose) g.dispose(); });
-        if (vista.geometry && vista.geometry.dispose) vista.geometry.dispose();
         if (priorDispose) priorDispose();
       };
     }
@@ -294,18 +320,16 @@
       if (living) {
         living.vista.material.color.setHex(style.sky);
         living.vista.material.opacity = state.phase === 'night' ? 0.64 : 0.84;
-        living.life.material = living.life.material || undefined;
-        const lifeColor = state.phase === 'night' ? 0xb9e8ff : 0xffe7a2;
-        living.life.children.forEach(m => { m.material.color.setHex(lifeColor); });
+        living.life.material.color.setHex(state.phase === 'night' ? 0xb9e8ff : 0xffe7a2);
         const visibleCount = this.reducedMotion() ? 4 : 8 + (hashString(state.life) % 5);
-        living.life.children.forEach((m, i) => { m.visible = i < visibleCount; });
-        const particleCount = this.reducedMotion() ? Math.min(6, mod.particles) : mod.particles;
-        living.weather.children.forEach((m, i) => { m.visible = i < particleCount && state.weather !== 'clear'; });
+        living.life.geometry.setDrawRange(0, visibleCount);
+        const particleCount = state.weather === 'clear' ? 0 : (this.reducedMotion() ? Math.min(6, mod.particles) : mod.particles);
+        living.weather.geometry.setDrawRange(0, particleCount);
         const weatherColor = /snow|diamond/.test(state.weather) ? 0xe9fbff :
           /embers|heat/.test(state.weather) ? 0xff8a45 :
           /pollen|petals|lantern/.test(state.weather) ? 0xffd98c :
           /static|storm/.test(state.weather) ? 0xd9e6ff : 0xbfe8ff;
-        living.weather.children.forEach(m => m.material.color.setHex(weatherColor));
+        living.weather.material.color.setHex(weatherColor);
       }
 
       const lights = this.built.lights || [];
@@ -335,18 +359,25 @@
 
       const living = this.built.phase7Living;
       if (!living || this.suspended || this.reducedMotion()) return;
-      living.life.children.forEach((m, i) => {
-        const s = m.userData.seed || i;
-        m.position.y += Math.sin(elapsed * 0.9 + s) * dt * 0.035;
-        m.rotation.y += dt * 0.7;
-      });
+
+      const lifePos = living.life.geometry.attributes.position;
+      for (let i = 0; i < lifePos.count; i++) {
+        const y = lifePos.getY(i);
+        lifePos.setY(i, y + Math.sin(elapsed * 0.9 + living.lifeSeeds[i]) * dt * 0.035);
+      }
+      lifePos.needsUpdate = true;
+      living.life.rotation.y += dt * 0.08;
+
       const rainLike = this.state && /rain|storm|drizzle|snow|diamond/.test(this.state.weather);
-      living.weather.children.forEach((m, i) => {
-        const speed = /rain|storm|drizzle/.test(this.state ? this.state.weather : '') ? 2.4 : 0.35;
-        m.position.y -= dt * speed;
-        m.position.x += Math.sin(elapsed * 0.7 + i) * dt * 0.08;
-        if (m.position.y < 0.2) m.position.y = rainLike ? 4.7 : 3.4;
-      });
+      const speed = /rain|storm|drizzle/.test(this.state ? this.state.weather : '') ? 2.4 : 0.35;
+      const weatherPos = living.weather.geometry.attributes.position;
+      for (let i = 0; i < weatherPos.count; i++) {
+        let x = weatherPos.getX(i) + Math.sin(elapsed * 0.7 + i) * dt * 0.08;
+        let y = weatherPos.getY(i) - dt * speed;
+        if (y < 0.2) y = rainLike ? 4.7 : 3.4;
+        weatherPos.setXY(i, x, y);
+      }
+      weatherPos.needsUpdate = true;
     }
 
     getDebugState() {
