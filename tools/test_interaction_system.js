@@ -53,4 +53,22 @@ assert.equal(released.kind,'ball');
 assert(released.velocity.x>0);
 assert.equal(sys.isDragging(obj),false);
 
+const furniture={
+  userData:{
+    placeableId:'test_cushion',
+    directManipulation:{kind:'furniture',floorY:0.12,persistentPlacement:true}
+  },
+  position:new Vector3(0,0.12,0),
+  parent:null,
+  getWorldPosition(v){return v.copy(this.position);}
+};
+sys.registerProp(furniture);
+sys.beginPropDrag(furniture,new Vector3(0,0.12,0),0);
+sys.dragPropTo(new Vector3(1.2,0.12,-0.8),120);
+const furnitureRelease=sys.releaseProp(120);
+assert.equal(furnitureRelease.kind,'furniture');
+assert.equal(furnitureRelease.velocity.length(),0);
+assert.equal(furniture.userData.directManipulation.state,'resting');
+assert.equal(sys.getDebugState().placeableCount,1);
+
 console.log('interaction system unit test: PASS');
