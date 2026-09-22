@@ -420,6 +420,7 @@
         <button class="wheel-btn" title="Call" onclick="callEeveelution()">📣</button>
         <button class="wheel-btn" title="Brush" onclick="brushEeveelution()">🖌️</button>
         <button class="wheel-btn" title="Room Interaction" id="wheel-room-prop" onclick="triggerRoomProp()">✨</button>
+        <button class="wheel-btn" title="Species Ability" id="wheel-ability" onclick="useSpeciesAbility()">⚡</button>
         <button class="wheel-btn danger" title="Summon the Roomba" onclick="summonVacuum()">🚨</button>
       </div>
     </div>
@@ -521,6 +522,7 @@
   <script src="src/persistence.js"></script>
   <script src="src/habitat-state.js"></script>
   <script src="src/render-effects.js"></script>
+  <script src="src/phase6-system.js"></script>
   <script src="src/discovery-system.js"></script>
   <script src="src/photo-system.js"></script>
   <script src="src/camera-controller.js"></script>
@@ -888,6 +890,9 @@
     let creatureManager = null;
     let interactionSystem = null;
     let behaviorScheduler = null;
+    let abilitySystem = null;
+    let evolutionController = null;
+    let evolutionCameraRestore = null;
     let toyRetrieval = null;
     let doorTravel = null;
 
@@ -1142,21 +1147,8 @@
           const groundBox = new THREE.Box3().setFromObject(inner);
           wrapper.position.y -= groundBox.min.y;
 
-          const originalMaterials = [];
-          raw.traverse(c => {
-            if (c.isMesh) {
-              c.castShadow = true; c.receiveShadow = true;
-              if (c.material) {
-                const mats = Array.isArray(c.material) ? c.material : [c.material];
-                mats.forEach(m => {
-                  if ('roughness' in m) m.roughness = 0.52;
-                  if ('metalness' in m) m.metalness = 0.05;
-                  if (m.map) m.map.encoding = THREE.sRGBEncoding;
-                  originalMaterials.push({ mat: m, color: m.color ? m.color.clone() : new THREE.Color(0xffffff), emissive: m.emissive ? m.emissive.clone() : new THREE.Color(0x000000), emissiveIntensity: m.emissiveIntensity || 0 });
-                });
-              }
-            }
-          });
+          const originalMaterials = FX.celifyObject(raw);
+
 
           if (headBone) wrapper.userData.headGroup = headBone;
           if (tailBone) wrapper.userData.tailGroup = tailBone;
@@ -1191,28 +1183,10 @@
             wrapper.userData.glaceonBangs = bangs;
           }
 
-          wrapper.userData.updatePalette = (shiny) => {
-            originalMaterials.forEach(({ mat, color, emissive, emissiveIntensity }) => {
-              if (shiny) {
-                if (sp === 'umbreon') {
-                  if (mat.name.includes('body_b') || mat.name.includes('body_a')) {
-                    mat.color.setHex(0x38D8FF);
-                    if (mat.emissive) { mat.emissive.setHex(0x00A2FF); mat.emissiveIntensity = 0.85; }
-                  }
-                } else if (sp === 'vaporeon') { mat.color.setHex(0xE577DD); }
-                else if (sp === 'jolteon') { mat.color.setHex(0xA8E43A); }
-                else if (sp === 'flareon') { mat.color.setHex(0xFFB845); }
-                else if (sp === 'espeon') { mat.color.setHex(0x4EE855); }
-                else if (sp === 'eevee') { mat.color.setHex(0xEDE9DF); }
-                else if (sp === 'leafeon') { mat.color.setHex(0x85E072); }
-                else if (sp === 'glaceon') { mat.color.setHex(0x9CE8FF); }
-                else if (sp === 'sylveon') { mat.color.setHex(0x75D8FF); }
-              } else {
-                mat.color.copy(color);
-                if (mat.emissive) { mat.emissive.copy(emissive); mat.emissiveIntensity = emissiveIntensity; }
-              }
-            });
-          };
+          wrapper.userData.phase6MaterialRecords = originalMaterials;
+          wrapper.userData.updatePalette = (shiny) =>
+            EeveePhase6System.applyShinyProfile(sp, originalMaterials, shiny);
+
 
           wrapper.userData.isLoaded = true;
           wrapper.userData.rawRoot = raw;
