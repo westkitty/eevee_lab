@@ -258,6 +258,105 @@ async function main() {
     wakeState.scheduler.sleeping === false && wakeState.actor.behaviorState !== 'sleep',
     JSON.stringify(wakeState));
 
+  // Phase 4 multi-creature vertical slice: Eevee + Vaporeon coexist only in the Conservatory.
+  await page.evaluate(() => {
+    if (window.eeveeApp.currentForm !== 'eevee') window.eeveeApp.selectEeveelution('eevee');
+    window.eeveeApp.goToRoom('conservatory');
+  });
+  await page.waitForFunction(() => {
+    const s = window.eeveeApp.creatureManagerState;
+    return s && s.activeCount === 2 && s.companionCount === 1;
+  }, { timeout: 15000 });
+  const pairState = await page.evaluate(() => {
+    const app = window.eeveeApp;
+    const wrapper = app.eeveeRig.userData.models.vaporeon;
+    return {
+      manager: app.creatureManagerState,
+      vaporeonParent: wrapper.parent && wrapper.parent.name,
+      eeveeParent: app.eeveeRig.userData.models.eevee.parent && app.eeveeRig.userData.models.eevee.parent.name
+    };
+  });
+  record('phase4-conservatory-pair',
+    pairState.manager.activeCount === 2 && pairState.vaporeonParent === 'vaporeon-companion_root' && pairState.eeveeParent === 'EeveeRig',
+    JSON.stringify(pairState));
+
+  // Separation steering must resolve an overlap through actor authority.
+  const separation = await page.evaluate(() => {
+    const app = window.eeveeApp;
+    const entry = app.creatureManager.getCreature('vaporeon-companion');
+    entry.root.position.copy(app.eeveeRig.position);
+    entry.actor.stop();
+    app.creatureManager.separationCooldown = 0;
+    app.creatureManager.update(0.1, 0, {
+      primary: { reducedMotion: false },
+      companion: { reducedMotion: false },
+      socialSuspended: false,
+      reducedMotion: false,
+      userActive: true
+    });
+    return entry.actor.getDebugState();
+  });
+  record('phase4-separation', separation.targetSource === 'separation' || separation.state === 'walk', JSON.stringify(separation));
+
+  // First idle social opportunity is a greeting; manager requests behavior, actors own motion.
+  const greeting = await page.evaluate(() => {
+    const app = window.eeveeApp;
+    const mgr = app.creatureManager;
+    const comp = mgr.getCreature('vaporeon-companion');
+    app.creatureActor.stop();
+    comp.actor.stop();
+    comp.actor.placeAt(new THREE.Vector3(-1.3, 0, 0.8));
+    mgr.socialMode = null;
+    mgr.hasGreeted = false;
+    mgr.socialTimer = 0;
+    mgr.update(0.1, 0.1, {
+      primary: { reducedMotion: false },
+      companion: { reducedMotion: false },
+      socialSuspended: false,
+      reducedMotion: false,
+      userActive: false
+    });
+    return mgr.getDebugState();
+  });
+  record('phase4-social-greeting', greeting.socialMode === 'greet', JSON.stringify(greeting));
+
+  // Toy releases create a second autonomous contender.
+  const toyRace = await page.evaluate(() => {
+    const app = window.eeveeApp;
+    const point = new THREE.Vector3(1.1, 0, 1.0);
+    const started = app.creatureManager.notifyToyReleased(point, 'ball', null);
+    return { started, state: app.creatureManagerState };
+  });
+  record('phase4-toy-competition', toyRace.started === true && toyRace.state.toyCompetition === true, JSON.stringify(toyRace));
+
+  // Leaving the Conservatory restores Vaporeon to the original shared rig and single-creature path.
+  await page.evaluate(() => window.eeveeApp.goToRoom('vaporeon'));
+  await page.waitForTimeout(300);
+  const restoredRoom = await page.evaluate(() => ({
+    manager: window.eeveeApp.creatureManagerState,
+    parent: window.eeveeApp.eeveeRig.userData.models.vaporeon.parent && window.eeveeApp.eeveeRig.userData.models.vaporeon.parent.name
+  }));
+  record('phase4-room-restores-single',
+    restoredRoom.manager.activeCount === 1 && restoredRoom.parent === 'EeveeRig',
+    JSON.stringify(restoredRoom));
+
+  // Returning reuses the loaded model; switching primary form tears the pair down safely.
+  await page.evaluate(() => window.eeveeApp.goToRoom('conservatory'));
+  await page.waitForFunction(() => window.eeveeApp.creatureManagerState && window.eeveeApp.creatureManagerState.activeCount === 2, { timeout: 5000 });
+  await page.evaluate(() => window.eeveeApp.selectEeveelution('vaporeon'));
+  await page.waitForTimeout(250);
+  const restoredForm = await page.evaluate(() => ({
+    form: window.eeveeApp.currentForm,
+    manager: window.eeveeApp.creatureManagerState,
+    parent: window.eeveeApp.eeveeRig.userData.models.vaporeon.parent && window.eeveeApp.eeveeRig.userData.models.vaporeon.parent.name,
+    visible: window.eeveeApp.eeveeRig.userData.models.vaporeon.visible
+  }));
+  record('phase4-form-switch-restores-single',
+    restoredForm.form === 'vaporeon' && restoredForm.manager.activeCount === 1 && restoredForm.parent === 'EeveeRig' && restoredForm.visible === true,
+    JSON.stringify(restoredForm));
+  await page.evaluate(() => window.eeveeApp.selectEeveelution('eevee'));
+  await page.waitForFunction(() => window.eeveeApp.creatureManagerState && window.eeveeApp.creatureManagerState.activeCount === 2, { timeout: 5000 });
+
   // 3. Shiny mode.
   await page.keyboard.press('s');
   await page.waitForTimeout(200);
