@@ -29,6 +29,36 @@ const source=fs.readFileSync(path.join(__dirname,'..','src','creature-manager.js
 vm.runInNewContext(source,{window,console,Math,Object,Array,Map,Set,Number,Error});
 
 const {CreatureManager}=window.CreatureManagerSystem;
+
+const scene=new Group();
+const originalParent=new Group();
+originalParent.name='EeveeRig';
+const wrapper=new Group();
+wrapper.name='vaporeon_wrapper';
+wrapper.visible=false;
+wrapper.userData={rawRoot:{},animations:[]};
+originalParent.add(wrapper);
+const lifecycleManager=new CreatureManager({scene,random:()=>0});
+const lifecyclePrimaryRoot=new Group();
+const lifecyclePrimary=new FakeActor({root:lifecyclePrimaryRoot,species:'eevee'});
+lifecycleManager.setPrimary(lifecyclePrimary,{id:'primary',species:'eevee'});
+lifecycleManager.setRoom('conservatory',{});
+const activated=lifecycleManager.activateCompanionModel({
+  id:'vaporeon-companion',
+  species:'vaporeon',
+  wrapper,
+  parentRoot:originalParent,
+  spawnPoint:new Vector3(-1.2,0,0.8)
+});
+assert(activated);
+assert.equal(wrapper.parent.name,'vaporeon-companion_root');
+assert.equal(wrapper.visible,true);
+assert.equal(lifecycleManager.getDebugState().activeCount,2);
+assert.equal(lifecycleManager.deactivateCompanion('vaporeon-companion'),true);
+assert.equal(wrapper.parent,originalParent);
+assert.equal(wrapper.visible,false);
+assert.equal(lifecycleManager.getDebugState().activeCount,1);
+
 const events=[];
 const primaryRoot=new Group();
 const primary=new FakeActor({root:primaryRoot,species:'eevee'});
