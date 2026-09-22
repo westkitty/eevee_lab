@@ -7,12 +7,12 @@
   "project_name": "Eevee Lab",
   "project_root": "/",
   "artifact_path": "index.html",
-  "state_revision": 5,
+  "state_revision": 6,
   "last_updated": "2026-09-22",
   "current_baseline": {
-    "identity": "f0ceaa8340cae57bd4364f0dd835016f18f8997d",
-    "state": "phase3-implemented",
-    "last_verified": "source-scope-and-phase3-structure"
+    "identity": "2526ddadcdf9f9dcde8e451b0e52e8d555d90ee2",
+    "state": "phase4-implemented",
+    "last_verified": "phase4-source-scope-and-focused-manager-contract"
   },
   "scope_boundaries": [
     "The vanilla Three.js Habitat House browser project in westkitty/eevee_lab."
@@ -34,12 +34,13 @@
 
 ## 2. Current Baseline
 
-- **Primary artifact:** `f0ceaa8340cae57bd4364f0dd835016f18f8997d`
+- **Primary artifact:** `2526ddadcdf9f9dcde8e451b0e52e8d555d90ee2`
 - **Protected pre-Phase-0 runtime baseline:** `661a37bc7f86e5ff2b7da28d02e8c44ad696e007`.
 - **Protected pre-Phase-1 implementation baseline:** `0e31de1b392bb6cab1895818047ad45982a87a08`.
 - **Protected pre-Phase-2 implementation baseline:** `0c8f9adc9f251c044f4cb290cc6c6ec2f110c8cc`.
 - **Protected pre-Phase-3 implementation baseline:** `39dfb95e65f0391722f0e40ce39916b7dcb615bd`.
-- **Baseline state:** Phase 3 Personality, Memory and Relationship is committed. Source scope, bounded persistence, and behavior ownership are verified; browser/runtime behavior remains unverified in the current execution environment.
+- **Protected pre-Phase-4 implementation baseline:** `a86c34354ce8b5745550a4b0bac950e27e4d35c6`.
+- **Baseline state:** Phase 4 Multi-Creature Habitat vertical slice is committed. Source scope, actor/manager ownership, one-load model reuse, and focused manager lifecycle contracts are verified; visible browser behavior remains unverified in the current execution environment.
 - **Source/build/install identity:** Vanilla global-script Three.js r128; no bundler or framework.
 - **Active default user route:** `index.html` → Habitat House → Conservatory / habitat rooms.
 - **Delivery state:** Repository has GitHub Pages enabled; live delivery is not reverified here.
@@ -82,6 +83,12 @@ The project remains a dependency-free static browser experience. Eevee and all e
 - **VER-017:** Phase 3 persists no event log and introduces no second familiarity score; bounded semantic memory lives under `creatureMemory.<species>` while existing `BondTracker` remains relationship authority.
 - **VER-018:** Natural rest tracks user quiet separately from creature locomotion, so autonomous wandering does not prevent eventual sleep.
 - **VER-019:** No model binary, vendored library, save version, camera subsystem, audio architecture, photo subsystem, room lifecycle, or Stone Dash implementation file changed in Phase 3.
+- **VER-020:** Phase-4 diff from `a86c343` through `2526dda` is bounded to six intended files: CreatureManager, a narrow CreatureActor spawn primitive, runtime wiring, focused manager tests, browser assertions, and Phase-4 documentation.
+- **VER-021:** Source inspection confirms exactly one master `animate()` owner, one `CreatureManager` construction, one normal `creatureManager.update()` seam, one fallback direct primary update, and no second requestAnimationFrame loop in the manager.
+- **VER-022:** The runtime still contains exactly one `gltfLoader.load()` call site; the Phase-4 Vaporeon companion reuses the already-loaded wrapper rather than cloning or reloading a GLB.
+- **VER-023:** Companion lifecycle preserves the original wrapper parent, local transform, and visibility and restores them when the companion leaves; focused manager and lifecycle contracts pass in the available container.
+- **VER-024:** Optional social behavior is coordinated through CreatureManager while each CreatureActor remains the owner of its own world movement and pose.
+- **VER-025:** No model binary, vendored library, save version/schema, persistence module, camera implementation, procedural-audio architecture, photo subsystem, room lifecycle implementation, or Stone Dash rules changed in Phase 4.
 
 ## 6. Known Not Working
 
@@ -98,6 +105,8 @@ No confirmed baseline failure is recorded at initialization.
 - **UNV-007:** `tools/test_interaction_system.js` is committed for tactile classification, stroke dynamics, and direct-prop drag/release logic, but cannot be executed in the current environment because the container cannot resolve github.com for a clean checkout.
 - **UNV-008:** Phase-3 memory, needs, sleep/wake, rare spontaneous behavior, familiarity-sensitive calls, initiative, and species bond gestures are source-complete but have not run in a browser-capable checkout.
 - **UNV-009:** `tools/test_creature_behavior.js` and the Phase-3 Playwright assertions are committed but remain unexecuted in this environment.
+- **UNV-010:** The Eevee + Vaporeon Conservatory pair, visible social behaviors, companion focus, room/form restoration, toy competition, and synchronized nap browser journeys are implemented and asserted in Playwright but have not run in a browser-capable checkout.
+- **UNV-011:** Current GitHub Pages delivery has not been reverified after Phase 4.
 
 ## 8. Unknown or Evidence-Stale State
 
@@ -109,11 +118,12 @@ No confirmed baseline failure is recorded at initialization.
 - **PND-001:** In the first normal checkout, regenerate `assets/models/rig-manifest.json` so Umbreon's deep binary inventory replaces the partial evidence entry.
 - **PND-002:** Run `node tools/test_creature_actor.js`.
 - **PND-003:** Run `node tools/test_interaction_system.js`.
-- **PND-004:** Run `tools/verify_all_gameplay.js` in a browser-capable checkout and promote Phase-1/2 runtime behavior only if it passes.
+- **PND-004:** Run `tools/verify_all_gameplay.js` in a browser-capable checkout and promote Phase-1 through Phase-4 runtime behavior only if it passes.
 - **PND-005:** Visually classify any embedded animation clip before mapping it to a semantic slot.
 - **PND-006:** Full limb IK remains deferred until rig-specific foot-chain behavior is visually proven; Phase 2 uses root-ground projection only.
 - **PND-007:** Run `node tools/test_creature_behavior.js`.
-- **PND-008:** Phase 4 Multi-Creature Habitat must not begin until the current actor/interaction/behavior ownership contracts are preserved and the first browser-capable regression run is obtained when possible.
+- **PND-008:** Before expanding beyond the Eevee + Vaporeon Conservatory slice, obtain the first browser-capable multi-creature regression run when possible and keep companion history/persistence out of scope until that slice is proven.
+- **PND-009:** Phase 5 may expand habitat topology, doors, room-state narrative, placeable furniture and Conservatory persistence while preserving the one-heavy-room lifecycle and Phase-4 companion restoration contract.
 
 ## 10. Active Decisions, Defaults, and Prohibitions
 
@@ -136,6 +146,13 @@ No confirmed baseline failure is recorded at initialization.
 - **DEC-017:** BehaviorScheduler may request behavior but may not mutate Three.js objects; CreatureActor remains motion/pose authority.
 - **DEC-018:** Rare moments are temporary tagged events; sleep is a real scheduler state with an explicit wake path.
 - **DEC-019:** Comfortable and bonded familiarity may cause voluntary approach/attention; cautious familiarity preserves attention without forced closeness.
+- **DEC-020:** Phase-4 multi-creature rollout is deliberately limited to Eevee + Vaporeon in the Conservatory; other rooms/forms retain the single-creature path.
+- **DEC-021:** Companion models reuse already-loaded species wrappers. No GLB reload, skeleton clone, or second asset cache is permitted for this vertical slice.
+- **DEC-022:** CreatureManager owns roster, companion lifecycle, selection, separation and social coordination; CreatureActor remains the sole transform/pose authority for each creature.
+- **DEC-023:** Companion activation uses a dedicated outer root and must restore the wrapper's original parent, local transform and visibility before form switching, room exit, or arcade entry.
+- **DEC-024:** Phase-3 BehaviorScheduler remains primary-creature relationship authority in this slice; companion memory/history is not fabricated.
+- **DEC-025:** Petting, brushing and feeding remain primary-targeted in Phase 4; companion click selection/focus is supported without widening the interaction refactor.
+- **DEC-026:** Reduced Motion suppresses optional autonomous social movement; overlap separation remains enabled as a safety behavior.
 
 ## 11. Validation and Evidence Matrix
 
@@ -156,14 +173,21 @@ No confirmed baseline failure is recorded at initialization.
 | VAL-013 | Behavior ownership remains singular | verified-source | One animate owner, one actor update, one scheduler update, one event handoff | Repository source inspection | f0ceaa8 | 2026-09-22 | actor/scheduler change |
 | VAL-014 | Relationship memory is bounded and non-punitive | verified-source | No persisted event log, no new bond score, capped aggregate counters only | Repository source inspection | f0ceaa8 | 2026-09-22 | memory schema change |
 | VAL-015 | Phase-3 runtime user path works | unverified | Focused Node and Playwright assertions committed but unavailable to execute here | Node + Playwright | f0ceaa8 | — | first browser-capable checkout |
+| VAL-016 | Phase-4 change scope is bounded | verified | GitHub compare a86c343...2526dda touches only six intended implementation/test/doc surfaces | GitHub compare | 2526dda | 2026-09-22 | Phase-4 repair |
+| VAL-017 | One render loop and one normal multi-actor update seam remain | verified-source | One animate owner, one manager constructor/update call, no manager requestAnimationFrame | Repository source inspection | 2526dda | 2026-09-22 | manager/update change |
+| VAL-018 | Multi-creature path does not reload character GLBs | verified-source | Exactly one gltfLoader.load call site remains; companion activation reparents an existing wrapper | Repository source inspection | 2526dda | 2026-09-22 | asset-loading change |
+| VAL-019 | Companion reparent/restore contract works in focused logic | verified-focused | Manager contract + lifecycle tests pass for roster, separation, greeting, toy race, nap scheduling and original-parent/visibility restoration | Container Node contract tests | 2526dda | 2026-09-22 | manager lifecycle change |
+| VAL-020 | Eevee + Vaporeon browser user journey works | unverified | Broad Playwright assertions committed; no browser-capable checkout available here | Playwright | 2526dda | — | first browser-capable checkout |
 
 ## 12. Current Change Scope and Impact Radius
 
-- **Allowed Phase-3 changes:** bounded creature memory, needs/opportunity state, behavior scheduler, external actor behavior poses, familiarity-sensitive response wiring, rare/bond/sleep events, focused tests, Phase-3 report, operational state.
-- **Protected and unchanged:** model binaries, Three.js version, save version, one-heavy-room lifecycle, camera subsystem, procedural audio architecture, photo storage, direct interaction ownership, Stone Dash rules.
-- **Potentially affected behavior:** idle/autonomous cadence, call response, pet/brush/toy/feed memory, sleep/wake behavior, rare spontaneous moments, bonded initiative.
-- **Mandatory checks:** BondTracker remains sole familiarity score; no unbounded history; no neglect decay; scheduler never mutates scene objects; actor remains transform authority; sleep wakes on interaction/special action; rare events expire.
-- **Unavailable proof:** committed Node/Playwright execution in this environment.
+- **Allowed Phase-4 changes:** CreatureManager roster/social coordination, independent companion actor root, safe actor spawn primitive, temporary model-wrapper reparent/restoration, companion selection/focus, toy competition hook, focused tests, browser assertions, Phase-4 report, operational state.
+- **Protected and unchanged:** model binaries, Three.js version, save schema/version, one-heavy-room lifecycle, primary direct interactions, camera implementation, procedural audio architecture, photo subsystem, Stone Dash rules, existing nine-form switching contract.
+- **Vertical slice:** Eevee as primary + Vaporeon as companion in the Conservatory only.
+- **Potentially affected behavior:** model visibility/parentage, form switching, room entry/exit, actor update ownership, idle/autonomous motion, Reduced Motion, toy releases, Stone Dash entry/exit, camera focus.
+- **Mandatory checks:** one render loop; one GLB load site; no duplicate model clone; wrapper restores before single-form use; manager never bypasses Actor movement authority; pair tears down outside the slice; Reduced Motion suppresses optional social motion; old single-creature route remains structurally available.
+- **Validated here:** focused manager/social/lifecycle contracts plus source ownership and Git diff.
+- **Unavailable proof:** real browser/Playwright journey and live Pages delivery.
 - **Repair class:** bounded feature implementation.
 
 ## 13. Compact Revision Log
@@ -218,3 +242,16 @@ No confirmed baseline failure is recorded at initialization.
 - **Validation added:** focused `tools/test_creature_behavior.js` plus Phase-3 assertions in the broad Playwright suite.
 - **Declared unverified:** browser/runtime execution remains unavailable in the current container.
 - **Next safe phase:** Phase 4 Multi-Creature Habitat, but only with the existing single-owner actor/interaction/behavior contracts preserved.
+
+
+### Revision 6 — 2026-09-22
+
+- **Artifact/source identity:** `2526ddadcdf9f9dcde8e451b0e52e8d555d90ee2`
+- **State deltas:** Phase 4 Multi-Creature Habitat vertical slice implemented and pushed.
+- **New behavior:** Eevee and Vaporeon can coexist in the Conservatory as independent actors with separation, greeting, approach, follow, shared inspection, parallel wandering, play, avoidance, nearby sitting, synchronized nap and toy competition.
+- **Lifecycle design:** Vaporeon's already-loaded wrapper moves temporarily beneath an independent companion root and is restored to its exact original parent/local state before room/form/arcade transitions return to single-creature operation.
+- **Selection:** companion click/focus is available while petting, brushing and feeding remain primary-targeted.
+- **Preservation evidence:** one render loop, one normal manager update seam, one GLB load call site, no new dependency, no save migration, and no model binary changes.
+- **Focused validation:** manager coordination and companion reparent/restore contracts pass in the available Node/container harness.
+- **Declared unverified:** visible multi-creature browser behavior and Pages deployment remain unverified until a browser-capable checkout is available.
+- **Next safe phase:** Phase 5 Habitat Becomes a Place, preserving the one-heavy-room lifecycle and the companion restoration contract.
