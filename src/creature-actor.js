@@ -84,6 +84,7 @@
       this.walkable = [];
       this.navCenter = new THREE.Vector3(0, 0, 0);
       this.navRadius = 3;
+      this.interestPoints = [];
       this.groundY = 0;
       this.target = null;
       this.targetSource = null;
@@ -147,11 +148,13 @@
       if (!this.autonomyEnabled && this.targetSource === 'autonomy') this.stop();
     }
 
-    enterRoom(roomId, built) {
+    enterRoom(roomId, built, options) {
+      options = options || {};
       this.roomId = roomId || null;
       this.walkable = [];
       this.navCenter.set(0, 0, 0);
       this.navRadius = 3;
+      this.interestPoints = [];
       this.groundY = 0;
       if (built && built.group && built.group.traverse) {
         built.group.traverse(obj => {
@@ -165,7 +168,12 @@
         this.navCenter.y = this.groundY;
         this.navRadius = Math.max(0.75, Number(floor.userData.walkRadius) || 3);
       }
-      const spawn = built && built.spawnPoint ? built.spawnPoint : this.navCenter;
+      if (built && built.topology && Array.isArray(built.topology.interestPoints)) {
+        this.interestPoints = built.topology.interestPoints
+          .filter(Boolean)
+          .map(p => new THREE.Vector3(Number(p.x) || 0, this.groundY, Number(p.z) || 0));
+      }
+      const spawn = options.spawnPoint || (built && built.spawnPoint ? built.spawnPoint : this.navCenter);
       this.root.position.x = spawn.x;
       this.root.position.y = this.groundY;
       this.root.position.z = spawn.z;
@@ -339,6 +347,15 @@
     }
 
     _chooseAutonomyTarget() {
+      if (this.interestPoints.length && Math.random() < 0.48) {
+        const base = this.interestPoints[Math.floor(Math.random() * this.interestPoints.length)];
+        const jitter = Math.min(0.32, this.navRadius * 0.08);
+        return this._clampToNav(new THREE.Vector3(
+          base.x + (Math.random() - 0.5) * jitter,
+          0,
+          base.z + (Math.random() - 0.5) * jitter
+        ));
+      }
       const angle = Math.random() * Math.PI * 2;
       const radius = this.navRadius * (0.18 + Math.random() * 0.62);
       return new THREE.Vector3(
@@ -442,6 +459,7 @@
         groundY: this.groundY,
         grounding: 'root-ground-projection',
         walkableCount: this.walkable.length,
+        interestPointCount: this.interestPoints.length,
         rawClipCount: (this.models.get(this.species) || { clips: [] }).clips.length,
         activeSemantic: this.animation.activeSlot,
         mappedClipActive: !!this.animation.activeAction
