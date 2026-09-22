@@ -2407,7 +2407,7 @@
           tapCandidate = null;
           if (creatureActor) creatureActor.hold(0.9);
           controls.enabled = false;
-          const hit = petHits[0];
+          const hit = petHits.find(h => !String(h.object.name || '').includes('_hitBox')) || petHits[0];
           const region = regionForHit(hit);
 
           if (interactionSystem && interactionSystem.brushActive) {
@@ -2466,7 +2466,7 @@
           raycaster.setFromCamera(mouse, camera);
           const hits = raycaster.intersectObjects([activeModel()], true);
           if (hits.length) {
-            const hit = hits[0];
+            const hit = hits.find(h => !String(h.object.name || '').includes('_hitBox')) || hits[0];
             const region = regionForHit(hit);
             if (isBrushing) {
               brushStroke.sample(e.clientX, e.clientY, region, performance.now());
@@ -2685,7 +2685,10 @@
 
           const treatWorld = managed ? t.getWorldPosition(new THREE.Vector3()) : t.position;
           const eatDistance = managed ? 0.95 : 1.35;
-          if (treatWorld.distanceTo(mouthWorldPos) < eatDistance) {
+          const rootDx = managed ? treatWorld.x - eeveeRig.position.x : 99;
+          const rootDz = managed ? treatWorld.z - eeveeRig.position.z : 99;
+          const managedReached = managed && Math.sqrt(rootDx * rootDx + rootDz * rootDz) < 0.68;
+          if (managedReached || treatWorld.distanceTo(mouthWorldPos) < eatDistance) {
             audio.playChomp(); triggerConfetti(); updateFaceExpression('hearts');
             const pref = t.userData.pref || 1.0;
             if (t.userData.type === 'puff') { petSquishFactor = 1.6 + 0.3 * pref; showSpeech("CHONK! Maximum gigantamax floof unlocked! 🧁"); }
