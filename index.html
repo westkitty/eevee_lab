@@ -524,6 +524,7 @@
   <script src="src/habitat-state.js"></script>
   <script src="src/render-effects.js"></script>
   <script src="src/phase6-system.js"></script>
+  <script src="src/phase7-living-world.js"></script>
   <script src="src/discovery-system.js"></script>
   <script src="src/photo-system.js"></script>
   <script src="src/camera-controller.js"></script>
@@ -894,6 +895,8 @@
     let abilitySystem = null;
     let evolutionController = null;
     let evolutionCameraRestore = null;
+    let audioDirector = null;
+    let livingWorld = null;
     let toyRetrieval = null;
     let doorTravel = null;
 
@@ -2075,6 +2078,7 @@
       const hideInArcade = document.querySelectorAll('.hud-hide-in-photo');
 
       if (mode === 'arcade') {
+        if (livingWorld) livingWorld.setSuspended(true);
         hideInArcade.forEach(el => el.style.visibility = 'hidden');
         arcadeHud.style.display = 'flex';
         arcadeHelp.style.display = 'block';
@@ -2084,6 +2088,7 @@
         arcadeHud.style.display = 'none';
         arcadeHelp.style.display = 'none';
         stopArcadeGame();
+        if (livingWorld) livingWorld.setSuspended(false);
         syncConservatoryCompanion();
       }
       closeDrawer();
@@ -2385,8 +2390,14 @@
       uiChrome.setReducedMotion(v);
       if (cameraController) cameraController.setReducedMotion(v);
       if (interactionSystem) interactionSystem.setReducedMotion(v);
+      if (livingWorld) livingWorld.update(0, clock ? clock.getElapsedTime() : 0, true);
     }
-    function onSetMusic(v) { if (v) audio.startBGM(); else audio.stopBGM(); document.getElementById('btn-music').textContent = v ? '⏸️' : '🎵'; save.set('ui.musicOn', v); }
+    function onSetMusic(v) {
+      if (v) audio.startBGM(); else audio.stopBGM();
+      document.getElementById('btn-music').textContent = v ? '⏸️' : '🎵';
+      save.set('ui.musicOn', v);
+      if (v) syncLivingAudio();
+    }
     function onSetSfx(v) { audio.isSFXEnabled = v; document.getElementById('btn-sound').textContent = v ? '🔊' : '🔇'; save.set('ui.sfxOn', v); }
     function onSetQuality(v) {
       save.set('ui.quality', v);
@@ -2396,7 +2407,14 @@
       if (roomManager && roomManager.current) roomManager.current.built.particleFields.forEach(pf => pf.setDensityScale(densityScale));
     }
     function onSetSensitivity(v) { save.set('ui.cameraSensitivity', parseFloat(v)); if (cameraController) cameraController.setSensitivity(parseFloat(v)); }
-    function onSetAmbience(v) { save.set('ui.ambienceLevel', parseFloat(v)); }
+    function onSetAmbience(v) {
+      const level = parseFloat(v);
+      save.set('ui.ambienceLevel', level);
+      if (audioDirector) {
+        audioDirector.setLevel(level);
+        syncLivingAudio();
+      }
+    }
     function onSetAutoFollow(v) { save.set('ui.cameraAutoFollow', v); }
 
     function renderSpeciesStrip() {
@@ -2449,12 +2467,39 @@
 
     function roomLabelFor(id) { return ROOM_DEFINITIONS[id] ? ROOM_DEFINITIONS[id].displayName : id; }
 
+    function livingWorldLabel(state) {
+      if (!state) return '';
+      const phase = state.phase ? state.phase.charAt(0).toUpperCase() + state.phase.slice(1) : '';
+      const weather = state.weather ? state.weather.replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase()) : '';
+      return [state.label, phase, weather].filter(Boolean).join(' · ');
+    }
+
+    function updateLivingWorldStatus(state) {
+      if (!state || !ROOM_DEFINITIONS[state.roomId]) return;
+      const def = ROOM_DEFINITIONS[state.roomId];
+      const shortName = def.displayName.split(' — ')[0];
+      const label = livingWorldLabel(state);
+      const breadcrumb = document.getElementById('room-breadcrumb');
+      if (breadcrumb) breadcrumb.textContent = label ? shortName + ' · ' + label : shortName;
+      const mood = document.getElementById('room-toast-mood');
+      if (mood && roomManager && roomManager.current && roomManager.current.id === state.roomId) {
+        const narrative = roomManager.current.narrativeState;
+        const base = narrative ? def.mood + ' — State: ' + narrative.label : def.mood;
+        mood.textContent = label ? base + ' · ' + label : base;
+      }
+    }
+
+    function syncLivingAudio() {
+      if (audioDirector && livingWorld && livingWorld.state) audioDirector.apply(livingWorld.state);
+    }
+
     function showRoomToast(roomId, built) {
       const def = ROOM_DEFINITIONS[roomId];
       document.getElementById('room-toast-name').textContent = def.displayName;
       const narrative = roomManager && roomManager.current ? roomManager.current.narrativeState : null;
       document.getElementById('room-toast-mood').textContent = narrative ? `${def.mood} — State: ${narrative.label}` : def.mood;
       document.getElementById('room-breadcrumb').textContent = def.displayName.split(' — ')[0];
+      if (livingWorld && livingWorld.state) updateLivingWorldStatus(livingWorld.state);
       const toast = document.getElementById('room-toast');
       toast.classList.add('visible');
       clearTimeout(toast.hideTimeout);
@@ -2484,6 +2529,7 @@
        ========================================================================== */
     function initAudioUserGesture() {
       audio.init(); audio.startBGM();
+      syncLivingAudio();
       document.getElementById('audio-prompt').style.display = 'none';
       document.getElementById('btn-music').textContent = '⏸️';
     }
@@ -2491,7 +2537,7 @@
       audio.init();
       const btn = document.getElementById('btn-music');
       if (audio.isMusicPlaying) { audio.stopBGM(); btn.textContent = '🎵'; }
-      else { audio.startBGM(); btn.textContent = '⏸️'; }
+      else { audio.startBGM(); btn.textContent = '⏸️'; syncLivingAudio(); }
       document.getElementById('audio-prompt').style.display = 'none';
     }
     function toggleSFX() {
@@ -2609,8 +2655,19 @@
       cameraController = new CameraController(camera, canvas, { reducedMotion: uiChrome.reducedMotion, sensitivity: save.get('ui.cameraSensitivity', 1.0) });
       controls = cameraController.controls;
 
+      audioDirector = new EeveeLivingWorld.AudioDirector({ audioEngine: audio, save });
+      livingWorld = new EeveeLivingWorld.LivingWorldDirector({
+        scene,
+        save,
+        audioDirector,
+        reducedMotion: () => !!(uiChrome && uiChrome.reducedMotion),
+        onState: updateLivingWorldStatus
+      });
+      window.audioDirector = audioDirector;
+      window.livingWorld = livingWorld;
+
       roomManager = new RoomManager({
-        scene, save, discoveryLog, resonance: resonanceTracker, cameraController, worldState,
+        scene, save, discoveryLog, resonance: resonanceTracker, cameraController, worldState, livingWorld,
         roomLabel: roomLabelFor,
         onDoorTravelRequested: beginDoorTravel,
         onEvolutionRequested: requestPhysicalEvolution,
@@ -3217,6 +3274,9 @@
       get behaviorState() { return behaviorScheduler ? behaviorScheduler.getDebugState() : null; },
       get abilitySystem() { return abilitySystem; },
       get evolutionState() { return evolutionController ? evolutionController.getDebugState() : null; },
+      get audioDirector() { return audioDirector; },
+      get livingWorld() { return livingWorld; },
+      get livingWorldState() { return livingWorld ? livingWorld.getDebugState() : null; },
       get worldState() { return worldState; },
       get habitatState() { return worldState.getDebugState(roomManager && roomManager.current ? roomManager.current.id : 'conservatory'); },
       get doorTravelState() { return doorTravel ? { targetId: doorTravel.targetId, sourceRoomId: doorTravel.sourceRoomId, stage: doorTravel.stage } : null; },
