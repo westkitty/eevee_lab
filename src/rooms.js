@@ -9,6 +9,16 @@
   const THREE = global.THREE;
   const FX = global.RenderEffects;
   const PORTAL_PREVIEW_CACHE = new Map();
+  const ABILITY_TARGET_BY_ROOM = Object.freeze({
+    vaporeon: 'water',
+    jolteon: 'power',
+    flareon: 'heat',
+    espeon: 'telekinesis',
+    umbreon: 'shadow',
+    leafeon: 'growth',
+    glaceon: 'freeze',
+    sylveon: 'bind'
+  });
 
   function portalPreviewMaterial(color, label) {
     if (!global.document || !THREE.CanvasTexture) {
@@ -308,6 +318,15 @@
         stone.material.emissiveIntensity = 0.12;
         historyStones[rid] = stone;
         group.add(stone);
+        if (rid !== 'eevee') {
+          interactables.push(makeInteractable(
+            stone,
+            'evolution_' + rid,
+            'evolution',
+            rid + ' evolution stone',
+            () => ctx.requestEvolution(rid, stone)
+          ));
+        }
       });
 
       const archiveRing = new THREE.Mesh(
@@ -331,6 +350,7 @@
         keyColor: 0xfff6e2, keyIntensity: 0.8, keyPos: [5, 10, 4], shadow: true,
         fillColor: 0x9fd0ff, fillIntensity: 0.25, fillPos: [-6, 5, -4]
       });
+      lights.push(FX.createCinematicRimLight(0xc9dcff, 0.16));
 
       return {
         group, lights, particleFields: disposables.particleFields, interactables,
@@ -404,8 +424,10 @@
         stone.position.set(Math.cos(a) * 1.9, 0.18, 1.6 + Math.sin(a) * 1.1);
         group.add(stone);
         stoneMeshes.push(stone);
-        interactables.push(makeInteractable(stone, 'stone_' + s, 'prop', s + ' stone', () =>
-          ctx.onRoomProp('eevee', { stoneInspected: s })));
+        interactables.push(makeInteractable(stone, 'stone_' + s, 'evolution', s + ' evolution stone', () => {
+          ctx.onRoomProp('eevee', { stoneInspected: s });
+          ctx.requestEvolution(s, stone);
+        }));
       });
 
       const toys = [RoomKit.toyBall(0xff6b6b), RoomKit.toyPlush(0x8ecae6), RoomKit.brush()];
@@ -1042,6 +1064,91 @@
     built.continuationPoints = built.continuationPoints || {};
     built.entryPoints.conservatory = new THREE.Vector3(0, 0, -(radius - 0.75));
     built.continuationPoints.conservatory = built.spawnPoint.clone();
+
+    const rimLight = FX.createCinematicRimLight(def.doorColor || 0xffffff, 0.18);
+    built.lights.push(rimLight);
+
+    const abilityType = ABILITY_TARGET_BY_ROOM[roomId] || null;
+    const abilityEntry = abilityType ? built.interactables.find(i => i.kind === 'prop') : null;
+    const abilityTarget = abilityEntry ? abilityEntry.object3D : null;
+    if (abilityTarget) {
+      abilityTarget.userData = abilityTarget.userData || {};
+      abilityTarget.userData.abilityTarget = {
+        id: 'ability_' + roomId,
+        roomId,
+        targetType: abilityType
+      };
+      abilityTarget.userData.phase6AbilityBase = {
+        position: abilityTarget.position.clone(),
+        rotationY: abilityTarget.rotation ? abilityTarget.rotation.y || 0 : 0,
+        scale: abilityTarget.scale.clone()
+      };
+
+      const aura = new THREE.Mesh(
+        new THREE.TorusGeometry(0.62, 0.035, 8, 32),
+        new THREE.MeshBasicMaterial({
+          color: def.doorColor || 0xffffff,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false
+        })
+      );
+      aura.rotation.x = Math.PI / 2;
+      aura.position.set(abilityTarget.position.x, 0.045, abilityTarget.position.z);
+      aura.visible = false;
+      aura.name = 'ability_aura_' + roomId;
+      built.group.add(aura);
+      abilityTarget.userData.abilityAura = aura;
+      built.abilityTargets = [abilityTarget];
+
+      built.applyAbilityMutation = record => {
+        if (!record || record.targetId !== abilityTarget.userData.abilityTarget.id) return false;
+        const base = abilityTarget.userData.phase6AbilityBase;
+        abilityTarget.position.copy(base.position);
+        if (abilityTarget.rotation) abilityTarget.rotation.y = base.rotationY;
+        abilityTarget.scale.copy(base.scale);
+
+        if (abilityType === 'water') {
+          abilityTarget.scale.multiplyScalar(1.16);
+        } else if (abilityType === 'power') {
+          if (abilityTarget.rotation) abilityTarget.rotation.y = base.rotationY + 0.55;
+          abilityTarget.scale.multiplyScalar(1.12);
+        } else if (abilityType === 'heat') {
+          abilityTarget.scale.set(base.scale.x * 1.18, base.scale.y * 1.3, base.scale.z * 1.18);
+        } else if (abilityType === 'telekinesis') {
+          abilityTarget.position.y = base.position.y + 0.28;
+          if (abilityTarget.rotation) abilityTarget.rotation.y = base.rotationY + 0.4;
+        } else if (abilityType === 'shadow') {
+          if (abilityTarget.rotation) abilityTarget.rotation.y = base.rotationY + 0.42;
+          abilityTarget.scale.multiplyScalar(1.08);
+        } else if (abilityType === 'growth') {
+          abilityTarget.scale.set(base.scale.x * 1.12, base.scale.y * 1.45, base.scale.z * 1.12);
+        } else if (abilityType === 'freeze') {
+          abilityTarget.scale.multiplyScalar(1.18);
+        } else if (abilityType === 'bind') {
+          if (abilityTarget.rotation) abilityTarget.rotation.y = base.rotationY + 0.7;
+          abilityTarget.scale.multiplyScalar(1.12);
+        }
+
+        abilityTarget.traverse(obj => {
+          if (!obj.material) return;
+          const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+          mats.forEach(mat => {
+            if (mat.emissive) {
+              mat.emissive.setHex(def.doorColor || 0xffffff);
+              mat.emissiveIntensity = Math.max(mat.emissiveIntensity || 0, 0.45);
+            }
+          });
+        });
+        aura.visible = true;
+        aura.material.opacity = 0.58;
+        abilityTarget.userData.abilityActive = record.abilityId;
+        built.group.userData.abilityMutation = Object.assign({}, record);
+        return true;
+      };
+    } else {
+      built.abilityTargets = [];
+    }
 
     const idx = Math.max(0, global.ROOM_ORDER ? global.ROOM_ORDER.indexOf(roomId) : 1);
     const angle = 0.65 + idx * 0.47;
