@@ -9,11 +9,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Fredoka:wght@400;600;700&family=Sniglet:wght@800&display=swap" rel="stylesheet">
-
-  <!-- External CDNs: Three.js r128, OrbitControls, Canvas Confetti -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦊</text></svg>">
+  <script>
+    window.__errors = [];
+    window.addEventListener('error', function(e) {
+      window.__errors.push({ msg: e.message, filename: e.filename, lineno: e.lineno, colno: e.colno });
+    });
+  </script>
 
   <style>
     :root {
@@ -696,7 +698,7 @@
     </div>
 
     <!-- Bottom Dock: Evolution Selector + Fact Sheet -->
-    <div class="bottom-dock interactive">
+    <div class="bottom-dock interactive" id="bottom-dock">
       
       <!-- Fact / Lore Sheet -->
       <div class="fact-card" id="fact-card">
@@ -751,6 +753,12 @@
     </div>
 
   </div>
+
+  <!-- Vendor Libraries (Clean Modular Local) -->
+  <script src="libs/three.min.js"></script>
+  <script src="libs/OrbitControls.js"></script>
+  <script src="libs/GLTFLoader.js"></script>
+  <script src="libs/confetti.browser.min.js"></script>
 
   <!-- MAIN THREE.JS APPLICATION JAVASCRIPT -->
   <script>
@@ -1304,6 +1312,7 @@
     let treats = [];
     let environmentDecor = [];
     let sandboxFloor = null;
+    let sandboxMotes = null;
 
     // Animation States
     let currentForm = 'eevee';
@@ -1322,6 +1331,19 @@
     // Face Texture Generator
     let faceCanvas, faceCtx, faceTexture;
 
+    // Species-Specific Face & Eye Palettes
+    const EYE_PALETTES = {
+      eevee:    { iris: '#48250F', glow: '#B86F36', pupil: '#1D0E05', heart: '#FF2B6D', blush: 'rgba(255, 120, 150, 0.45)', mouth: '#432616', nose: '#26140A' },
+      vaporeon: { iris: '#142C44', glow: '#28628C', pupil: '#0A1724', heart: '#38D0FF', blush: 'rgba(100, 200, 255, 0.40)', mouth: '#123048', nose: '#0E2436' },
+      jolteon:  { iris: '#2A260C', glow: '#6B5E14', pupil: '#0D0B02', heart: '#FFEE33', blush: 'rgba(255, 230, 80, 0.35)', mouth: '#382C0E', nose: '#1E1805' },
+      flareon:  { iris: '#4A2010', glow: '#A85220', pupil: '#1D0E05', heart: '#FF7722', blush: 'rgba(255, 140, 60, 0.45)', mouth: '#401A08', nose: '#220D04' },
+      espeon:   { iris: '#5C2D91', glow: '#9E5BBA', pupil: '#FFFFFF', heart: '#D466FF', blush: 'rgba(230, 150, 255, 0.40)', mouth: '#381452', nose: '#200832', whitePupil: true },
+      umbreon:  { iris: '#C41230', glow: '#FF3355', pupil: '#260408', heart: '#FF1133', blush: 'rgba(255, 50, 50, 0.35)', mouth: '#38060E', nose: '#180206', slit: true },
+      leafeon:  { iris: '#523B18', glow: '#8C6730', pupil: '#1E1408', heart: '#55DD44', blush: 'rgba(160, 220, 100, 0.40)', mouth: '#3C280E', nose: '#221508' },
+      glaceon:  { iris: '#1C5B78', glow: '#49A2C4', pupil: '#0B2938', heart: '#70E8FF', blush: 'rgba(120, 220, 255, 0.40)', mouth: '#14384A', nose: '#0E2430', diamond: true },
+      sylveon:  { iris: '#1B65A4', glow: '#5CC3E8', pupil: '#0D3860', heart: '#FF88BB', blush: 'rgba(255, 140, 180, 0.50)', mouth: '#401A28', nose: '#280E18', starry: true }
+    };
+
     function initFaceTexture() {
       faceCanvas = document.createElement('canvas');
       faceCanvas.width = 512;
@@ -1338,37 +1360,37 @@
 
       faceCtx.clearRect(0, 0, 512, 512);
 
-      // Cute Blushing Cheeks
-      faceCtx.fillStyle = 'rgba(255, 120, 150, 0.45)';
+      const pal = EYE_PALETTES[currentForm] || EYE_PALETTES.eevee;
+
+      // Species-Themed Soft Blushing Cheeks
+      faceCtx.fillStyle = pal.blush;
       faceCtx.beginPath();
       faceCtx.arc(140, 310, 36, 0, Math.PI * 2);
       faceCtx.arc(372, 310, 36, 0, Math.PI * 2);
       faceCtx.fill();
 
       if (emotion === 'happy') {
-        // Big sparkly anime eyes
-        drawAnimeEye(170, 240, 50, false);
-        drawAnimeEye(342, 240, 50, false);
+        // High-Quality Species Anime Eyes
+        drawAnimeEye(170, 240, 50, pal);
+        drawAnimeEye(342, 240, 50, pal);
 
-        // Cute W-mouth (Pokemon cat-mouth)
-        faceCtx.strokeStyle = '#432616';
-        faceCtx.lineWidth = 9;
+        // Species-Themed Cute W-mouth (Pokemon cat/fox mouth)
+        faceCtx.strokeStyle = pal.mouth;
+        faceCtx.lineWidth = 8;
         faceCtx.lineCap = 'round';
         faceCtx.beginPath();
-        // Left curve
         faceCtx.arc(235, 335, 22, 0.2, Math.PI - 0.2);
-        // Right curve
         faceCtx.arc(277, 335, 22, 0.2, Math.PI - 0.2);
         faceCtx.stroke();
 
       } else if (emotion === 'hearts') {
-        // Beaming pink Heart Eyes!
-        drawHeartEye(170, 240, 56);
-        drawHeartEye(342, 240, 56);
+        // Glowing Species-Themed Heart Eyes!
+        drawHeartEye(170, 240, 56, pal.heart);
+        drawHeartEye(342, 240, 56, pal.heart);
 
         // Open joyful happy smile
-        faceCtx.fillStyle = '#D94D68';
-        faceCtx.strokeStyle = '#432616';
+        faceCtx.fillStyle = pal.heart;
+        faceCtx.strokeStyle = pal.mouth;
         faceCtx.lineWidth = 8;
         faceCtx.beginPath();
         faceCtx.arc(256, 330, 32, 0, Math.PI);
@@ -1378,11 +1400,11 @@
 
       } else if (emotion === 'derp') {
         // Googly mismatched crazy eyes!
-        drawGooglyEye(170, 240, 55, -15, -15);
-        drawGooglyEye(342, 240, 42, 12, 10);
+        drawGooglyEye(170, 240, 55, -15, -15, pal);
+        drawGooglyEye(342, 240, 42, 12, 10, pal);
 
         // Derp tongue sticking out (:P)
-        faceCtx.strokeStyle = '#432616';
+        faceCtx.strokeStyle = pal.mouth;
         faceCtx.lineWidth = 8;
         faceCtx.beginPath();
         faceCtx.arc(256, 325, 20, 0, Math.PI);
@@ -1393,23 +1415,22 @@
         faceCtx.beginPath();
         faceCtx.arc(268, 355, 18, 0, Math.PI * 2);
         faceCtx.fill();
-        faceCtx.strokeStyle = '#432616';
+        faceCtx.strokeStyle = pal.mouth;
         faceCtx.lineWidth = 4;
         faceCtx.stroke();
 
       } else if (emotion === 'shocked') {
-        // Tiny white dot eyes with crazy vibration
+        // Tiny white dot eyes with shock vibration
         faceCtx.fillStyle = '#FFFFFF';
-        faceCtx.strokeStyle = '#432616';
+        faceCtx.strokeStyle = pal.mouth;
         faceCtx.lineWidth = 6;
-
         faceCtx.beginPath();
         faceCtx.arc(170, 240, 48, 0, Math.PI * 2);
         faceCtx.arc(342, 240, 48, 0, Math.PI * 2);
         faceCtx.fill();
         faceCtx.stroke();
 
-        // Tiny pinpoint pupils
+        // Pinpoint pupils
         faceCtx.fillStyle = '#000000';
         faceCtx.beginPath();
         faceCtx.arc(170, 240, 10, 0, Math.PI * 2);
@@ -1417,71 +1438,100 @@
         faceCtx.fill();
 
         // O-shaped gasp mouth
-        faceCtx.fillStyle = '#30180B';
+        faceCtx.fillStyle = pal.mouth;
         faceCtx.beginPath();
         faceCtx.ellipse(256, 350, 24, 38, 0, 0, Math.PI * 2);
         faceCtx.fill();
       }
 
-      // Cute black button nose
-      faceCtx.fillStyle = '#26140A';
+      // Petite triangular button nose
+      faceCtx.fillStyle = pal.nose;
       faceCtx.beginPath();
       faceCtx.moveTo(256, 298);
-      faceCtx.lineTo(246, 286);
-      faceCtx.lineTo(266, 286);
+      faceCtx.lineTo(247, 287);
+      faceCtx.lineTo(265, 287);
       faceCtx.closePath();
       faceCtx.fill();
 
       faceTexture.needsUpdate = true;
     }
 
-    function drawAnimeEye(x, y, radius, isClosed) {
+    function drawAnimeEye(x, y, radius, pal) {
       faceCtx.save();
-      // Outer brown/amber Iris
-      faceCtx.fillStyle = '#48250F';
+
+      // Outer Iris Contour
+      faceCtx.fillStyle = pal.iris;
       faceCtx.beginPath();
       faceCtx.ellipse(x, y, radius * 0.75, radius, 0, 0, Math.PI * 2);
       faceCtx.fill();
 
-      // Lower warm amber glow
-      faceCtx.fillStyle = '#B86F36';
+      // Lower Glowing Gradient Sheen
+      faceCtx.fillStyle = pal.glow;
       faceCtx.beginPath();
-      faceCtx.ellipse(x, y + 14, radius * 0.55, radius * 0.45, 0, 0, Math.PI * 2);
+      faceCtx.ellipse(x, y + 14, radius * 0.58, radius * 0.46, 0, 0, Math.PI * 2);
       faceCtx.fill();
 
-      // Deep dark pupil
-      faceCtx.fillStyle = '#1D0E05';
-      faceCtx.beginPath();
-      faceCtx.ellipse(x, y - 2, radius * 0.4, radius * 0.55, 0, 0, Math.PI * 2);
-      faceCtx.fill();
+      // Pupil Style: Slit for Umbreon, White for Espeon, Normal Deep Pupil otherwise
+      if (pal.slit) {
+        // Predatory Cat-Slit Pupil for Umbreon
+        faceCtx.fillStyle = pal.pupil;
+        faceCtx.beginPath();
+        faceCtx.ellipse(x, y, radius * 0.16, radius * 0.72, 0, 0, Math.PI * 2);
+        faceCtx.fill();
+      } else if (pal.whitePupil) {
+        // Iconic White Pinpoint Pupil for Espeon
+        faceCtx.fillStyle = '#FFFFFF';
+        faceCtx.beginPath();
+        faceCtx.ellipse(x, y - 2, radius * 0.28, radius * 0.38, 0, 0, Math.PI * 2);
+        faceCtx.fill();
+      } else {
+        // Deep Dark Pupil
+        faceCtx.fillStyle = pal.pupil;
+        faceCtx.beginPath();
+        faceCtx.ellipse(x, y - 2, radius * 0.42, radius * 0.55, 0, 0, Math.PI * 2);
+        faceCtx.fill();
+      }
 
-      // Big Sparkle Specular Highlight
-      faceCtx.fillStyle = '#FFFFFF';
-      faceCtx.beginPath();
-      faceCtx.arc(x - 12, y - 16, radius * 0.32, 0, Math.PI * 2);
-      faceCtx.fill();
+      // Specular Highlights
+      if (pal.starry) {
+        // Star sparkle highlights for Sylveon
+        faceCtx.fillStyle = '#FFFFFF';
+        faceCtx.beginPath();
+        faceCtx.arc(x - 12, y - 16, radius * 0.32, 0, Math.PI * 2);
+        faceCtx.arc(x + 10, y + 18, radius * 0.18, 0, Math.PI * 2);
+        faceCtx.arc(x + 14, y - 10, radius * 0.12, 0, Math.PI * 2);
+        faceCtx.fill();
+      } else if (pal.diamond) {
+        // Diamond crystal facet highlights for Glaceon
+        faceCtx.fillStyle = '#FFFFFF';
+        faceCtx.beginPath();
+        faceCtx.rect(x - 14, y - 18, radius * 0.38, radius * 0.38);
+        faceCtx.arc(x + 8, y + 14, radius * 0.16, 0, Math.PI * 2);
+        faceCtx.fill();
+      } else {
+        // Standard Anime Specular Highlights
+        faceCtx.fillStyle = '#FFFFFF';
+        faceCtx.beginPath();
+        faceCtx.arc(x - 12, y - 16, radius * 0.32, 0, Math.PI * 2);
+        faceCtx.fill();
 
-      // Secondary small highlight
-      faceCtx.beginPath();
-      faceCtx.arc(x + 10, y + 18, radius * 0.16, 0, Math.PI * 2);
-      faceCtx.fill();
+        faceCtx.beginPath();
+        faceCtx.arc(x + 10, y + 18, radius * 0.16, 0, Math.PI * 2);
+        faceCtx.fill();
+      }
 
       faceCtx.restore();
     }
 
-    function drawHeartEye(x, y, size) {
+    function drawHeartEye(x, y, size, heartColor) {
       faceCtx.save();
-      faceCtx.fillStyle = '#FF2B6D';
+      faceCtx.fillStyle = heartColor || '#FF2B6D';
       faceCtx.beginPath();
       const topCurveHeight = size * 0.3;
       faceCtx.moveTo(x, y + topCurveHeight);
-      // top left curve
       faceCtx.bezierCurveTo(x, y, x - size / 2, y, x - size / 2, y + topCurveHeight);
-      // bottom left curve
       faceCtx.bezierCurveTo(x - size / 2, y + (size + topCurveHeight) / 2, x, y + (size + topCurveHeight) / 1.4, x, y + size);
-      // bottom right curve
       faceCtx.bezierCurveTo(x, y + (size + topCurveHeight) / 1.4, x + size / 2, y + (size + topCurveHeight) / 2, x + size / 2, y + topCurveHeight);
-      // top right curve
       faceCtx.bezierCurveTo(x + size / 2, y, x, y, x, y + topCurveHeight);
       faceCtx.closePath();
       faceCtx.fill();
@@ -1494,24 +1544,21 @@
       faceCtx.restore();
     }
 
-    function drawGooglyEye(x, y, radius, pupilOffsetX, pupilOffsetY) {
+    function drawGooglyEye(x, y, radius, pupilOffsetX, pupilOffsetY, pal) {
       faceCtx.save();
-      // White sclera
       faceCtx.fillStyle = '#FFFFFF';
-      faceCtx.strokeStyle = '#432616';
+      faceCtx.strokeStyle = pal.mouth || '#432616';
       faceCtx.lineWidth = 6;
       faceCtx.beginPath();
       faceCtx.arc(x, y, radius, 0, Math.PI * 2);
       faceCtx.fill();
       faceCtx.stroke();
 
-      // Googly Black Pupil
-      faceCtx.fillStyle = '#1D0E05';
+      faceCtx.fillStyle = pal.iris || '#1D0E05';
       faceCtx.beginPath();
       faceCtx.arc(x + pupilOffsetX, y + pupilOffsetY, radius * 0.45, 0, Math.PI * 2);
       faceCtx.fill();
 
-      // Tiny white reflection
       faceCtx.fillStyle = '#FFFFFF';
       faceCtx.beginPath();
       faceCtx.arc(x + pupilOffsetX - 5, y + pupilOffsetY - 5, 4, 0, Math.PI * 2);
@@ -1520,423 +1567,313 @@
     }
 
     /* ==========================================================================
-       4. BUILD PROCEDURAL 3D EEVEE & EEVEELUTIONS
+       4. BUILD NINE DISTINCT PROCEDURAL 3D EEVEELUTION CHARACTERS
        ========================================================================== */
+
+    // Helper to construct anatomically articulated quadruped legs with sculpted haunches and paws
+    function createArticulatedLeg(thighR, legR, footR, length, mainMat, sockMat, isHind = false) {
+      const leg = new THREE.Group();
+      if (isHind) {
+        // Muscular curved hind haunch
+        const haunchGeo = new THREE.SphereGeometry(thighR * 1.3, 16, 14);
+        haunchGeo.scale(0.85, 1.25, 1.1);
+        haunchGeo.translate(0, 0.15, -0.05);
+        const haunch = new THREE.Mesh(haunchGeo, mainMat);
+        haunch.castShadow = true;
+        leg.add(haunch);
+      }
+      // Upper & lower limb
+      const limbGeo = new THREE.CylinderGeometry(legR * 0.85, legR * 1.1, length, 16);
+      limbGeo.translate(0, -length * 0.45, 0);
+      const limb = new THREE.Mesh(limbGeo, sockMat || mainMat);
+      limb.castShadow = true;
+      leg.add(limb);
+
+      // Sculpted paw with three defined toes
+      const foot = new THREE.Group();
+      foot.position.set(0, -length * 0.88, 0.08);
+      const footBaseGeo = new THREE.SphereGeometry(footR, 16, 12);
+      footBaseGeo.scale(1.0, 0.55, 1.25);
+      const footMesh = new THREE.Mesh(footBaseGeo, sockMat || mainMat);
+      footMesh.castShadow = true;
+      foot.add(footMesh);
+
+      for (let t = -1; t <= 1; t++) {
+        const toeGeo = new THREE.SphereGeometry(footR * 0.38, 10, 8);
+        toeGeo.scale(0.9, 0.7, 1.2);
+        toeGeo.translate(t * footR * 0.45, -footR * 0.15, footR * 0.75);
+        const toe = new THREE.Mesh(toeGeo, sockMat || mainMat);
+        toe.castShadow = true;
+        foot.add(toe);
+      }
+      leg.add(foot);
+      return leg;
+    }
+
+    // 1. EEVEE (The Evolution Pokemon)
+    /* ==========================================================================
+       4. SOURCED 3D EEVEELUTION CHARACTER RIG & ASSET ENGINE
+       ========================================================================== */
+    const SPECIES_LIST = ['eevee', 'vaporeon', 'jolteon', 'flareon', 'espeon', 'umbreon', 'leafeon', 'glaceon', 'sylveon'];
+    const gltfLoader = new THREE.GLTFLoader();
+
+    function findBone(root, patterns) {
+      let found = null;
+      root.traverse(c => {
+        if (!found && c.isBone) {
+          const name = c.name.toLowerCase();
+          for (const p of patterns) {
+            if (p.test(name)) {
+              found = c;
+              break;
+            }
+          }
+        }
+      });
+      return found;
+    }
+
     function createEeveeRig() {
       const rig = new THREE.Group();
       rig.name = "EeveeRig";
+      const models = {};
 
-      // Common Toon / Soft Cartoon Material
-      const baseMat = new THREE.MeshToonMaterial({
-        color: EEVEELUTION_DATA.eevee.colorNormal,
-        roughness: 0.6
+      SPECIES_LIST.forEach(sp => {
+        const wrapper = new THREE.Group();
+        wrapper.name = `${sp}_wrapper`;
+
+        const inner = new THREE.Group();
+        inner.name = `${sp}_inner`;
+        wrapper.add(inner);
+
+        // Invisible simplified collider for 100% reliable click raycasting & arcade collisions
+        const colliderGeo = new THREE.CylinderGeometry(0.55, 0.55, 1.3, 16);
+        const colliderMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+        const hitBox = new THREE.Mesh(colliderGeo, colliderMat);
+        hitBox.position.y = 0.65;
+        hitBox.name = `${sp}_hitBox`;
+        wrapper.add(hitBox);
+
+        // Fallback dummy objects for animation loop before GLB completes parsing
+        const dummyHead = new THREE.Object3D();
+        dummyHead.position.set(0, 0.85, 0.4);
+        const dummyEarL = new THREE.Object3D();
+        const dummyEarR = new THREE.Object3D();
+        const dummyTail = new THREE.Object3D();
+        const dummyPaws = [new THREE.Object3D(), new THREE.Object3D(), new THREE.Object3D(), new THREE.Object3D()];
+
+        wrapper.userData = {
+          bodyGroup: inner,
+          inner: inner,
+          headGroup: dummyHead,
+          earGroupLeft: dummyEarL,
+          earGroupRight: dummyEarR,
+          tailGroup: dummyTail,
+          paws: dummyPaws,
+          isLoaded: false,
+          updatePalette: (shiny) => {}
+        };
+
+        wrapper.visible = (sp === currentForm);
+        rig.add(wrapper);
+        models[sp] = wrapper;
+
+        // Load genuine 3D model
+        gltfLoader.load(`assets/models/${sp}.glb`, (gltf) => {
+          const raw = gltf.scene;
+          inner.add(raw);
+
+          // Calculate bounding box and scale
+          const box = new THREE.Box3().setFromObject(raw);
+          const size = new THREE.Vector3();
+          box.getSize(size);
+          const center = new THREE.Vector3();
+          box.getCenter(center);
+
+          // Proportional heights: Eevee ~0.95m, adult evolutions ~1.35m
+          const targetH = (sp === 'eevee' ? 0.95 : 1.35);
+          const s = targetH / (size.y || 1);
+          raw.scale.setScalar(s);
+          raw.position.x = -center.x * s;
+          raw.position.y = -box.min.y * s;
+          raw.position.z = -center.z * s;
+
+          // Mathematical spine vector alignment to +Z (facing player/camera)
+          wrapper.updateMatrixWorld(true);
+          const headBone = findBone(raw, [/head/, /nose/]);
+          const tailBone = findBone(raw, [/tail/]);
+          const waistBone = findBone(raw, [/waist/, /origin/, /spine/]);
+
+          if (headBone && waistBone) {
+            const headPos = new THREE.Vector3();
+            const waistPos = new THREE.Vector3();
+            headBone.getWorldPosition(headPos);
+            waistBone.getWorldPosition(waistPos);
+            const angle = Math.atan2(headPos.x - waistPos.x, headPos.z - waistPos.z);
+            wrapper.rotation.y = -angle;
+          }
+
+          // Second centering pass: after rotation is applied, re-measure the
+          // world-space bounding box of the inner group and translate wrapper
+          // so the model is exactly at the scene origin (x=0, z=0).
+          // This corrects for FoxoutdaBox diorama objects whose armature origins
+          // sit at extreme world positions (~280 units from origin).
+          wrapper.updateMatrixWorld(true);
+          const finalBox = new THREE.Box3().setFromObject(inner);
+          const finalCenter = new THREE.Vector3();
+          finalBox.getCenter(finalCenter);
+          // Shift wrapper horizontally so model center lands on (0, ?, 0)
+          wrapper.position.x -= finalCenter.x;
+          wrapper.position.z -= finalCenter.z;
+          // Re-ground: ensure paws sit exactly at y=0
+          wrapper.updateMatrixWorld(true);
+          const groundBox = new THREE.Box3().setFromObject(inner);
+          wrapper.position.y -= groundBox.min.y;
+
+          // Cartoon Studio Toon / PBR Lighting & Color Preservation
+          const originalMaterials = [];
+          raw.traverse(c => {
+            if (c.isMesh) {
+              c.castShadow = true;
+              c.receiveShadow = true;
+              if (c.material) {
+                const mats = Array.isArray(c.material) ? c.material : [c.material];
+                mats.forEach(m => {
+                  if ('roughness' in m) m.roughness = 0.52;
+                  if ('metalness' in m) m.metalness = 0.05;
+                  if (m.map) m.map.encoding = THREE.sRGBEncoding;
+                  originalMaterials.push({
+                    mat: m,
+                    color: m.color ? m.color.clone() : new THREE.Color(0xffffff),
+                    emissive: m.emissive ? m.emissive.clone() : new THREE.Color(0x000000),
+                    emissiveIntensity: m.emissiveIntensity || 0
+                  });
+                });
+              }
+            }
+          });
+
+          // Animation pointers
+          if (headBone) wrapper.userData.headGroup = headBone;
+          if (tailBone) wrapper.userData.tailGroup = tailBone;
+          const earL = findBone(raw, [/lear/, /ear.*l/, /left.*ear/]);
+          const earR = findBone(raw, [/rear/, /ear.*r/, /right.*ear/]);
+          if (earL) wrapper.userData.earGroupLeft = earL;
+          if (earR) wrapper.userData.earGroupRight = earR;
+
+          // Find form-specific special features
+          if (sp === 'espeon') {
+            let gemMesh = null;
+            raw.traverse(c => {
+              if (c.isMesh && (c.material?.name?.includes('107') || c.name.includes('107'))) gemMesh = c;
+            });
+            wrapper.userData.psychicGem = gemMesh || new THREE.Mesh(new THREE.SphereGeometry(0.04), new THREE.MeshStandardMaterial({ color: 0xFF1144, emissive: 0xFF1144 }));
+          } else if (sp === 'umbreon') {
+            let ringMat = null;
+            raw.traverse(c => {
+              if (c.isMesh && c.material) {
+                const m = Array.isArray(c.material) ? c.material[0] : c.material;
+                if (m.name.includes('body_a') || m.name.includes('ring') || m.name.includes('body_b')) {
+                  ringMat = m;
+                }
+              }
+            });
+            wrapper.userData.umbreonRingMat = ringMat;
+          } else if (sp === 'sylveon') {
+            const ribbons = [];
+            raw.traverse(c => {
+              if (c.isBone && (c.name.toLowerCase().includes('feeler') || c.name.toLowerCase().includes('ribbon'))) {
+                ribbons.push(c);
+              }
+            });
+            wrapper.userData.sylveonRibbons = ribbons.length > 0 ? ribbons : [dummyEarL, dummyEarR];
+          } else if (sp === 'vaporeon') {
+            const fluke = findBone(raw, [/fluke/, /endtail/, /tail.*4/, /tail.*3/]);
+            wrapper.userData.vaporeonFluke = fluke || tailBone;
+          } else if (sp === 'glaceon') {
+            const bangs = [];
+            raw.traverse(c => {
+              if (c.isBone && (c.name.toLowerCase().includes('feeler') || c.name.toLowerCase().includes('bang'))) bangs.push(c);
+            });
+            wrapper.userData.glaceonBangs = bangs;
+          }
+
+          // Shiny Palette Swapper
+          wrapper.userData.updatePalette = (shiny) => {
+            originalMaterials.forEach(({ mat, color, emissive, emissiveIntensity }) => {
+              if (shiny) {
+                if (sp === 'umbreon') {
+                  if (mat.name.includes('body_b') || mat.name.includes('body_a')) {
+                    mat.color.setHex(0x38D8FF);
+                    if (mat.emissive) { mat.emissive.setHex(0x00A2FF); mat.emissiveIntensity = 0.85; }
+                  }
+                } else if (sp === 'vaporeon') {
+                  mat.color.setHex(0xE577DD);
+                } else if (sp === 'jolteon') {
+                  mat.color.setHex(0xA8E43A);
+                } else if (sp === 'flareon') {
+                  mat.color.setHex(0xFFB845);
+                } else if (sp === 'espeon') {
+                  mat.color.setHex(0x4EE855);
+                } else if (sp === 'eevee') {
+                  mat.color.setHex(0xEDE9DF);
+                } else if (sp === 'leafeon') {
+                  mat.color.setHex(0x85E072);
+                } else if (sp === 'glaceon') {
+                  mat.color.setHex(0x9CE8FF);
+                } else if (sp === 'sylveon') {
+                  mat.color.setHex(0x75D8FF);
+                }
+              } else {
+                mat.color.copy(color);
+                if (mat.emissive) {
+                  mat.emissive.copy(emissive);
+                  mat.emissiveIntensity = emissiveIntensity;
+                }
+              }
+            });
+          };
+
+          wrapper.userData.isLoaded = true;
+          if (currentForm === sp) {
+            wrapper.userData.updatePalette(isShiny);
+            Object.assign(rig.userData, wrapper.userData);
+          }
+        }, undefined, (err) => {
+          console.error(`Failed to load ${sp}.glb:`, err);
+        });
       });
-      const ruffMat = new THREE.MeshToonMaterial({
-        color: EEVEELUTION_DATA.eevee.colorRuff,
-        roughness: 0.8
-      });
-      const innerEarMat = new THREE.MeshToonMaterial({
-        color: 0x5C361E,
-        roughness: 0.7
-      });
 
-      // 1. Torso / Body Group
-      const bodyGroup = new THREE.Group();
-      bodyGroup.name = "BodyGroup";
-
-      // Rounded Torso (Plump, cute puppy shape)
-      const torsoGeo = new THREE.SphereGeometry(1.05, 32, 24);
-      torsoGeo.scale(0.9, 0.85, 1.25);
-      const torsoMesh = new THREE.Mesh(torsoGeo, baseMat);
-      torsoMesh.castShadow = true;
-      torsoMesh.receiveShadow = true;
-      torsoMesh.position.y = 1.1;
-      bodyGroup.add(torsoMesh);
-
-      // 2. Head Group (Positioned at front top of torso)
-      const headGroup = new THREE.Group();
-      headGroup.name = "HeadGroup";
-      headGroup.position.set(0, 1.85, 0.85);
-
-      // Head Skull
-      const skullGeo = new THREE.SphereGeometry(1.02, 32, 28);
-      skullGeo.scale(1.05, 0.95, 1.0);
-      const skullMesh = new THREE.Mesh(skullGeo, baseMat);
-      skullMesh.castShadow = true;
-      headGroup.add(skullMesh);
-
-      // Cute Snout / Muzzle
-      const snoutGeo = new THREE.ConeGeometry(0.48, 0.55, 20);
-      snoutGeo.rotateX(Math.PI / 2);
-      const snoutMesh = new THREE.Mesh(snoutGeo, baseMat);
-      snoutMesh.position.set(0, -0.15, 0.95);
-      headGroup.add(snoutMesh);
-
-      // Dynamic Face Plane (Curved mesh on front of head)
-      const faceGeo = new THREE.PlaneGeometry(1.5, 1.5);
-      const faceMaterial = new THREE.MeshBasicMaterial({
-        map: faceTexture,
-        transparent: true,
-        side: THREE.DoubleSide
-      });
-      const faceMesh = new THREE.Mesh(faceGeo, faceMaterial);
-      faceMesh.name = "FaceMesh";
-      faceMesh.position.set(0, 0.05, 0.96);
-      faceMesh.rotation.x = -0.05;
-      headGroup.add(faceMesh);
-
-      // 3. Floppy Big Ears
-      const earGroupLeft = new THREE.Group();
-      earGroupLeft.name = "EarLeft";
-      earGroupLeft.position.set(-0.75, 0.72, 0.0);
-      earGroupLeft.rotation.set(-0.1, -0.15, 0.55);
-
-      const earGroupRight = new THREE.Group();
-      earGroupRight.name = "EarRight";
-      earGroupRight.position.set(0.75, 0.72, 0.0);
-      earGroupRight.rotation.set(-0.1, 0.15, -0.55);
-
-      // Ear Geometry (Fluffy, pointed leaf/fox ear)
-      const earGeo = new THREE.ConeGeometry(0.5, 2.3, 24);
-      earGeo.scale(1.0, 1.0, 0.35); // Flatten ear
-      earGeo.translate(0, 1.1, 0);
-
-      const earMeshLeft = new THREE.Mesh(earGeo, baseMat);
-      earMeshLeft.castShadow = true;
-      const innerEarGeo = new THREE.ConeGeometry(0.32, 1.8, 20);
-      innerEarGeo.scale(1.0, 1.0, 0.3);
-      innerEarGeo.translate(0, 0.95, 0.08);
-      const innerEarMeshLeft = new THREE.Mesh(innerEarGeo, innerEarMat);
-      earGroupLeft.add(earMeshLeft);
-      earGroupLeft.add(innerEarMeshLeft);
-
-      const earMeshRight = new THREE.Mesh(earGeo, baseMat);
-      earMeshRight.castShadow = true;
-      const innerEarMeshRight = new THREE.Mesh(innerEarGeo, innerEarMat);
-      earGroupRight.add(earMeshRight);
-      earGroupRight.add(innerEarMeshRight);
-
-      headGroup.add(earGroupLeft);
-      headGroup.add(earGroupRight);
-
-      // Head Floof Tuft
-      const tuftGeo = new THREE.ConeGeometry(0.25, 0.6, 12);
-      tuftGeo.rotateZ(0.2);
-      const tuftMesh = new THREE.Mesh(tuftGeo, ruffMat);
-      tuftMesh.name = "HeadTuft";
-      tuftMesh.position.set(0, 0.95, 0.35);
-      headGroup.add(tuftMesh);
-
-      // 4. Giant Fluffy Neck Ruff (Multiple overlapping cloud spheres)
-      const ruffGroup = new THREE.Group();
-      ruffGroup.name = "RuffGroup";
-      ruffGroup.position.set(0, 1.45, 0.65);
-
-      const ruffCount = 10;
-      for (let i = 0; i < ruffCount; i++) {
-        const angle = (i / ruffCount) * Math.PI * 2;
-        const puffRadius = 0.42 + (i % 2) * 0.12;
-        const puffGeo = new THREE.SphereGeometry(puffRadius, 16, 14);
-        const puffMesh = new THREE.Mesh(puffGeo, ruffMat);
-        puffMesh.position.set(
-          Math.cos(angle) * 0.85,
-          (Math.sin(angle * 2) * 0.12) - 0.1,
-          Math.sin(angle) * 0.85
-        );
-        puffMesh.castShadow = true;
-        ruffGroup.add(puffMesh);
-      }
-      bodyGroup.add(ruffGroup);
-
-      // 5. Giant Bushy Tail (Articulated chain)
-      const tailGroup = new THREE.Group();
-      tailGroup.name = "TailGroup";
-      tailGroup.position.set(0, 1.25, -1.05);
-
-      const tailBase = new THREE.Group();
-      tailBase.name = "TailBase";
-      const tailBaseGeo = new THREE.SphereGeometry(0.65, 20, 16);
-      tailBaseGeo.scale(1, 1.2, 1.4);
-      tailBaseGeo.translate(0, 0.3, -0.4);
-      const tailBaseMesh = new THREE.Mesh(tailBaseGeo, baseMat);
-      tailBaseMesh.castShadow = true;
-      tailBase.add(tailBaseMesh);
-
-      // Tail Tip (Zig-zag fluffy cream tip)
-      const tailTipGeo = new THREE.ConeGeometry(0.6, 1.4, 20);
-      tailTipGeo.rotateX(-Math.PI / 3.2);
-      tailTipGeo.translate(0, 1.1, -1.0);
-      const tailTipMesh = new THREE.Mesh(tailTipGeo, ruffMat);
-      tailTipMesh.name = "TailTipMesh";
-      tailTipMesh.castShadow = true;
-      tailBase.add(tailTipMesh);
-
-      tailGroup.add(tailBase);
-      bodyGroup.add(tailGroup);
-
-      // 6. Cute Little Paws (4 legs)
-      const paws = [];
-      const pawPositions = [
-        { name: "PawFL", x: -0.55, y: 0.65, z: 0.75 },
-        { name: "PawFR", x: 0.55, y: 0.65, z: 0.75 },
-        { name: "PawBL", x: -0.58, y: 0.65, z: -0.65 },
-        { name: "PawBR", x: 0.58, y: 0.65, z: -0.65 }
-      ];
-
-      pawPositions.forEach(p => {
-        const legGroup = new THREE.Group();
-        legGroup.name = p.name;
-        legGroup.position.set(p.x, p.y, p.z);
-
-        const legGeo = new THREE.CylinderGeometry(0.24, 0.28, 0.75, 16);
-        legGeo.translate(0, -0.15, 0);
-        const legMesh = new THREE.Mesh(legGeo, baseMat);
-        legMesh.castShadow = true;
-        legGroup.add(legMesh);
-
-        // Rounded foot / paw
-        const footGeo = new THREE.SphereGeometry(0.3, 16, 14);
-        footGeo.scale(1.0, 0.6, 1.3);
-        footGeo.translate(0, -0.45, 0.1);
-        const footMesh = new THREE.Mesh(footGeo, baseMat);
-        footMesh.castShadow = true;
-        legGroup.add(footMesh);
-
-        bodyGroup.add(legGroup);
-        paws.push(legGroup);
-      });
-
-      // 7. Special Evolution Attachment Anchors
-      // Vaporeon Aquatic Fin & Fluke
-      const vaporeonFinGroup = new THREE.Group();
-      vaporeonFinGroup.name = "VaporeonFins";
-      vaporeonFinGroup.visible = false;
-      const finGeo = new THREE.ConeGeometry(0.55, 1.6, 16);
-      finGeo.scale(0.12, 1, 1);
-      const finMat = new THREE.MeshToonMaterial({ color: 0xFFF275 });
-      const topFin = new THREE.Mesh(finGeo, finMat);
-      topFin.position.set(0, 0.85, 0.1);
-      topFin.rotation.x = -0.3;
-      vaporeonFinGroup.add(topFin);
-
-      // Webbed side ear fins
-      const webFinGeo = new THREE.ConeGeometry(0.5, 1.2, 12);
-      webFinGeo.scale(0.1, 1, 0.8);
-      const webFinL = new THREE.Mesh(webFinGeo, finMat);
-      webFinL.position.set(-0.95, 0.4, 0.1);
-      webFinL.rotation.set(0.1, 0, 1.1);
-      const webFinR = new THREE.Mesh(webFinGeo, finMat);
-      webFinR.position.set(0.95, 0.4, 0.1);
-      webFinR.rotation.set(0.1, 0, -1.1);
-      vaporeonFinGroup.add(webFinL);
-      vaporeonFinGroup.add(webFinR);
-      headGroup.add(vaporeonFinGroup);
-
-      // Jolteon Spiky Needle Quills Group
-      const jolteonSpikesGroup = new THREE.Group();
-      jolteonSpikesGroup.name = "JolteonSpikes";
-      jolteonSpikesGroup.visible = false;
-      const spikeMat = new THREE.MeshToonMaterial({ color: 0xFFFFFF });
-      const spikeGeo = new THREE.ConeGeometry(0.25, 1.1, 10);
-      for (let s = 0; s < 8; s++) {
-        const sp = new THREE.Mesh(spikeGeo, spikeMat);
-        const ang = (s / 8) * Math.PI * 2;
-        sp.position.set(Math.cos(ang) * 0.95, 0.1, Math.sin(ang) * 0.95);
-        sp.rotation.set(Math.sin(ang) * 0.8, 0, -Math.cos(ang) * 0.8);
-        jolteonSpikesGroup.add(sp);
-      }
-      ruffGroup.add(jolteonSpikesGroup);
-
-      // Espeon Psychic Gem
-      const gemGeo = new THREE.SphereGeometry(0.2, 16, 16);
-      const gemMat = new THREE.MeshStandardMaterial({
-        color: 0xFF1144,
-        emissive: 0xCC0022,
-        roughness: 0.1,
-        metalness: 0.9
-      });
-      const psychicGem = new THREE.Mesh(gemGeo, gemMat);
-      psychicGem.name = "PsychicGem";
-      psychicGem.position.set(0, 0.45, 0.94);
-      psychicGem.visible = false;
-      headGroup.add(psychicGem);
-
-      // Glaceon Dangling Diamond Ice Bangs & Headpiece
-      const glaceonIceGroup = new THREE.Group();
-      glaceonIceGroup.name = "GlaceonIce";
-      glaceonIceGroup.visible = false;
-      const iceMat = new THREE.MeshStandardMaterial({
-        color: 0x337799,
-        roughness: 0.2,
-        metalness: 0.3
-      });
-      const bangGeo = new THREE.ConeGeometry(0.22, 1.4, 6);
-      bangGeo.scale(1, 1, 0.4);
-      const bangL = new THREE.Mesh(bangGeo, iceMat);
-      bangL.position.set(-0.6, -0.4, 0.85);
-      bangL.rotation.z = 0.15;
-      const bangR = new THREE.Mesh(bangGeo, iceMat);
-      bangR.position.set(0.6, -0.4, 0.85);
-      bangR.rotation.z = -0.15;
-      glaceonIceGroup.add(bangL);
-      glaceonIceGroup.add(bangR);
-      headGroup.add(glaceonIceGroup);
-
-      // Leafeon Sprout Leaves
-      const leafeonSproutGroup = new THREE.Group();
-      leafeonSproutGroup.name = "LeafeonSprouts";
-      leafeonSproutGroup.visible = false;
-      const leafMat = new THREE.MeshToonMaterial({ color: 0x76B852 });
-      const leafGeo = new THREE.ConeGeometry(0.26, 1.2, 8);
-      leafGeo.scale(1, 1, 0.2);
-      const leafForehead = new THREE.Mesh(leafGeo, leafMat);
-      leafForehead.position.set(0, 0.85, 0.5);
-      leafForehead.rotation.set(-0.3, 0, 0.2);
-      leafeonSproutGroup.add(leafForehead);
-      headGroup.add(leafeonSproutGroup);
-
-      // Sylveon Butterfly Bows & Ribbons
-      const sylveonBowGroup = new THREE.Group();
-      sylveonBowGroup.name = "SylveonBows";
-      sylveonBowGroup.visible = false;
-      const bowMat = new THREE.MeshToonMaterial({ color: 0xFFAEC9 });
-      const ribbonCyanMat = new THREE.MeshToonMaterial({ color: 0x70CBF5 });
-
-      // Left Ear Bow
-      const bowLeft = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 12), bowMat);
-      bowLeft.scale.set(1.6, 0.8, 0.5);
-      bowLeft.position.set(-0.75, 0.6, 0.4);
-      sylveonBowGroup.add(bowLeft);
-
-      // Flowing Ribbons
-      const ribbonGeo = new THREE.CylinderGeometry(0.08, 0.14, 2.2, 8);
-      const ribbon1 = new THREE.Mesh(ribbonGeo, ribbonCyanMat);
-      ribbon1.position.set(-0.9, -0.4, 0.3);
-      ribbon1.rotation.set(0.2, 0, 0.35);
-      sylveonBowGroup.add(ribbon1);
-
-      const ribbon2 = new THREE.Mesh(ribbonGeo, bowMat);
-      ribbon2.position.set(-0.6, -0.5, 0.2);
-      ribbon2.rotation.set(0.1, 0, -0.2);
-      sylveonBowGroup.add(ribbon2);
-      headGroup.add(sylveonBowGroup);
-
-      // Umbreon Glowing Ring (Forehead)
-      const ringGeo = new THREE.TorusGeometry(0.24, 0.05, 12, 24);
-      const ringMat = new THREE.MeshBasicMaterial({ color: 0xFCE029 });
-      const umbreonRing = new THREE.Mesh(ringGeo, ringMat);
-      umbreonRing.name = "UmbreonRing";
-      umbreonRing.position.set(0, 0.48, 0.94);
-      umbreonRing.visible = false;
-      headGroup.add(umbreonRing);
-
-      bodyGroup.add(headGroup);
-      rig.add(bodyGroup);
-
-      // Store references for animation updates
       rig.userData = {
-        bodyGroup,
-        headGroup,
-        ruffGroup,
-        tailGroup,
-        tailBase,
-        tailTipMesh,
-        earGroupLeft,
-        earGroupRight,
-        paws,
-        tuftMesh,
-        vaporeonFinGroup,
-        jolteonSpikesGroup,
-        psychicGem,
-        glaceonIceGroup,
-        leafeonSproutGroup,
-        sylveonBowGroup,
-        umbreonRing,
-        baseMat,
-        ruffMat,
-        innerEarMat,
-        earMeshLeft,
-        earMeshRight,
+        models,
+        ...models[currentForm].userData,
         initialY: 0
       };
 
       return rig;
     }
 
-    /* ==========================================================================
-       5. MORPH TO ANY EEVEELUTION (THE MAGIC ANIME TRANSFORMATION)
-       ========================================================================== */
     function applyFormVisuals(formKey, shiny = false) {
       if (!eeveeRig) return;
-      const data = EEVEELUTION_DATA[formKey];
-      if (!data) return;
+      const models = eeveeRig.userData.models;
+      if (!models || !models[formKey]) return;
 
-      const u = eeveeRig.userData;
-      const mainColor = shiny ? data.colorShiny : data.colorNormal;
-      const ruffColor = shiny ? data.colorShinyRuff : data.colorRuff;
-
-      u.baseMat.color.setHex(mainColor);
-      u.ruffMat.color.setHex(ruffColor);
-
-      // Reset attachment visibility
-      u.vaporeonFinGroup.visible = (formKey === 'vaporeon');
-      u.jolteonSpikesGroup.visible = (formKey === 'jolteon');
-      u.psychicGem.visible = (formKey === 'espeon');
-      u.glaceonIceGroup.visible = (formKey === 'glaceon');
-      u.leafeonSproutGroup.visible = (formKey === 'leafeon');
-      u.sylveonBowGroup.visible = (formKey === 'sylveon');
-      u.umbreonRing.visible = (formKey === 'umbreon');
-
-      if (formKey === 'umbreon') {
-        const ringCol = shiny ? data.colorShinyRing : data.colorRing;
-        u.umbreonRing.material.color.setHex(ringCol);
+      // Only active model is visible
+      for (const [key, m] of Object.entries(models)) {
+        m.visible = (key === formKey);
       }
 
-      // Dynamic Form Geometry Modifications:
-      if (formKey === 'flareon') {
-        // Flareon gets 200% mega floof ruff & tail
-        u.ruffGroup.scale.set(1.5, 1.4, 1.5);
-        u.tailGroup.scale.set(1.45, 1.45, 1.45);
-        u.earGroupLeft.scale.set(1.0, 1.0, 1.0);
-      } else if (formKey === 'jolteon') {
-        // Jolteon gets spiky slender look & lightning tail
-        u.ruffGroup.scale.set(1.2, 0.95, 1.2);
-        u.tailGroup.scale.set(0.6, 0.6, 0.6);
-        u.earGroupLeft.scale.set(0.85, 1.3, 0.85);
-      } else if (formKey === 'espeon') {
-        // Sleek velvet lilac body, slender ears, split tail
-        u.ruffGroup.scale.set(0.65, 0.45, 0.65);
-        u.tailGroup.scale.set(0.55, 1.3, 0.55);
-        u.earGroupLeft.scale.set(0.95, 1.25, 0.9);
-      } else if (formKey === 'vaporeon') {
-        // Aquatic ruff fin & mermaid tail
-        u.ruffGroup.scale.set(1.15, 1.15, 1.15);
-        u.tailGroup.scale.set(1.3, 0.85, 1.6);
-        u.earGroupLeft.scale.set(0.85, 0.9, 0.85);
-      } else if (formKey === 'leafeon') {
-        // Leafy ears and tail
-        u.ruffGroup.scale.set(0.9, 0.8, 0.9);
-        u.tailGroup.scale.set(0.8, 1.4, 0.8);
-        u.earGroupLeft.scale.set(1.1, 1.2, 0.7);
-      } else if (formKey === 'glaceon') {
-        // Diamond ice bangs and sleek tail
-        u.ruffGroup.scale.set(0.85, 0.85, 0.85);
-        u.tailGroup.scale.set(0.75, 1.2, 0.75);
-        u.earGroupLeft.scale.set(0.9, 1.15, 0.8);
-      } else if (formKey === 'sylveon') {
-        // Fairy ribbons and petite tail
-        u.ruffGroup.scale.set(0.95, 0.9, 0.95);
-        u.tailGroup.scale.set(0.7, 0.8, 0.7);
-        u.earGroupLeft.scale.set(1.0, 1.2, 0.9);
-      } else {
-        // Standard Eevee dimensions
-        u.ruffGroup.scale.set(1, 1, 1);
-        u.tailGroup.scale.set(1, 1, 1);
-        u.earGroupLeft.scale.set(1, 1, 1);
+      // Update palette for normal vs shiny
+      const activeM = models[formKey];
+      if (activeM.userData.updatePalette) {
+        activeM.userData.updatePalette(shiny);
       }
 
-      // Ear geometry mirroring
-      u.earGroupRight.scale.copy(u.earGroupLeft.scale);
+      // Sync active model pointers to eeveeRig.userData so animation loop directly animates them
+      Object.assign(eeveeRig.userData, activeM.userData);
+
+      // Re-draw face canvas for this species eye colors and style
+      updateFaceExpression(currentEmotion);
     }
 
     function selectEeveelution(formKey) {
@@ -2261,16 +2198,22 @@
       document.getElementById('current-mode-label').textContent = mode === 'sandbox' ? "PLAYGROUND" : "ARCADE DASH";
 
       const sidePanel = document.getElementById('side-toy-panel');
+      const bottomDock = document.getElementById('bottom-dock');
+      const speechBubble = document.getElementById('speech-bubble');
       const arcadeHud = document.getElementById('arcade-hud');
       const arcadeHelp = document.getElementById('arcade-help');
 
       if (mode === 'arcade') {
         sidePanel.style.display = 'none';
+        if (bottomDock) bottomDock.style.display = 'none';
+        if (speechBubble) speechBubble.style.display = 'none';
         arcadeHud.style.display = 'flex';
         arcadeHelp.style.display = 'block';
         startArcadeGame();
       } else {
         sidePanel.style.display = 'flex';
+        if (bottomDock) bottomDock.style.display = 'block';
+        if (speechBubble) speechBubble.style.display = 'block';
         arcadeHud.style.display = 'none';
         arcadeHelp.style.display = 'none';
         stopArcadeGame();
@@ -2323,6 +2266,7 @@
 
       // Build Endless Bouncy Track
       if (sandboxFloor) sandboxFloor.visible = false;
+      if (sandboxMotes) sandboxMotes.visible = false;
       setupArcadeTrack();
     }
 
@@ -2334,6 +2278,7 @@
 
       // Restore sandbox platform floor
       if (sandboxFloor) sandboxFloor.visible = true;
+      if (sandboxMotes) sandboxMotes.visible = true;
 
       // Clear arcade items
       arcadeItems.forEach(item => scene.remove(item.mesh));
@@ -2497,7 +2442,7 @@
         eeveeRig.position.z = 0;
         // Bouncy running wobble
         eeveeRig.rotation.z = Math.sin(clock.getElapsedTime() * 14) * 0.08;
-        eeveeRig.rotation.y = (arcadeTargetX - arcadePlayerX) * -0.3;
+        eeveeRig.rotation.y = Math.PI + (arcadeTargetX - arcadePlayerX) * -0.3;
       }
 
       // Camera follows player smoothly
@@ -2717,7 +2662,7 @@
       scene.background = null; // transparent to allow rich CSS background gradient
 
       camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-      camera.position.set(0, 2.5, 6);
+      camera.position.set(0, 2.6, 7.8);
 
       renderer = new THREE.WebGLRenderer({
         canvas: canvas,
@@ -2735,16 +2680,16 @@
       controls.enableDamping = true;
       controls.dampingFactor = 0.06;
       controls.maxPolarAngle = Math.PI / 2 + 0.05;
-      controls.minDistance = 3.5;
-      controls.maxDistance = 12;
-      controls.target.set(0, 1.2, 0);
+      controls.minDistance = 4.0;
+      controls.maxDistance = 14;
+      controls.target.set(0, 1.35, 0);
 
-      // Soft Warm Studio Lighting
-      const ambientLight = new THREE.AmbientLight(0xFFF6EE, 0.95);
-      scene.add(ambientLight);
+      // Studio Lighting: Rich Hemisphere for vibrant toon ambient shading + Warm Key Sun + Cool Back-Rim Light
+      const hemiLight = new THREE.HemisphereLight(0xFFF2E6, 0x55667D, 0.45);
+      scene.add(hemiLight);
 
-      const mainSun = new THREE.DirectionalLight(0xFFFAF0, 1.1);
-      mainSun.position.set(5, 10, 6);
+      const mainSun = new THREE.DirectionalLight(0xFFFAF2, 0.85);
+      mainSun.position.set(5, 11, 6);
       mainSun.castShadow = true;
       mainSun.shadow.mapSize.width = 2048;
       mainSun.shadow.mapSize.height = 2048;
@@ -2753,22 +2698,115 @@
       mainSun.shadow.bias = -0.0005;
       scene.add(mainSun);
 
-      const softRimLight = new THREE.DirectionalLight(0xAED8F2, 0.6);
-      softRimLight.position.set(-6, 4, -4);
+      const softRimLight = new THREE.DirectionalLight(0x82C8FF, 0.45);
+      softRimLight.position.set(-6, 4.5, -4);
       scene.add(softRimLight);
 
-      // Floor Platform (Floating pastel disc in Sandbox mode)
-      const floorGeo = new THREE.CylinderGeometry(5.2, 5.5, 0.4, 48);
-      const floorMat = new THREE.MeshToonMaterial({
-        color: 0xFFF9F2,
-        roughness: 0.9
+      const warmUnderLight = new THREE.DirectionalLight(0xFFDFC0, 0.22);
+      warmUnderLight.position.set(3, -4, 2);
+      scene.add(warmUnderLight);
+
+      // Stylized Floating Island Pedestal (Lush layered meadow + carved stone base + soft contact shadow)
+      const islandGroup = new THREE.Group();
+      islandGroup.name = "FloatingPedestal";
+
+      // 1. Carved Sandstone Base
+      const stoneGeo = new THREE.CylinderGeometry(5.2, 5.6, 0.5, 48);
+      const stoneMat = new THREE.MeshToonMaterial({ color: 0xDCD4CA, roughness: 0.85 });
+      const stoneMesh = new THREE.Mesh(stoneGeo, stoneMat);
+      stoneMesh.position.y = -0.35;
+      stoneMesh.receiveShadow = true;
+      islandGroup.add(stoneMesh);
+
+      // Stone rim bevel
+      const rimGeo = new THREE.TorusGeometry(5.2, 0.12, 12, 48);
+      const rimMesh = new THREE.Mesh(rimGeo, stoneMat);
+      rimMesh.rotation.x = Math.PI / 2;
+      rimMesh.position.y = -0.1;
+      islandGroup.add(rimMesh);
+
+      // 2. Vibrant Anime Grass Top Cap (Surface rests flush at y = 0.0)
+      const grassGeo = new THREE.CylinderGeometry(5.12, 5.18, 0.2, 48);
+      const grassMat = new THREE.MeshToonMaterial({ color: 0x76CE48, roughness: 0.8 });
+      const grassMesh = new THREE.Mesh(grassGeo, grassMat);
+      grassMesh.position.y = -0.1;
+      grassMesh.receiveShadow = true;
+      islandGroup.add(grassMesh);
+
+      // 3. Soft Dark Contact Shadow Disc under character
+      const shadowGeo = new THREE.CircleGeometry(2.1, 32);
+      const shadowMat = new THREE.MeshBasicMaterial({
+        color: 0x1A2E20,
+        transparent: true,
+        opacity: 0.28,
+        depthWrite: false
       });
-      const floorMesh = new THREE.Mesh(floorGeo, floorMat);
-      floorMesh.position.y = -0.2;
-      floorMesh.receiveShadow = true;
-      scene.add(floorMesh);
-      environmentDecor.push(floorMesh);
-      sandboxFloor = floorMesh;
+      const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+      shadowMesh.rotation.x = -Math.PI / 2;
+      shadowMesh.position.y = 0.005;
+      islandGroup.add(shadowMesh);
+
+      // 4. Decorative Inlaid Cobblestones & Tiny Daisy Tufts
+      const pebbleMat = new THREE.MeshToonMaterial({ color: 0xBFB6A8 });
+      const petalMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+      const centerMat = new THREE.MeshBasicMaterial({ color: 0xFFD23F });
+
+      const pebblePositions = [
+        [-2.8, -1.2, 0.5], [-2.3, -1.8, 0.4], [2.6, 1.4, 0.45], [3.1, 0.8, 0.35],
+        [-1.6, 3.2, 0.38], [1.2, 3.4, 0.42], [3.4, -2.1, 0.4]
+      ];
+      pebblePositions.forEach(([px, pz, r]) => {
+        const peb = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.1, 0.04, 12), pebbleMat);
+        peb.position.set(px, 0.015, pz);
+        peb.receiveShadow = true;
+        islandGroup.add(peb);
+      });
+
+      // Tiny field daisies
+      const flowerPositions = [
+        [-3.2, 1.2], [-3.0, 2.1], [3.2, -1.1], [2.8, -2.4], [-1.8, -3.2], [2.2, 2.9]
+      ];
+      flowerPositions.forEach(([fx, fz]) => {
+        const flower = new THREE.Group();
+        flower.position.set(fx, 0.02, fz);
+        const center = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), centerMat);
+        flower.add(center);
+        for (let p = 0; p < 5; p++) {
+          const ang = (p / 5) * Math.PI * 2;
+          const petal = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 6), petalMat);
+          petal.geometry.scale(1.6, 0.5, 1.0);
+          petal.position.set(Math.cos(ang) * 0.1, 0, Math.sin(ang) * 0.1);
+          petal.rotation.y = -ang;
+          flower.add(petal);
+        }
+        islandGroup.add(flower);
+      });
+
+      scene.add(islandGroup);
+      environmentDecor.push(islandGroup);
+      sandboxFloor = islandGroup;
+
+      // 5. Magical Ambient Sparkle / Dust Motes
+      const moteGeo = new THREE.BufferGeometry();
+      const moteCount = 45;
+      const moteCoords = new Float32Array(moteCount * 3);
+      for (let i = 0; i < moteCount; i++) {
+        moteCoords[i * 3] = (Math.random() - 0.5) * 10;
+        moteCoords[i * 3 + 1] = 0.5 + Math.random() * 4.5;
+        moteCoords[i * 3 + 2] = (Math.random() - 0.5) * 10;
+      }
+      moteGeo.setAttribute('position', new THREE.BufferAttribute(moteCoords, 3));
+      const moteMat = new THREE.PointsMaterial({
+        color: 0xFFF3C7,
+        size: 0.12,
+        transparent: true,
+        opacity: 0.65,
+        blending: THREE.AdditiveBlending
+      });
+      const ambientMotes = new THREE.Points(moteGeo, moteMat);
+      scene.add(ambientMotes);
+      environmentDecor.push(ambientMotes);
+      sandboxMotes = ambientMotes;
 
       // Decorative Floating Clouds
       for (let i = 0; i < 6; i++) {
@@ -2785,6 +2823,7 @@
       // Initialize Face Texture & Character Rig
       initFaceTexture();
       eeveeRig = createEeveeRig();
+      window.eeveeRig = eeveeRig;
       scene.add(eeveeRig);
 
       // Click/Petting Raycaster on Eevee
@@ -2916,18 +2955,41 @@
         u.tailGroup.rotation.x = 0.1 + Math.sin(elapsed * (wagSpeed * 0.5)) * 0.15;
 
         // Form-specific dynamic shader & attachment animations
-        if (currentForm === 'espeon' && u.psychicGem && u.psychicGem.visible) {
+        if (currentForm === 'espeon' && u.psychicGem) {
           const pulse = (Math.sin(elapsed * 6) + 1) * 0.5;
           u.psychicGem.material.emissiveIntensity = 0.6 + pulse * 1.5;
-        } else if (currentForm === 'umbreon' && u.umbreonRing && u.umbreonRing.visible) {
+        } else if (currentForm === 'umbreon' && u.umbreonRingMat) {
           const ringPulse = (Math.sin(elapsed * 4) + 1) * 0.5;
-          u.umbreonRing.material.color.setHSL(isShiny ? 0.52 : 0.14, 1.0, 0.4 + ringPulse * 0.45);
-        } else if (currentForm === 'jolteon' && u.jolteonSpikesGroup && u.jolteonSpikesGroup.visible) {
-          u.jolteonSpikesGroup.rotation.y = (Math.random() - 0.5) * 0.08;
-        } else if (currentForm === 'sylveon' && u.sylveonBowGroup && u.sylveonBowGroup.visible) {
-          u.sylveonBowGroup.children.forEach((c, idx) => {
-            if (idx > 0) c.rotation.z = Math.sin(elapsed * 4 + idx) * 0.22;
+          if (isShiny) {
+            u.umbreonRingMat.color.setHSL(0.52, 1.0, 0.45 + ringPulse * 0.35);
+          } else {
+            u.umbreonRingMat.color.setHSL(0.14, 1.0, 0.45 + ringPulse * 0.35);
+          }
+        } else if (currentForm === 'jolteon' && u.jolteonSpikesGroup) {
+          u.jolteonSpikesGroup.rotation.y = (Math.random() - 0.5) * 0.04;
+        } else if (currentForm === 'sylveon' && u.sylveonRibbons) {
+          u.sylveonRibbons.forEach((rib, idx) => {
+            rib.rotation.z = Math.sin(elapsed * 3.2 + idx * 1.4) * 0.26;
+            rib.rotation.x = Math.cos(elapsed * 2.5 + idx) * 0.16;
           });
+        } else if (currentForm === 'vaporeon' && u.vaporeonFluke) {
+          u.vaporeonFluke.rotation.x = -0.35 + Math.sin(elapsed * 3.5) * 0.18;
+        } else if (currentForm === 'glaceon' && u.glaceonBangs) {
+          u.glaceonBangs.forEach((bang, idx) => {
+            const sign = idx === 0 ? 1 : -1;
+            bang.rotation.z = sign * 0.15 + Math.sin(elapsed * 3 + idx) * 0.08;
+          });
+        }
+
+        // Drift Ambient Sparkle Motes
+        if (sandboxMotes && sandboxFloor && sandboxFloor.visible) {
+          const pos = sandboxMotes.geometry.attributes.position.array;
+          for (let i = 0; i < pos.length; i += 3) {
+            pos[i + 1] += Math.sin(elapsed * 1.5 + i) * 0.003 + 0.002;
+            pos[i] += Math.cos(elapsed * 0.8 + i) * 0.002;
+            if (pos[i + 1] > 5.2) pos[i + 1] = 0.4;
+          }
+          sandboxMotes.geometry.attributes.position.needsUpdate = true;
         }
 
         // Head tracking / Treat hunger look
@@ -3102,12 +3164,50 @@
       spawnEvolutionParticles(formKey || currentForm);
     }
 
+    // Expose eeveeApp for runtime inspection & programmatic testing
+    window.eeveeApp = {
+      get currentForm() { return currentForm; },
+      get isShiny() { return isShiny; },
+      get activeGameMode() { return activeGameMode; },
+      get isLoafMode() { return isLoafMode; },
+      get isDiscoMode() { return isDiscoMode; },
+      get isVacuumPanicking() { return isVacuumPanicking; },
+      get treats() { return treats; },
+      get treatHungerAngle() { return treatHungerAngle; },
+      get arcadeRunning() { return arcadeRunning; },
+      get arcadeTrackTiles() { return arcadeTrackTiles; },
+      get arcadeJumpY() { return arcadeJumpY; },
+      get arcadeScore() { return arcadeScore; },
+      get currentEmotion() { return currentEmotion; },
+      get eeveeRig() { return eeveeRig; },
+      get sandboxFloor() { return sandboxFloor; },
+      get sandboxMotes() { return sandboxMotes; },
+      get renderer() { return renderer; },
+      get scene() { return scene; },
+      get camera() { return camera; },
+      selectEeveelution,
+      toggleShinyMode,
+      updateFaceExpression,
+      triggerLoafMode,
+      triggerDerpMode,
+      triggerDiscoDance,
+      startArcadeGame,
+      stopArcadeGame,
+      startApp
+    };
+
     // Start Everything when DOM is Ready
-    window.addEventListener('DOMContentLoaded', () => {
+    function startApp() {
+      if (eeveeRig) return;
       initThreeScene();
       animate();
       updateFactSheet('eevee');
-    });
+    }
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', startApp);
+    } else {
+      startApp();
+    }
   </script>
 </body>
 </html>

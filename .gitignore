@@ -1,0 +1,23 @@
+# Environment / secrets
+.env
+*.env.local
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Dev scratch files
+fresh_load.png
+index_inlined.html
+min_test.html
+noscript_test.html
+test.html
+test_gltf.html
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Node (if any)
+node_modules/

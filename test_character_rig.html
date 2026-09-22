@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Character Model Rig Test</title>
+  <script src="libs/three.min.js"></script>
+  <script src="libs/OrbitControls.js"></script>
+  <script src="libs/GLTFLoader.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; background: #222; }
+    #canvas { width: 100vw; height: 100vh; display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <script>
+    window.allLoaded = false;
+    window.modelWrappers = {};
+    
+    const canvas = document.getElementById('canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xF0EBF4);
+
+    const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(2.2, 1.8, 3.2);
+
+    const controls = new THREE.OrbitControls(camera, canvas);
+    controls.target.set(0, 0.65, 0);
+    controls.update();
+
+    // Studio Lighting
+    const hemiLight = new THREE.HemisphereLight(0xfff7ed, 0x887799, 1.2);
+    scene.add(hemiLight);
+
+    const sun = new THREE.DirectionalLight(0xfffaee, 1.8);
+    sun.position.set(4, 8, 5);
+    scene.add(sun);
+
+    const fill = new THREE.DirectionalLight(0xddeeff, 0.8);
+    fill.position.set(-5, 4, -3);
+    scene.add(fill);
+
+    const rim = new THREE.DirectionalLight(0xffeedd, 1.2);
+    rim.position.set(0, 3, -5);
+    scene.add(rim);
+
+    // Ground disk
+    const groundGeo = new THREE.CylinderGeometry(2.5, 2.5, 0.04, 64);
+    const groundMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.7, metalness: 0.05 });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.position.y = -0.02;
+    scene.add(ground);
+
+    const speciesList = ['eevee', 'vaporeon', 'jolteon', 'flareon', 'espeon', 'umbreon', 'leafeon', 'glaceon', 'sylveon'];
+    const loader = new THREE.GLTFLoader();
+
+    function findBone(root, patterns) {
+      let found = null;
+      root.traverse(c => {
+        if (!found && c.isBone) {
+          const name = c.name.toLowerCase();
+          for (const p of patterns) {
+            if (p.test(name)) {
+              found = c;
+              break;
+            }
+          }
+        }
+      });
+      return found;
+    }
+
+    Promise.all(speciesList.map(sp => {
+      return new Promise((resolve) => {
+        loader.load(`assets/models/${sp}.glb`, (gltf) => {
+          const raw = gltf.scene;
+          const wrapper = new THREE.Group();
+          wrapper.name = `${sp}_wrapper`;
+
+          const inner = new THREE.Group();
+          inner.name = `${sp}_inner`;
+          inner.add(raw);
+          wrapper.add(inner);
+
+          // Measure raw bounds
+          const box = new THREE.Box3().setFromObject(raw);
+          const size = new THREE.Vector3();
+          box.getSize(size);
+          const center = new THREE.Vector3();
+          box.getCenter(center);
+
+          const targetH = sp === 'eevee' ? 0.95 : 1.35;
+          const s = targetH / (size.y || 1);
+          raw.scale.setScalar(s);
+          raw.position.x = -center.x * s;
+          raw.position.y = -box.min.y * s;
+          raw.position.z = -center.z * s;
+
+          // Compute spine direction from waist/origin to head and align to +Z
+          let headObj = findBone(raw, [/head/, /nose/]);
+          let tailObj = findBone(raw, [/tail/]);
+          let waistObj = findBone(raw, [/waist/, /origin/, /spine/]);
+
+          wrapper.updateMatrixWorld(true);
+          if (headObj && waistObj) {
+            const headPos = new THREE.Vector3();
+            const waistPos = new THREE.Vector3();
+            headObj.getWorldPosition(headPos);
+            waistObj.getWorldPosition(waistPos);
+            const angle = Math.atan2(headPos.x - waistPos.x, headPos.z - waistPos.z);
+            wrapper.rotation.y = -angle;
+          }
+
+          // Tune materials for toon / PBR studio look
+          raw.traverse(c => {
+            if (c.isMesh) {
+              c.castShadow = true;
+              c.receiveShadow = true;
+              if (c.material) {
+                const mats = Array.isArray(c.material) ? c.material : [c.material];
+                mats.forEach(m => {
+                  m.roughness = 0.55;
+                  m.metalness = 0.05;
+                  if (m.map) m.map.encoding = THREE.sRGBEncoding;
+                });
+              }
+            }
+          });
+
+          // Store pointers
+          wrapper.userData = {
+            inner,
+            raw,
+            head: headObj,
+            tail: tailObj,
+            leftEar: findBone(raw, [/lear/, /ear.*l/, /left.*ear/]),
+            rightEar: findBone(raw, [/rear/, /ear.*r/, /right.*ear/]),
+            spine: findBone(raw, [/waist/, /spine/, /origin/]),
+          };
+
+          wrapper.visible = (sp === 'eevee');
+          scene.add(wrapper);
+          window.modelWrappers[sp] = wrapper;
+          resolve();
+        });
+      });
+    })).then(() => {
+      window.allLoaded = true;
+      console.log("All 9 character rigs created successfully!");
+    });
+
+    window.showSpecies = function(sp) {
+      for (const [k, w] of Object.entries(window.modelWrappers)) {
+        w.visible = (k === sp);
+      }
+    };
+
+    window.setCameraAngle = function(angle) {
+      if (angle === 'front34') {
+        camera.position.set(2.0, 1.4, 2.5);
+        controls.target.set(0, 0.6, 0);
+      } else if (angle === 'side') {
+        camera.position.set(3.0, 1.2, 0.0);
+        controls.target.set(0, 0.6, 0);
+      } else if (angle === 'rear34') {
+        camera.position.set(-2.0, 1.4, -2.5);
+        controls.target.set(0, 0.6, 0);
+      }
+      controls.update();
+      renderer.render(scene, camera);
+    };
+
+    let clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const elapsed = clock.getElapsedTime();
+
+      // Animate active visible model
+      for (const [sp, w] of Object.entries(window.modelWrappers)) {
+        if (w.visible) {
+          const u = w.userData;
+          // Idle breathing
+          const breath = Math.sin(elapsed * 2.8) * 0.02;
+          u.inner.scale.set(1.0 + breath * 0.5, 1.0 + breath, 1.0 + breath * 0.5);
+
+          // Gentle tail wag
+          if (u.tail) {
+            u.tail.rotation.y = Math.sin(elapsed * 5) * 0.35;
+          }
+          // Ear twitch
+          if (u.leftEar) {
+            u.leftEar.rotation.z = Math.sin(elapsed * 3.5) * 0.08;
+          }
+          if (u.rightEar) {
+            u.rightEar.rotation.z = -Math.sin(elapsed * 3.5) * 0.08;
+          }
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>
