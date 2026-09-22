@@ -195,6 +195,7 @@
       this.state = null;
       this.elapsedSinceState = Infinity;
       this.suspended = false;
+      this.manualLighting = false;
     }
 
     enterRoom(roomId, built) {
@@ -209,6 +210,22 @@
       this.suspended = !!value;
       if (this.suspended && this.scene) this.scene.fog = null;
       else if (!this.suspended && this.state) this._applyState(this.state);
+    }
+
+    setManualLighting(value) {
+      this.manualLighting = !!value;
+      if (this.state && !this.suspended) this._applyState(this.state);
+    }
+
+    leaveRoom(built) {
+      if (built && this.built && built !== this.built) return false;
+      if (this.scene) this.scene.fog = null;
+      this.roomId = null;
+      this.built = null;
+      this.state = null;
+      this.elapsedSinceState = Infinity;
+      this.manualLighting = false;
+      return true;
     }
 
     _ensureLivingLayer() {
@@ -245,13 +262,15 @@
       }
       root.add(weather);
       this.built.group.add(root);
-      this.built.phase7Living = { root, vista, life, weather, materials: [vistaMat, lifeMat, weatherMat], geometries: [lifeGeo, weatherGeo] };
+      const targetBuilt = this.built;
+      const livingLayer = { root, vista, life, weather, materials: [vistaMat, lifeMat, weatherMat], geometries: [lifeGeo, weatherGeo] };
+      targetBuilt.phase7Living = livingLayer;
 
-      const priorDispose = this.built.disposeExtra ? this.built.disposeExtra.bind(this.built) : null;
-      this.built.disposeExtra = () => {
-        this.built.phase7Living.materials.forEach(m => m.dispose());
-        this.built.phase7Living.geometries.forEach(g => g.dispose());
-        if (vista.geometry) vista.geometry.dispose();
+      const priorDispose = targetBuilt.disposeExtra ? targetBuilt.disposeExtra.bind(targetBuilt) : null;
+      targetBuilt.disposeExtra = () => {
+        livingLayer.materials.forEach(m => { if (m && m.dispose) m.dispose(); });
+        livingLayer.geometries.forEach(g => { if (g && g.dispose) g.dispose(); });
+        if (vista.geometry && vista.geometry.dispose) vista.geometry.dispose();
         if (priorDispose) priorDispose();
       };
     }
@@ -290,10 +309,12 @@
       }
 
       const lights = this.built.lights || [];
-      if (lights[0]) lights[0].intensity = style.hemi * mod.light;
-      if (lights[1]) {
-        lights[1].color.setHex(style.key);
-        lights[1].intensity = style.keyIntensity * mod.light;
+      if (!this.manualLighting) {
+        if (lights[0]) lights[0].intensity = style.hemi * mod.light;
+        if (lights[1]) {
+          lights[1].color.setHex(style.key);
+          lights[1].intensity = style.keyIntensity * mod.light;
+        }
       }
       if (this.scene && THREE.FogExp2) this.scene.fog = new THREE.FogExp2(style.fog, mod.fog);
       if (this.audioDirector) this.audioDirector.apply(state);
