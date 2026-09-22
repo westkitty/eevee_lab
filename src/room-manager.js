@@ -9,7 +9,7 @@
   const THREE = global.THREE;
 
   class RoomManager {
-    constructor({ scene, save, discoveryLog, resonance, cameraController, worldState, onRoomEnter, onDoorTravelRequested, onDiscovery, roomLabel }) {
+    constructor({ scene, save, discoveryLog, resonance, cameraController, worldState, onRoomEnter, onDoorTravelRequested, onEvolutionRequested, onDiscovery, roomLabel }) {
       this.scene = scene;
       this.save = save;
       this.discoveryLog = discoveryLog;
@@ -18,6 +18,7 @@
       this.worldState = worldState || null;
       this.onRoomEnter = onRoomEnter || function () {};
       this.onDoorTravelRequested = onDoorTravelRequested || null;
+      this.onEvolutionRequested = onEvolutionRequested || null;
       this.roomLabel = roomLabel || (id => id);
 
       this.current = null; // { def, built, id, atmosphereIndex }
@@ -28,6 +29,7 @@
       return {
         goTo: (targetId) => this.goTo(targetId),
         requestDoor: (targetId, doorObject) => this.requestDoor(targetId, doorObject),
+        requestEvolution: (targetSpecies, stoneObject) => this.requestEvolution(targetSpecies, stoneObject),
         roomLabel: this.roomLabel,
         onRoomProp: (roomId2, detail) => {
           this.resonance.bump(roomId2, 0.08);
@@ -90,6 +92,27 @@
       return true;
     }
 
+    requestEvolution(targetSpecies, stoneObject) {
+      if (!targetSpecies || !stoneObject || !this.onEvolutionRequested) return false;
+      return this.onEvolutionRequested({
+        targetSpecies,
+        stoneObject,
+        roomId: this.current ? this.current.id : null
+      }) !== false;
+    }
+
+    getAbilityTargets() {
+      return this.current && Array.isArray(this.current.built.abilityTargets)
+        ? this.current.built.abilityTargets.slice()
+        : [];
+    }
+
+    applyAbilityMutation(mutation) {
+      if (!this.current || !mutation || mutation.roomId !== this.current.id) return false;
+      if (!this.current.built.applyAbilityMutation) return false;
+      return this.current.built.applyAbilityMutation(mutation);
+    }
+
     capturePlacement(object) {
       if (!this.current || !this.worldState || !object || !object.userData || !object.userData.placeableId) return null;
       return this.worldState.savePlacement(this.current.id, object.userData.placeableId, {
@@ -126,6 +149,7 @@
       this._applyRoomMemory(memory);
       this._applyPlacements(roomId);
       this._applyNarrativeState(roomId, narrativeState);
+      this._applyAbilityMutations(roomId);
       this._applyCrossContamination(roomId);
       if (roomId === 'conservatory' && this.worldState && built.applyHistory) {
         built.applyHistory(this.worldState.getHistorySummary());
@@ -218,6 +242,13 @@
       if (roomId === 'conservatory' && this.worldState && this.current.built.applyHistory) {
         this.current.built.applyHistory(this.worldState.getHistorySummary());
       }
+    }
+
+    _applyAbilityMutations(roomId) {
+      if (!this.current || !this.worldState || !this.current.built.applyAbilityMutation) return;
+      this.worldState.listAbilityMutations(roomId).forEach(mutation => {
+        this.current.built.applyAbilityMutation(mutation);
+      });
     }
 
     _applyCrossContamination(roomId) {
