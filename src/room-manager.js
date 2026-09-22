@@ -9,13 +9,14 @@
   const THREE = global.THREE;
 
   class RoomManager {
-    constructor({ scene, save, discoveryLog, resonance, cameraController, worldState, onRoomEnter, onDoorTravelRequested, onEvolutionRequested, onDiscovery, roomLabel }) {
+    constructor({ scene, save, discoveryLog, resonance, cameraController, worldState, livingWorld, onRoomEnter, onDoorTravelRequested, onEvolutionRequested, onDiscovery, roomLabel }) {
       this.scene = scene;
       this.save = save;
       this.discoveryLog = discoveryLog;
       this.resonance = resonance;
       this.cameraController = cameraController;
       this.worldState = worldState || null;
+      this.livingWorld = livingWorld || null;
       this.onRoomEnter = onRoomEnter || function () {};
       this.onDoorTravelRequested = onDoorTravelRequested || null;
       this.onEvolutionRequested = onEvolutionRequested || null;
@@ -144,6 +145,13 @@
       this.current = { id: roomId, def, built, atmosphereIndex: Math.max(0, variantIdx), narrativeState };
       this._applyAtmosphere(this.current.atmosphereIndex);
 
+      // Phase 7 atmosphere is room-bound and layered after the user's manual
+      // atmosphere baseline so unlocked variants keep their lighting authority.
+      if (this.livingWorld) {
+        this.livingWorld.enterRoom(roomId, built);
+        this.livingWorld.setManualLighting(this.current.atmosphereIndex > 0);
+      }
+
       // Apply legacy symbolic memory plus Phase-5 semantic world state.
       const memory = this.save.get(`roomMemory.${roomId}`, {});
       this._applyRoomMemory(memory);
@@ -192,6 +200,7 @@
       if (variant.keyColor != null && lights[1]) lights[1].color.set(variant.keyColor);
       if (variant.keyIntensity != null && lights[1]) lights[1].intensity = variant.keyIntensity;
       this.current.atmosphereIndex = idx;
+      if (this.livingWorld) this.livingWorld.setManualLighting(idx > 0);
     }
 
     setAtmosphere(variantId) {
@@ -292,11 +301,13 @@
 
     update(dt, elapsed) {
       if (this.current && this.current.built.update) this.current.built.update(dt, elapsed);
+      if (this.livingWorld) this.livingWorld.update(dt, elapsed);
     }
 
     _disposeCurrent() {
       if (!this.current) return;
       const { built } = this.current;
+      if (this.livingWorld) this.livingWorld.leaveRoom(built);
       built.particleFields.forEach(pf => pf.dispose());
       built.lights.forEach(l => this.scene.remove(l));
       built.group.traverse(c => { if (c.isMesh) c.geometry.dispose(); });
