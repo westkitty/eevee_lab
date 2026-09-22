@@ -6,7 +6,7 @@
   'use strict';
 
   const SAVE_KEY = 'eevee_habitat_save';
-  const SAVE_VERSION = 2;
+  const SAVE_VERSION = 3;
   const LEGACY_HIGHSCORE_KEY = 'eevee_dash_highscore';
 
   function defaultState() {
@@ -41,6 +41,7 @@
       roomMemory: {},               // legacy + small bounded symbolic flags
       roomNarrative: {},            // roomId -> bounded semantic narrative counters/state
       placedObjects: {},            // roomId -> objectId -> {x,y,z,ry}; never scene serialization
+      abilityMutations: {},         // roomId -> targetId -> semantic species ability result
       crossContamination: {},       // roomId -> [{id,originRoom,originEvent,objectType,destinationRoom}]
       album: []                    // [{id, form, room, score, timestamp, dataSize}]
     };
@@ -95,8 +96,15 @@
       state.crossContamination = normalizeLegacyCrossContamination(raw.crossContamination || {});
     }
 
+    if (!raw.version || raw.version < 3) {
+      state.abilityMutations = (raw.abilityMutations && typeof raw.abilityMutations === 'object' && !Array.isArray(raw.abilityMutations))
+        ? raw.abilityMutations
+        : {};
+    }
+
     if (!state.roomNarrative || typeof state.roomNarrative !== 'object' || Array.isArray(state.roomNarrative)) state.roomNarrative = {};
     if (!state.placedObjects || typeof state.placedObjects !== 'object' || Array.isArray(state.placedObjects)) state.placedObjects = {};
+    if (!state.abilityMutations || typeof state.abilityMutations !== 'object' || Array.isArray(state.abilityMutations)) state.abilityMutations = {};
     state.crossContamination = normalizeLegacyCrossContamination(state.crossContamination || {});
     state.version = SAVE_VERSION;
     return state;
