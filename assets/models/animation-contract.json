@@ -1,0 +1,264 @@
+{
+  "schema_version": 1,
+  "generated_on": "2026-09-21",
+  "baseline_commit": "661a37bc7f86e5ff2b7da28d02e8c44ad696e007",
+  "purpose": "Stable semantic animation vocabulary for CreatureActor work. Raw clips remain unclassified until visual evidence supports a mapping.",
+  "semantic_slots": [
+    "idle",
+    "walk",
+    "trot",
+    "sit",
+    "lie",
+    "sleep",
+    "wake",
+    "groom",
+    "stretch",
+    "play",
+    "eat",
+    "reaction"
+  ],
+  "rules": [
+    "Never infer semantic meaning from opaque Blender action names.",
+    "A null slot is valid and must fall back to procedural or authored behavior.",
+    "Locomotion root translation, if a classified source clip contains it, must be stripped or ignored so LocomotionController owns world movement.",
+    "Crossfades and playback belong to AnimationMixer/AnimationController; game logic must request semantic slots rather than raw clip names."
+  ],
+  "species": {
+    "eevee": {
+      "raw_clips": [
+        "Armature.003Action",
+        "Armature.005Action",
+        "Armature.007Action",
+        "Armature.008Action",
+        "Armature.011Action",
+        "Armature.012Action",
+        "ArmatureAction"
+      ],
+      "raw_clip_inventory_state": "verified",
+      "classification_state": "needs_visual_classification",
+      "slots": {
+        "idle": null,
+        "walk": null,
+        "trot": null,
+        "sit": null,
+        "lie": null,
+        "sleep": null,
+        "wake": null,
+        "groom": null,
+        "stretch": null,
+        "play": null,
+        "eat": null,
+        "reaction": null
+      },
+      "fallback": "procedural_until_semantic_clip_is_classified"
+    },
+    "vaporeon": {
+      "raw_clips": [],
+      "raw_clip_inventory_state": "verified_none",
+      "classification_state": "no_embedded_clips",
+      "slots": {
+        "idle": null,
+        "walk": null,
+        "trot": null,
+        "sit": null,
+        "lie": null,
+        "sleep": null,
+        "wake": null,
+        "groom": null,
+        "stretch": null,
+        "play": null,
+        "eat": null,
+        "reaction": null
+      },
+      "fallback": "procedural_or_retargeted_clip_required"
+    },
+    "jolteon": {
+      "raw_clips": [
+        "Armature.003Action",
+        "Armature.005Action",
+        "Armature.007Action",
+        "Armature.008Action",
+        "Armature.011Action",
+        "Armature.012Action",
+        "ArmatureAction"
+      ],
+      "raw_clip_inventory_state": "verified",
+      "classification_state": "needs_visual_classification",
+      "slots": {
+        "idle": null,
+        "walk": null,
+        "trot": null,
+        "sit": null,
+        "lie": null,
+        "sleep": null,
+        "wake": null,
+        "groom": null,
+        "stretch": null,
+        "play": null,
+        "eat": null,
+        "reaction": null
+      },
+      "fallback": "procedural_until_semantic_clip_is_classified"
+    },
+    "flareon": {
+      "raw_clips": [
+        "Armature.003Action",
+        "Armature.005Action",
+        "Armature.007Action",
+        "Armature.008Action",
+        "Armature.011Action",
+        "Armature.012Action",
+        "ArmatureAction"
+      ],
+      "raw_clip_inventory_state": "verified",
+      "classification_state": "needs_visual_classification",
+      "slots": {
+        "idle": null,
+        "walk": null,
+        "trot": null,
+        "sit": null,
+        "lie": null,
+        "sleep": null,
+        "wake": null,
+        "groom": null,
+        "stretch": null,
+        "play": null,
+        "eat": null,
+        "reaction": null
+      },
+      "fallback": "procedural_until_semantic_clip_is_classified"
+    },
+    "espeon": {
+      "raw_clips": [
+        "Armature.003Action",
+        "Armature.005Action",
+        "Armature.007Action",
+        "Armature.008Action",
+        "Armature.011Action",
+        "Armature.012Action",
+        "ArmatureAction"
+      ],
+      "raw_clip_inventory_state": "verified",
+      "classification_state": "needs_visual_classification",
+      "slots": {
+        "idle": null,
+        "walk": null,
+        "trot": null,
+        "sit": null,
+        "lie": null,
+        "sleep": null,
+        "wake": null,
+        "groom": null,
+        "stretch": null,
+        "play": null,
+        "eat": null,
+        "reaction": null
+      },
+      "fallback": "procedural_until_semantic_clip_is_classified"
+    },
+    "umbreon": {
+      "raw_clips": null,
+      "raw_clip_inventory_state": "unverified_large_blob",
+      "classification_state": "await_local_manifest_regeneration",
+      "slots": {
+        "idle": null,
+        "walk": null,
+        "trot": null,
+        "sit": null,
+        "lie": null,
+        "sleep": null,
+        "wake": null,
+        "groom": null,
+        "stretch": null,
+        "play": null,
+        "eat": null,
+        "reaction": null
+      },
+      "fallback": "procedural_until_semantic_clip_is_classified"
+    },
+    "leafeon": {
+      "raw_clips": [
+        "Armature.003Action",
+        "Armature.005Action",
+        "Armature.007Action",
+        "Armature.008Action",
+        "Armature.011Action",
+        "Armature.012Action",
+        "ArmatureAction"
+      ],
+      "raw_clip_inventory_state": "verified",
+      "classification_state": "needs_visual_classification",
+      "slots": {
+        "idle": null,
+        "walk": null,
+        "trot": null,
+        "sit": null,
+        "lie": null,
+        "sleep": null,
+        "wake": null,
+        "groom": null,
+        "stretch": null,
+        "play": null,
+        "eat": null,
+        "reaction": null
+      },
+      "fallback": "procedural_until_semantic_clip_is_classified"
+    },
+    "glaceon": {
+      "raw_clips": [
+        "Armature.003Action",
+        "Armature.005Action",
+        "Armature.007Action",
+        "Armature.008Action",
+        "Armature.011Action",
+        "Armature.012Action",
+        "ArmatureAction"
+      ],
+      "raw_clip_inventory_state": "verified",
+      "classification_state": "needs_visual_classification",
+      "slots": {
+        "idle": null,
+        "walk": null,
+        "trot": null,
+        "sit": null,
+        "lie": null,
+        "sleep": null,
+        "wake": null,
+        "groom": null,
+        "stretch": null,
+        "play": null,
+        "eat": null,
+        "reaction": null
+      },
+      "fallback": "procedural_until_semantic_clip_is_classified"
+    },
+    "sylveon": {
+      "raw_clips": [
+        "Armature.003Action",
+        "Armature.005Action",
+        "Armature.007Action",
+        "Armature.008Action",
+        "Armature.011Action",
+        "Armature.012Action",
+        "ArmatureAction"
+      ],
+      "raw_clip_inventory_state": "verified",
+      "classification_state": "needs_visual_classification",
+      "slots": {
+        "idle": null,
+        "walk": null,
+        "trot": null,
+        "sit": null,
+        "lie": null,
+        "sleep": null,
+        "wake": null,
+        "groom": null,
+        "stretch": null,
+        "play": null,
+        "eat": null,
+        "reaction": null
+      },
+      "fallback": "procedural_until_semantic_clip_is_classified"
+    }
+  }
+}

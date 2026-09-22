@@ -1,0 +1,2149 @@
+{
+  "schema_version": 1,
+  "generated_on": "2026-09-21",
+  "baseline_commit": "661a37bc7f86e5ff2b7da28d02e8c44ad696e007",
+  "generator": "tools/inspect_glb_manifest.py plus Phase-0 repository inspection",
+  "runtime_model_contract": {
+    "species_order": [
+      "eevee",
+      "vaporeon",
+      "jolteon",
+      "flareon",
+      "espeon",
+      "umbreon",
+      "leafeon",
+      "glaceon",
+      "sylveon"
+    ],
+    "normalization": "Runtime loader recenters each model, grounds at y=0, scales Eevee to about 0.95m and evolutions to about 1.35m, then aligns spine/head heading to +Z.",
+    "model_reload_policy": "Models are loaded once and not reloaded on room or mode changes."
+  },
+  "semantic_slots": [
+    "idle",
+    "walk",
+    "trot",
+    "sit",
+    "lie",
+    "sleep",
+    "wake",
+    "groom",
+    "stretch",
+    "play",
+    "eat",
+    "reaction"
+  ],
+  "inventory_summary": {
+    "models_expected": 9,
+    "models_recorded": 9,
+    "fully_decoded_in_session": 8,
+    "partial_repository_evidence": 1,
+    "embedded_clip_pattern": "Seven opaque full-skeleton clips on inspected primary-pack species; Vaporeon has no embedded clips.",
+    "morph_targets": "None found on the eight directly decoded GLBs."
+  },
+  "models": [
+    {
+      "species": "eevee",
+      "asset": "assets/models/eevee.glb",
+      "blob_sha": "cdab5548990cb99da0f01720c00733eb8d609dc9",
+      "inspection_state": "verified_from_glb_json",
+      "byte_length": 560580,
+      "gltf": {
+        "version": "2.0",
+        "generator": "Khronos glTF Blender I/O v4.5.51"
+      },
+      "runtime_normalization": {
+        "grounded_y": 0,
+        "target_height_m": 0.95,
+        "forward": "+Z"
+      },
+      "raw_mesh_bounds": {
+        "min": [
+          -10693.42578125,
+          5.28086519241333,
+          -9740.4658203125
+        ],
+        "max": [
+          -10650.759765625,
+          41.65879821777344,
+          -9693.2587890625
+        ],
+        "size": [
+          42.666016,
+          36.377933,
+          47.207031
+        ],
+        "note": "source-space accessor bounds; runtime loader recenters, grounds and rescales"
+      },
+      "skin_count": 1,
+      "joint_count": 57,
+      "joints": [
+        "GLTF_created_5_rootJoint",
+        "pm0133_00_491",
+        "Origin_489",
+        "Waist_488",
+        "Hips_453",
+        "LThigh_441",
+        "LLeg_440",
+        "LFoot_439",
+        "LToe_437",
+        "EndLToe_436",
+        "EndLFoot_438",
+        "RThigh_447",
+        "RLeg_446",
+        "RFoot_445",
+        "EndRFoot_442",
+        "RToe_444",
+        "EndRToe_443",
+        "Tail1_451",
+        "Tail2_450",
+        "Tail3_449",
+        "EndTail3_448",
+        "EndHips_452",
+        "Spine1_487",
+        "Spine2_486",
+        "Neck_475",
+        "FeelerA1_456",
+        "FeelerA2_455",
+        "EndFeelerA2_454",
+        "FeelerB1_459",
+        "FeelerB2_458",
+        "EndFeelerB2_457",
+        "Head_468",
+        "Hair_461",
+        "EndHair_460",
+        "LEar1_464",
+        "LEar2_463",
+        "EndLEar2_462",
+        "REar1_467",
+        "REar2_466",
+        "EndREar2_465",
+        "LFeeler1_471",
+        "LFeeler2_470",
+        "EndLFeeler2_469",
+        "RFeeler1_474",
+        "RFeeler2_473",
+        "EndRFeeler2_472",
+        "RShoulder_480",
+        "RArm_479",
+        "RForeArm_478",
+        "RHand_477",
+        "EndRHand_476",
+        "LShoulder_485",
+        "LArm_484",
+        "LForeArm_483",
+        "LHand_482",
+        "EndLHand_481",
+        "pm0133_00_Skin_490"
+      ],
+      "roles": {
+        "head": [
+          "Head_468"
+        ],
+        "neck": [
+          "Neck_475"
+        ],
+        "ears": [
+          "LEar1_464",
+          "LEar2_463",
+          "EndLEar2_462",
+          "REar1_467",
+          "REar2_466",
+          "EndREar2_465"
+        ],
+        "tail": [
+          "Tail1_451",
+          "Tail2_450",
+          "Tail3_449",
+          "EndTail3_448"
+        ],
+        "forelimbs": [
+          "RShoulder_480",
+          "RArm_479",
+          "RForeArm_478",
+          "RHand_477",
+          "LShoulder_485",
+          "LArm_484",
+          "LForeArm_483",
+          "LHand_482"
+        ],
+        "hindlimbs": [
+          "LThigh_441",
+          "LLeg_440",
+          "LFoot_439",
+          "LToe_437",
+          "EndLToe_436",
+          "EndLFoot_438",
+          "RThigh_447",
+          "RLeg_446",
+          "RFoot_445",
+          "EndRFoot_442",
+          "RToe_444",
+          "EndRToe_443"
+        ],
+        "feelers_ribbons": [
+          "FeelerA1_456",
+          "FeelerA2_455",
+          "FeelerB1_459",
+          "FeelerB2_458",
+          "LFeeler1_471",
+          "LFeeler2_470",
+          "RFeeler1_474",
+          "RFeeler2_473"
+        ],
+        "fins_flukes": [],
+        "hair_bangs": [
+          "Hair_461",
+          "EndHair_460"
+        ]
+      },
+      "animations": [
+        {
+          "name": "Armature.003Action",
+          "duration_seconds": 25.458,
+          "channel_count": 171,
+          "target_count": 57
+        },
+        {
+          "name": "Armature.005Action",
+          "duration_seconds": 27.25,
+          "channel_count": 171,
+          "target_count": 57
+        },
+        {
+          "name": "Armature.007Action",
+          "duration_seconds": 27.125,
+          "channel_count": 171,
+          "target_count": 57
+        },
+        {
+          "name": "Armature.008Action",
+          "duration_seconds": 27.125,
+          "channel_count": 171,
+          "target_count": 57
+        },
+        {
+          "name": "Armature.011Action",
+          "duration_seconds": 24.75,
+          "channel_count": 171,
+          "target_count": 57
+        },
+        {
+          "name": "Armature.012Action",
+          "duration_seconds": 25,
+          "channel_count": 171,
+          "target_count": 57
+        },
+        {
+          "name": "ArmatureAction",
+          "duration_seconds": 25.083,
+          "channel_count": 171,
+          "target_count": 57
+        }
+      ],
+      "semantic_animation_slots": {
+        "idle": null,
+        "walk": null,
+        "trot": null,
+        "sit": null,
+        "lie": null,
+        "sleep": null,
+        "wake": null,
+        "groom": null,
+        "stretch": null,
+        "play": null,
+        "eat": null,
+        "reaction": null
+      },
+      "semantic_classification": "needs_visual_classification",
+      "morph_targets": {
+        "primitive_count": 0,
+        "max_per_primitive": 0
+      },
+      "materials": [
+        "Material__12.001",
+        "Material__13.001",
+        "Material__14"
+      ],
+      "texture_slots": {
+        "baseColor": 3,
+        "normal": 0,
+        "metallicRoughness": 0,
+        "occlusion": 0,
+        "emissive": 0
+      },
+      "known_anomalies": []
+    },
+    {
+      "species": "vaporeon",
+      "asset": "assets/models/vaporeon.glb",
+      "blob_sha": "4e331f7f55b1f84cb52ad3a327c65e88329b151b",
+      "inspection_state": "verified_from_glb_json",
+      "byte_length": 365680,
+      "gltf": {
+        "version": "2.0",
+        "generator": "Khronos glTF Blender I/O v4.5.51"
+      },
+      "runtime_normalization": {
+        "grounded_y": 0,
+        "target_height_m": 1.35,
+        "forward": "+Z"
+      },
+      "raw_mesh_bounds": {
+        "min": [
+          -34.54021453857422,
+          -0.00001116980092774611,
+          -124.78498077392578
+        ],
+        "max": [
+          34.540199279785156,
+          88.03102111816406,
+          57.047401428222656
+        ],
+        "size": [
+          69.080414,
+          88.031032,
+          181.832382
+        ],
+        "note": "source-space accessor bounds; runtime loader recenters, grounds and rescales"
+      },
+      "skin_count": 1,
+      "joint_count": 56,
+      "joints": [
+        "_rootJoint",
+        "pm0134_00_00",
+        "Origin_02",
+        "Waist_03",
+        "Hips_04",
+        "EndHips_01",
+        "LThigh_05",
+        "LLeg_06",
+        "LFoot_07",
+        "EndLFoot_08",
+        "LToe_09",
+        "EndLToe_010",
+        "RThigh_011",
+        "RLeg_012",
+        "RFoot_013",
+        "EndRFoot_014",
+        "RToe_015",
+        "EndRToe_016",
+        "Tail1_017",
+        "Tail2_018",
+        "Tail3_019",
+        "Tail4_020",
+        "Tail5_021",
+        "Tail6_022",
+        "Tail7_023",
+        "Tail8_024",
+        "EndTail8_025",
+        "LTail_026",
+        "EndLTail_027",
+        "RTail_028",
+        "EndRTail_029",
+        "Spine1_030",
+        "Spine2_031",
+        "LShoulder_032",
+        "LArm_033",
+        "LForeArm_034",
+        "LHand_035",
+        "EndLHand_036",
+        "Neck_037",
+        "Head_038",
+        "FeelerA_039",
+        "EndFeelerA_040",
+        "FeelerB_041",
+        "EndFeelerB_042",
+        "LEar1_043",
+        "LEar2_044",
+        "EndLEar2_045",
+        "REar1_046",
+        "REar2_047",
+        "EndREar2_048",
+        "RShoulder_049",
+        "RArm_050",
+        "RForeArm_051",
+        "RHand_052",
+        "EndRHand_053",
+        "pm0134_00_BodySkin_054"
+      ],
+      "roles": {
+        "head": [
+          "Head_038"
+        ],
+        "neck": [
+          "Neck_037"
+        ],
+        "ears": [
+          "LEar1_043",
+          "LEar2_044",
+          "EndLEar2_045",
+          "REar1_046",
+          "REar2_047",
+          "EndREar2_048"
+        ],
+        "tail": [
+          "Tail1_017",
+          "Tail2_018",
+          "Tail3_019",
+          "Tail4_020",
+          "Tail5_021",
+          "Tail6_022",
+          "Tail7_023",
+          "Tail8_024",
+          "EndTail8_025",
+          "LTail_026",
+          "EndLTail_027",
+          "RTail_028",
+          "EndRTail_029"
+        ],
+        "forelimbs": [
+          "LShoulder_032",
+          "LArm_033",
+          "LForeArm_034",
+          "LHand_035",
+          "RShoulder_049",
+          "RArm_050",
+          "RForeArm_051",
+          "RHand_052"
+        ],
+        "hindlimbs": [
+          "LThigh_05",
+          "LLeg_06",
+          "LFoot_07",
+          "EndLFoot_08",
+          "LToe_09",
+          "EndLToe_010",
+          "RThigh_011",
+          "RLeg_012",
+          "RFoot_013",
+          "EndRFoot_014",
+          "RToe_015",
+          "EndRToe_016"
+        ],
+        "feelers_ribbons": [
+          "FeelerA_039",
+          "FeelerB_041"
+        ],
+        "fins_flukes": [],
+        "hair_bangs": []
+      },
+      "animations": [],
+      "semantic_animation_slots": {
+        "idle": null,
+        "walk": null,
+        "trot": null,
+        "sit": null,
+        "lie": null,
+        "sleep": null,
+        "wake": null,
+        "groom": null,
+        "stretch": null,
+        "play": null,
+        "eat": null,
+        "reaction": null
+      },
+      "semantic_classification": "no_embedded_clips",
+      "morph_targets": {
+        "primitive_count": 0,
+        "max_per_primitive": 0
+      },
+      "materials": [
+        "Material_10",
+        "Material_11",
+        "Material_12"
+      ],
+      "texture_slots": {
+        "baseColor": 3,
+        "normal": 0,
+        "metallicRoughness": 0,
+        "occlusion": 0,
+        "emissive": 0
+      },
+      "known_anomalies": []
+    },
+    {
+      "species": "jolteon",
+      "asset": "assets/models/jolteon.glb",
+      "blob_sha": "f14cd1f778e5b951d5e80c314f634452da8fd0f6",
+      "inspection_state": "verified_from_glb_json",
+      "byte_length": 564760,
+      "gltf": {
+        "version": "2.0",
+        "generator": "Khronos glTF Blender I/O v4.5.51"
+      },
+      "runtime_normalization": {
+        "grounded_y": 0,
+        "target_height_m": 1.35,
+        "forward": "+Z"
+      },
+      "raw_mesh_bounds": {
+        "min": [
+          -10319.1650390625,
+          16.59747886657715,
+          -9407.361328125
+        ],
+        "max": [
+          -10261.05859375,
+          94.60128784179688,
+          -9325.2490234375
+        ],
+        "size": [
+          58.106445,
+          78.003809,
+          82.112305
+        ],
+        "note": "source-space accessor bounds; runtime loader recenters, grounds and rescales"
+      },
+      "skin_count": 1,
+      "joint_count": 82,
+      "joints": [
+        "GLTF_created_4_rootJoint",
+        "pm0135_00_433",
+        "Origin_431",
+        "Waist_430",
+        "Spine1_403",
+        "Spine2_402",
+        "Neck_387",
+        "Head_368",
+        "LEar1_353",
+        "LEar2_352",
+        "EndLEar2_351",
+        "LHair_355",
+        "EndLHair_354",
+        "REar1_358",
+        "REar2_357",
+        "EndREar2_356",
+        "RHair_360",
+        "EndRHair_359",
+        "EndHead_361",
+        "Hair_363",
+        "EndHair_362",
+        "Jaw_365",
+        "EndJaw_364",
+        "Feeler_386",
+        "FeelerB_370",
+        "EndFeelerB_369",
+        "LFeelerA_372",
+        "EndLFeelerA_371",
+        "LFeelerB_374",
+        "EndLFeelerB_373",
+        "LFeelerC_376",
+        "EndLFeelerC_375",
+        "RFeelerA_378",
+        "EndRFeelerA_377",
+        "RFeelerB_380",
+        "EndRFeelerB_379",
+        "RFeelerC_382",
+        "EndRFeelerC_381",
+        "EndFeeler_383",
+        "FeelerA_385",
+        "EndFeelerA_384",
+        "RShoulder_394",
+        "RArm_393",
+        "RForeArm_392",
+        "RHand_391",
+        "EndRHand_388",
+        "RFinger_390",
+        "EndRFinger_389",
+        "LShoulder_401",
+        "LArm_400",
+        "LForeArm_399",
+        "LHand_398",
+        "EndLHand_395",
+        "LFinger_397",
+        "EndLFinger_396",
+        "Hips_429",
+        "EndHips_404",
+        "LThigh_412",
+        "LLeg_411",
+        "LFoot_410",
+        "EndLFoot_405",
+        "LToe1_409",
+        "EndLToe1_406",
+        "LToe2_408",
+        "EndLToe2_407",
+        "Tail1_420",
+        "LTail_414",
+        "EndLTail_413",
+        "RTail_416",
+        "EndRTail_415",
+        "Tail2_418",
+        "EndTail2_417",
+        "EndTail1_419",
+        "RThigh_428",
+        "RLeg_427",
+        "RFoot_426",
+        "EndRFoot_421",
+        "RToe1_425",
+        "EndRToe1_422",
+        "RToe2_424",
+        "EndRToe2_423",
+        "pm0135_00_Skin_432"
+      ],
+      "roles": {
+        "head": [
+          "Head_368",
+          "EndHead_361"
+        ],
+        "neck": [
+          "Neck_387"
+        ],
+        "ears": [
+          "LEar1_353",
+          "LEar2_352",
+          "EndLEar2_351",
+          "REar1_358",
+          "REar2_357",
+          "EndREar2_356"
+        ],
+        "tail": [
+          "Tail1_420",
+          "LTail_414",
+          "EndLTail_413",
+          "RTail_416",
+          "EndRTail_415",
+          "Tail2_418",
+          "EndTail2_417",
+          "EndTail1_419"
+        ],
+        "forelimbs": [
+          "RShoulder_394",
+          "RArm_393",
+          "RForeArm_392",
+          "RHand_391",
+          "LShoulder_401",
+          "LArm_400",
+          "LForeArm_399",
+          "LHand_398"
+        ],
+        "hindlimbs": [
+          "LThigh_412",
+          "LLeg_411",
+          "LFoot_410",
+          "EndLFoot_405",
+          "LToe1_409",
+          "EndLToe1_406",
+          "LToe2_408",
+          "EndLToe2_407",
+          "RThigh_428",
+          "RLeg_427",
+          "RFoot_426",
+          "EndRFoot_421",
+          "RToe1_425",
+          "EndRToe1_422",
+          "RToe2_424",
+          "EndRToe2_423"
+        ],
+        "feelers_ribbons": [
+          "Feeler_386",
+          "FeelerB_370",
+          "LFeelerA_372",
+          "LFeelerB_374",
+          "LFeelerC_376",
+          "RFeelerA_378",
+          "RFeelerB_380",
+          "RFeelerC_382",
+          "FeelerA_385"
+        ],
+        "fins_flukes": [
+          "RFinger_390",
+          "EndRFinger_389",
+          "LFinger_397",
+          "EndLFinger_396"
+        ],
+        "hair_bangs": [
+          "LHair_355",
+          "EndLHair_354",
+          "RHair_360",
+          "EndRHair_359",
+          "Hair_363",
+          "EndHair_362"
+        ]
+      },
+      "animations": [
+        {
+          "name": "Armature.003Action",
+          "duration_seconds": 25.458,
+          "channel_count": 246,
+          "target_count": 82
+        },
+        {
+          "name": "Armature.005Action",
+          "duration_seconds": 27.25,
+          "channel_count": 246,
+          "target_count": 82
+        },
+        {
+          "name": "Armature.007Action",
+          "duration_seconds": 27.125,
+          "channel_count": 246,
+          "target_count": 82
+        },
+        {
+          "name": "Armature.008Action",
+          "duration_seconds": 27.125,
+          "channel_count": 246,
+          "target_count": 82
+        },
+        {
+          "name": "Armature.011Action",
+          "duration_seconds": 24.75,
+          "channel_count": 246,
+          "target_count": 82
+        },
+        {
+          "name": "Armature.012Action",
+          "duration_seconds": 25,
+          "channel_count": 246,
+          "target_count": 82
+        },
+        {
+          "name": "ArmatureAction",
+          "duration_seconds": 25.083,
+          "channel_count": 246,
+          "target_count": 82
+        }
+      ],
+      "semantic_animation_slots": {
+        "idle": null,
+        "walk": null,
+        "trot": null,
+        "sit": null,
+        "lie": null,
+        "sleep": null,
+        "wake": null,
+        "groom": null,
+        "stretch": null,
+        "play": null,
+        "eat": null,
+        "reaction": null
+      },
+      "semantic_classification": "needs_visual_classification",
+      "morph_targets": {
+        "primitive_count": 0,
+        "max_per_primitive": 0
+      },
+      "materials": [
+        "Material__10.001",
+        "Material__11.001"
+      ],
+      "texture_slots": {
+        "baseColor": 2,
+        "normal": 0,
+        "metallicRoughness": 0,
+        "occlusion": 0,
+        "emissive": 0
+      },
+      "known_anomalies": []
+    },
+    {
+      "species": "flareon",
+      "asset": "assets/models/flareon.glb",
+      "blob_sha": "4b64abbdc4a139634651adfa6f4a489d1b455a07",
+      "inspection_state": "verified_from_glb_json",
+      "byte_length": 596684,
+      "gltf": {
+        "version": "2.0",
+        "generator": "Khronos glTF Blender I/O v4.5.51"
+      },
+      "runtime_normalization": {
+        "grounded_y": 0,
+        "target_height_m": 1.35,
+        "forward": "+Z"
+      },
+      "raw_mesh_bounds": {
+        "min": [
+          -11066.2939453125,
+          29.696924209594727,
+          -9267.43359375
+        ],
+        "max": [
+          -10903.0224609375,
+          112.23849487304688,
+          -9179.9912109375
+        ],
+        "size": [
+          163.271484,
+          82.541571,
+          87.442383
+        ],
+        "note": "source-space accessor bounds; runtime loader recenters, grounds and rescales"
+      },
+      "skin_count": 1,
+      "joint_count": 66,
+      "joints": [
+        "GLTF_created_2_rootJoint",
+        "pm0136_00_270",
+        "Origin_268",
+        "Waist_267",
+        "Spine1_242",
+        "Spine2_241",
+        "Neck_226",
+        "Feeler_215",
+        "LFeeler_207",
+        "EndLFeeler_206",
+        "RFeeler_209",
+        "EndRFeeler_208",
+        "EndFeeler_210",
+        "FeelerA_212",
+        "EndFeelerA_211",
+        "FeelerB_214",
+        "EndFeelerB_213",
+        "Head_225",
+        "FeelerC1_218",
+        "FeelerC2_217",
+        "EndFeelerC2_216",
+        "LEar1_221",
+        "LEar2_220",
+        "EndLEar2_219",
+        "REar1_224",
+        "REar2_223",
+        "EndREar2_222",
+        "LShoulder_233",
+        "LArm_232",
+        "LForeArm_231",
+        "LHand_230",
+        "EndLHand_227",
+        "LFinger_229",
+        "EndLFinger_228",
+        "RShoulder_240",
+        "RArm_239",
+        "RForeArm_238",
+        "RHand_237",
+        "EndRHand_234",
+        "RFinger_236",
+        "EndRFinger_235",
+        "Hips_266",
+        "Tail1_248",
+        "Tail2_247",
+        "Tail3_246",
+        "Tail4_245",
+        "Tail5_244",
+        "EndTail5_243",
+        "RThigh_256",
+        "RLeg_255",
+        "RFoot_254",
+        "EndRFoot_249",
+        "RToe1_253",
+        "EndRToe1_250",
+        "RToe2_252",
+        "EndRToe2_251",
+        "EndHips_257",
+        "LThigh_265",
+        "LLeg_264",
+        "LFoot_263",
+        "EndLFoot_258",
+        "LToe1_262",
+        "EndLToe1_259",
+        "LToe2_261",
+        "EndLToe2_260",
+        "pm0136_00_BodySkin_269"
+      ],
+      "roles": {
+        "head": [
+          "Head_225"
+        ],
+        "neck": [
+          "Neck_226"
+        ],
+        "ears": [
+          "LEar1_221",
+          "LEar2_220",
+          "EndLEar2_219",
+          "REar1_224",
+          "REar2_223",
+          "EndREar2_222"
+        ],
+        "tail": [
+          "Tail1_248",
+          "Tail2_247",
+          "Tail3_246",
+          "Tail4_245",
+          "Tail5_244",
+          "EndTail5_243"
+        ],
+        "forelimbs": [
+          "LShoulder_233",
+          "LArm_232",
+          "LForeArm_231",
+          "LHand_230",
+          "RShoulder_240",
+          "RArm_239",
+          "RForeArm_238",
+          "RHand_237"
+        ],
+        "hindlimbs": [
+          "RThigh_256",
+          "RLeg_255",
+          "RFoot_254",
+          "EndRFoot_249",
+          "RToe1_253",
+          "EndRToe1_250",
+          "RToe2_252",
+          "EndRToe2_251",
+          "LThigh_265",
+          "LLeg_264",
+          "LFoot_263",
+          "EndLFoot_258",
+          "LToe1_262",
+          "EndLToe1_259",
+          "LToe2_261",
+          "EndLToe2_260"
+        ],
+        "feelers_ribbons": [
+          "Feeler_215",
+          "LFeeler_207",
+          "RFeeler_209",
+          "FeelerA_212",
+          "FeelerB_214",
+          "FeelerC1_218",
+          "FeelerC2_217"
+        ],
+        "fins_flukes": [
+          "LFinger_229",
+          "EndLFinger_228",
+          "RFinger_236",
+          "EndRFinger_235"
+        ],
+        "hair_bangs": []
+      },
+      "animations": [
+        {
+          "name": "Armature.003Action",
+          "duration_seconds": 25.458,
+          "channel_count": 198,
+          "target_count": 66
+        },
+        {
+          "name": "Armature.005Action",
+          "duration_seconds": 27.25,
+          "channel_count": 198,
+          "target_count": 66
+        },
+        {
+          "name": "Armature.007Action",
+          "duration_seconds": 27.125,
+          "channel_count": 198,
+          "target_count": 66
+        },
+        {
+          "name": "Armature.008Action",
+          "duration_seconds": 27.125,
+          "channel_count": 198,
+          "target_count": 66
+        },
+        {
+          "name": "Armature.011Action",
+          "duration_seconds": 24.75,
+          "channel_count": 198,
+          "target_count": 66
+        },
+        {
+          "name": "Armature.012Action",
+          "duration_seconds": 25,
+          "channel_count": 198,
+          "target_count": 66
+        },
+        {
+          "name": "ArmatureAction",
+          "duration_seconds": 25.083,
+          "channel_count": 198,
+          "target_count": 66
+        }
+      ],
+      "semantic_animation_slots": {
+        "idle": null,
+        "walk": null,
+        "trot": null,
+        "sit": null,
+        "lie": null,
+        "sleep": null,
+        "wake": null,
+        "groom": null,
+        "stretch": null,
+        "play": null,
+        "eat": null,
+        "reaction": null
+      },
+      "semantic_classification": "needs_visual_classification",
+      "morph_targets": {
+        "primitive_count": 0,
+        "max_per_primitive": 0
+      },
+      "materials": [
+        "Material__10",
+        "Material__11",
+        "Material__12",
+        "Material__13"
+      ],
+      "texture_slots": {
+        "baseColor": 4,
+        "normal": 0,
+        "metallicRoughness": 0,
+        "occlusion": 0,
+        "emissive": 0
+      },
+      "known_anomalies": []
+    },
+    {
+      "species": "espeon",
+      "asset": "assets/models/espeon.glb",
+      "blob_sha": "a8c2c52b379622dca77635f8f2c34a417ae9f816",
+      "inspection_state": "verified_from_glb_json",
+      "byte_length": 493712,
+      "gltf": {
+        "version": "2.0",
+        "generator": "Khronos glTF Blender I/O v4.5.51"
+      },
+      "runtime_normalization": {
+        "grounded_y": 0,
+        "target_height_m": 1.35,
+        "forward": "+Z"
+      },
+      "raw_mesh_bounds": {
+        "min": [
+          -10778.3427734375,
+          6.740925312042236,
+          -9290.205078125
+        ],
+        "max": [
+          -10709.505859375,
+          85.29450988769531,
+          -9172.251953125
+        ],
+        "size": [
+          68.836914,
+          78.553585,
+          117.953125
+        ],
+        "note": "source-space accessor bounds; runtime loader recenters, grounds and rescales"
+      },
+      "skin_count": 1,
+      "joint_count": 69,
+      "joints": [
+        "GLTF_created_6_rootJoint",
+        "pm0196_00_561",
+        "Origin_559",
+        "Waist_558",
+        "Hips_524",
+        "LThigh_501",
+        "LLeg_500",
+        "LFoot_499",
+        "LToe1_497",
+        "EndLToe1_494",
+        "LToe2_496",
+        "EndLToe2_495",
+        "EndLFoot_498",
+        "RThigh_509",
+        "RLeg_508",
+        "RFoot_507",
+        "EndRFoot_502",
+        "RToe1_506",
+        "EndRToe1_503",
+        "RToe2_505",
+        "EndRToe2_504",
+        "EndHips_510",
+        "Tail1_523",
+        "Tail2_522",
+        "Tail3_521",
+        "Tail4_520",
+        "EndTail4_511",
+        "LTail1_515",
+        "LTail2_514",
+        "LTail3_513",
+        "EndLTail3_512",
+        "RTail1_519",
+        "RTail2_518",
+        "RTail3_517",
+        "EndRTail3_516",
+        "Spine1_557",
+        "Spine2_556",
+        "Spine3_555",
+        "LShoulder_531",
+        "LArm_530",
+        "LForeArm_529",
+        "LHand_528",
+        "EndLHand_525",
+        "LFinger_527",
+        "EndLFinger_526",
+        "Neck1_547",
+        "Neck2_546",
+        "Head_545",
+        "EndHead_532",
+        "LEar1_535",
+        "LEar2_534",
+        "EndLEar2_533",
+        "LHair1_538",
+        "LHair2_537",
+        "EndLHair2_536",
+        "REar1_541",
+        "REar2_540",
+        "EndREar2_539",
+        "RHair1_544",
+        "RHair2_543",
+        "EndRHair2_542",
+        "RShoulder_554",
+        "RArm_553",
+        "RForeArm_552",
+        "RHand_551",
+        "EndRHand_548",
+        "RFinger_550",
+        "EndRFinger_549",
+        "pm0196_00_Skin_560"
+      ],
+      "roles": {
+        "head": [
+          "Head_545",
+          "EndHead_532"
+        ],
+        "neck": [
+          "Neck1_547",
+          "Neck2_546"
+        ],
+        "ears": [
+          "LEar1_535",
+          "LEar2_534",
+          "EndLEar2_533",
+          "REar1_541",
+          "REar2_540",
+          "EndREar2_539"
+        ],
+        "tail": [
+          "Tail1_523",
+          "Tail2_522",
+          "Tail3_521",
+          "Tail4_520",
+          "EndTail4_511",
+          "LTail1_515",
+          "LTail2_514",
+          "LTail3_513",
+          "EndLTail3_512",
+          "RTail1_519",
+          "RTail2_518",
+          "RTail3_517",
+          "EndRTail3_516"
+        ],
+        "forelimbs": [
+          "LShoulder_531",
+          "LArm_530",
+          "LForeArm_529",
+          "LHand_528",
+          "RShoulder_554",
+          "RArm_553",
+          "RForeArm_552",
+          "RHand_551"
+        ],
+        "hindlimbs": [
+          "LThigh_501",
+          "LLeg_500",
+          "LFoot_499",
+          "LToe1_497",
+          "EndLToe1_494",
+          "LToe2_496",
+          "EndLToe2_495",
+          "EndLFoot_498",
+          "RThigh_509",
+          "RLeg_508",
+          "RFoot_507",
+          "EndRFoot_502",
+          "RToe1_506",
+          "EndRToe1_503",
+          "RToe2_505",
+          "EndRToe2_504"
+        ],
+        "feelers_ribbons": [],
+        "fins_flukes": [
+          "LFinger_527",
+          "EndLFinger_526",
+          "RFinger_550",
+          "EndRFinger_549"
+        ],
+        "hair_bangs": [
+          "LHair1_538",
+          "LHair2_537",
+          "EndLHair2_536",
+          "RHair1_544",
+          "RHair2_543",
+          "EndRHair2_542"
+        ]
+      },
+      "animations": [
+        {
+          "name": "Armature.003Action",
+          "duration_seconds": 25.458,
+          "channel_count": 207,
+          "target_count": 69
+        },
+        {
+          "name": "Armature.005Action",
+          "duration_seconds": 27.25,
+          "channel_count": 207,
+          "target_count": 69
+        },
+        {
+          "name": "Armature.007Action",
+          "duration_seconds": 27.125,
+          "channel_count": 207,
+          "target_count": 69
+        },
+        {
+          "name": "Armature.008Action",
+          "duration_seconds": 27.125,
+          "channel_count": 207,
+          "target_count": 69
+        },
+        {
+          "name": "Armature.011Action",
+          "duration_seconds": 24.75,
+          "channel_count": 207,
+          "target_count": 69
+        },
+        {
+          "name": "Armature.012Action",
+          "duration_seconds": 25,
+          "channel_count": 207,
+          "target_count": 69
+        },
+        {
+          "name": "ArmatureAction",
+          "duration_seconds": 25.083,
+          "channel_count": 207,
+          "target_count": 69
+        }
+      ],
+      "semantic_animation_slots": {
+        "idle": null,
+        "walk": null,
+        "trot": null,
+        "sit": null,
+        "lie": null,
+        "sleep": null,
+        "wake": null,
+        "groom": null,
+        "stretch": null,
+        "play": null,
+        "eat": null,
+        "reaction": null
+      },
+      "semantic_classification": "needs_visual_classification",
+      "morph_targets": {
+        "primitive_count": 0,
+        "max_per_primitive": 0
+      },
+      "materials": [
+        "Material__105",
+        "Material__106",
+        "Material__107"
+      ],
+      "texture_slots": {
+        "baseColor": 3,
+        "normal": 0,
+        "metallicRoughness": 0,
+        "occlusion": 0,
+        "emissive": 0
+      },
+      "known_anomalies": []
+    },
+    {
+      "species": "umbreon",
+      "asset": "assets/models/umbreon.glb",
+      "blob_sha": "89b5b727bd2a64e5ce2e253dec57a00c0d3259d6",
+      "inspection_state": "partial_repository_evidence",
+      "byte_length": 2192044,
+      "gltf": {
+        "version": "2.0",
+        "generator": null
+      },
+      "source_armature": "GLTF_created_0",
+      "runtime_normalization": {
+        "grounded_y": 0,
+        "target_height_m": 1.35,
+        "forward": "+Z"
+      },
+      "raw_mesh_bounds": null,
+      "skin_count": null,
+      "joint_count": null,
+      "joints": null,
+      "roles": {
+        "head": [
+          "runtime pattern: /head|nose/"
+        ],
+        "neck": [
+          "runtime pattern: /waist|origin|spine/ used for orientation"
+        ],
+        "ears": [
+          "runtime patterns: /lear|ear.*l|left.*ear/ and /rear|ear.*r|right.*ear/"
+        ],
+        "tail": [
+          "runtime pattern: /tail/"
+        ],
+        "forelimbs": [],
+        "hindlimbs": [],
+        "feelers_ribbons": [],
+        "fins_flukes": [],
+        "hair_bangs": []
+      },
+      "animations": null,
+      "semantic_animation_slots": {
+        "idle": null,
+        "walk": null,
+        "trot": null,
+        "sit": null,
+        "lie": null,
+        "sleep": null,
+        "wake": null,
+        "groom": null,
+        "stretch": null,
+        "play": null,
+        "eat": null,
+        "reaction": null
+      },
+      "semantic_classification": "unverified_large_blob_in_current_connector",
+      "morph_targets": null,
+      "materials": [
+        "runtime special handling recognizes body_a/body_b/ring candidates"
+      ],
+      "texture_slots": null,
+      "known_anomalies": [
+        "This 2.09 MiB GLB exceeds the current GitHub contents connector inline-binary limit, so its JSON chunk was not directly decoded in this session.",
+        "tools/inspect_glb_manifest.py reads it locally without this connector limit and is the authoritative regeneration path."
+      ]
+    },
+    {
+      "species": "leafeon",
+      "asset": "assets/models/leafeon.glb",
+      "blob_sha": "472e24c947a90893c2795a15713a8c64c4e9fa16",
+      "inspection_state": "verified_from_glb_json",
+      "byte_length": 680508,
+      "gltf": {
+        "version": "2.0",
+        "generator": "Khronos glTF Blender I/O v4.5.51"
+      },
+      "runtime_normalization": {
+        "grounded_y": 0,
+        "target_height_m": 1.35,
+        "forward": "+Z"
+      },
+      "raw_mesh_bounds": {
+        "min": [
+          -10684.298828125,
+          153.25375366210938,
+          -9331.890625
+        ],
+        "max": [
+          -10634.283203125,
+          247.1058349609375,
+          -9176.771484375
+        ],
+        "size": [
+          50.015625,
+          93.852081,
+          155.119141
+        ],
+        "note": "source-space accessor bounds; runtime loader recenters, grounds and rescales"
+      },
+      "skin_count": 1,
+      "joint_count": 95,
+      "joints": [
+        "GLTF_created_7_rootJoint",
+        "pm0470_00_657",
+        "Origin_655",
+        "Waist_654",
+        "Spine1_624",
+        "Spine2_623",
+        "Neck1_599",
+        "Neck2_596",
+        "Head_592",
+        "Nose_565",
+        "EndNose_564",
+        "REar1_569",
+        "REar2_568",
+        "REar3_567",
+        "EndREar3_566",
+        "RHairA_571",
+        "EndRHairA_570",
+        "RHairB_573",
+        "EndRHairB_572",
+        "HairB_575",
+        "EndHairB_574",
+        "LEar1_579",
+        "LEar2_578",
+        "LEar3_577",
+        "EndLEar3_576",
+        "LHairA_581",
+        "EndLHairA_580",
+        "LHairB_583",
+        "EndLHairB_582",
+        "EndHead_584",
+        "Hair1_589",
+        "Hair2_588",
+        "Hair3_587",
+        "Hair4_586",
+        "EndHair4_585",
+        "HairA_591",
+        "EndHairA_590",
+        "FeelerA1_595",
+        "FeelerA2_594",
+        "EndFeelerA2_593",
+        "FeelerB_598",
+        "EndFeelerB_597",
+        "RShoulder_610",
+        "RArm_609",
+        "RForeArm_608",
+        "RFeelerC_601",
+        "EndRFeelerC_600",
+        "RFeelerD_603",
+        "EndRFeelerD_602",
+        "RHand_607",
+        "EndRHand_604",
+        "RFinger_606",
+        "EndRFinger_605",
+        "LShoulder_621",
+        "LArm_620",
+        "LForeArm_619",
+        "LHand_614",
+        "EndLHand_611",
+        "LFinger_613",
+        "EndLFinger_612",
+        "LFeelerC_616",
+        "EndLFeelerC_615",
+        "LFeelerD_618",
+        "EndLFeelerD_617",
+        "EndSpine2_622",
+        "Hips_653",
+        "RThigh_634",
+        "RLeg_633",
+        "RFoot_632",
+        "RToe1_628",
+        "RToe2_626",
+        "EndRToe2_625",
+        "EndRToe1_627",
+        "EndRFoot_629",
+        "RFeelerE_631",
+        "EndRFeelerE_630",
+        "Tail1_641",
+        "Tail2_640",
+        "Tail3_639",
+        "Tail4_638",
+        "Tail5_637",
+        "Tail6_636",
+        "EndTail6_635",
+        "EndHips_642",
+        "LThigh_652",
+        "LLeg_651",
+        "LFoot_650",
+        "EndLFoot_643",
+        "LFeelerE_645",
+        "EndLFeelerE_644",
+        "LToe1_649",
+        "EndLToe1_646",
+        "LToe2_648",
+        "EndLToe2_647",
+        "pm0470_00_BodySkin_656"
+      ],
+      "roles": {
+        "head": [
+          "Head_592",
+          "Nose_565",
+          "EndNose_564",
+          "EndHead_584"
+        ],
+        "neck": [
+          "Neck1_599",
+          "Neck2_596"
+        ],
+        "ears": [
+          "REar1_569",
+          "REar2_568",
+          "REar3_567",
+          "EndREar3_566",
+          "LEar1_579",
+          "LEar2_578",
+          "LEar3_577",
+          "EndLEar3_576"
+        ],
+        "tail": [
+          "Tail1_641",
+          "Tail2_640",
+          "Tail3_639",
+          "Tail4_638",
+          "Tail5_637",
+          "Tail6_636",
+          "EndTail6_635"
+        ],
+        "forelimbs": [
+          "RShoulder_610",
+          "RArm_609",
+          "RForeArm_608",
+          "RHand_607",
+          "LShoulder_621",
+          "LArm_620",
+          "LForeArm_619",
+          "LHand_614"
+        ],
+        "hindlimbs": [
+          "RThigh_634",
+          "RLeg_633",
+          "RFoot_632",
+          "RToe1_628",
+          "RToe2_626",
+          "EndRToe2_625",
+          "EndRToe1_627",
+          "EndRFoot_629",
+          "LThigh_652",
+          "LLeg_651",
+          "LFoot_650",
+          "EndLFoot_643",
+          "LToe1_649",
+          "EndLToe1_646",
+          "LToe2_648",
+          "EndLToe2_647"
+        ],
+        "feelers_ribbons": [
+          "FeelerA1_595",
+          "FeelerA2_594",
+          "FeelerB_598",
+          "RFeelerC_601",
+          "RFeelerD_603",
+          "LFeelerC_616",
+          "LFeelerD_618",
+          "RFeelerE_631",
+          "LFeelerE_645"
+        ],
+        "fins_flukes": [
+          "RFinger_606",
+          "EndRFinger_605",
+          "LFinger_613",
+          "EndLFinger_612"
+        ],
+        "hair_bangs": [
+          "RHairA_571",
+          "EndRHairA_570",
+          "RHairB_573",
+          "EndRHairB_572",
+          "HairB_575",
+          "EndHairB_574",
+          "LHairA_581",
+          "EndLHairA_580",
+          "LHairB_583",
+          "EndLHairB_582",
+          "Hair1_589",
+          "Hair2_588",
+          "Hair3_587",
+          "Hair4_586",
+          "EndHair4_585",
+          "HairA_591",
+          "EndHairA_590"
+        ]
+      },
+      "animations": [
+        {
+          "name": "Armature.003Action",
+          "duration_seconds": 25.458,
+          "channel_count": 285,
+          "target_count": 95
+        },
+        {
+          "name": "Armature.005Action",
+          "duration_seconds": 27.25,
+          "channel_count": 285,
+          "target_count": 95
+        },
+        {
+          "name": "Armature.007Action",
+          "duration_seconds": 27.125,
+          "channel_count": 285,
+          "target_count": 95
+        },
+        {
+          "name": "Armature.008Action",
+          "duration_seconds": 27.125,
+          "channel_count": 285,
+          "target_count": 95
+        },
+        {
+          "name": "Armature.011Action",
+          "duration_seconds": 24.75,
+          "channel_count": 285,
+          "target_count": 95
+        },
+        {
+          "name": "Armature.012Action",
+          "duration_seconds": 25,
+          "channel_count": 285,
+          "target_count": 95
+        },
+        {
+          "name": "ArmatureAction",
+          "duration_seconds": 25.083,
+          "channel_count": 285,
+          "target_count": 95
+        }
+      ],
+      "semantic_animation_slots": {
+        "idle": null,
+        "walk": null,
+        "trot": null,
+        "sit": null,
+        "lie": null,
+        "sleep": null,
+        "wake": null,
+        "groom": null,
+        "stretch": null,
+        "play": null,
+        "eat": null,
+        "reaction": null
+      },
+      "semantic_classification": "needs_visual_classification",
+      "morph_targets": {
+        "primitive_count": 0,
+        "max_per_primitive": 0
+      },
+      "materials": [
+        "Material__11.004",
+        "Material__12.004",
+        "Material__13.003"
+      ],
+      "texture_slots": {
+        "baseColor": 3,
+        "normal": 0,
+        "metallicRoughness": 0,
+        "occlusion": 0,
+        "emissive": 0
+      },
+      "known_anomalies": []
+    },
+    {
+      "species": "glaceon",
+      "asset": "assets/models/glaceon.glb",
+      "blob_sha": "6ff135d872631e8434a4fc3121c780bfac7779c0",
+      "inspection_state": "verified_from_glb_json",
+      "byte_length": 537348,
+      "gltf": {
+        "version": "2.0",
+        "generator": "Khronos glTF Blender I/O v4.5.51"
+      },
+      "runtime_normalization": {
+        "grounded_y": 0,
+        "target_height_m": 1.35,
+        "forward": "+Z"
+      },
+      "raw_mesh_bounds": {
+        "min": [
+          -11122.548828125,
+          -102.55122375488281,
+          -9625.353515625
+        ],
+        "max": [
+          -11028.5234375,
+          -21.832801818847656,
+          -9521.8896484375
+        ],
+        "size": [
+          94.025391,
+          80.718422,
+          103.463867
+        ],
+        "note": "source-space accessor bounds; runtime loader recenters, grounds and rescales"
+      },
+      "skin_count": 1,
+      "joint_count": 58,
+      "joints": [
+        "GLTF_created_8_rootJoint",
+        "pm0471_00_716",
+        "Origin_714",
+        "Waist_713",
+        "Hips_678",
+        "EndHips_660",
+        "LThigh_666",
+        "LLeg_665",
+        "LFoot_664",
+        "EndLFoot_661",
+        "LToe_663",
+        "EndLToe_662",
+        "RThigh_672",
+        "RLeg_671",
+        "RFoot_670",
+        "EndRFoot_667",
+        "RToe_669",
+        "EndRToe_668",
+        "Tail1_677",
+        "Tail2_676",
+        "Tail3_675",
+        "Tail4_674",
+        "EndTail4_673",
+        "Spine1_712",
+        "Spine2_711",
+        "Neck1_700",
+        "Neck2_699",
+        "Head_698",
+        "REar1_681",
+        "REar2_680",
+        "EndREar2_679",
+        "RFeeler1_687",
+        "RFeeler2_686",
+        "RFeeler3_685",
+        "RFeeler4_684",
+        "RFeeler5_683",
+        "EndRFeeler5_682",
+        "EndHead_688",
+        "LEar1_691",
+        "LEar2_690",
+        "EndLEar2_689",
+        "LFeeler1_697",
+        "LFeeler2_696",
+        "LFeeler3_695",
+        "LFeeler4_694",
+        "LFeeler5_693",
+        "EndLFeeler5_692",
+        "RShoulder_705",
+        "RArm_704",
+        "RForeArm_703",
+        "RHand_702",
+        "EndRHand_701",
+        "LShoulder_710",
+        "LArm_709",
+        "LForeArm_708",
+        "LHand_707",
+        "EndLHand_706",
+        "pm0471_00_Skin_715"
+      ],
+      "roles": {
+        "head": [
+          "Head_698",
+          "EndHead_688"
+        ],
+        "neck": [
+          "Neck1_700",
+          "Neck2_699"
+        ],
+        "ears": [
+          "REar1_681",
+          "REar2_680",
+          "EndREar2_679",
+          "LEar1_691",
+          "LEar2_690",
+          "EndLEar2_689"
+        ],
+        "tail": [
+          "Tail1_677",
+          "Tail2_676",
+          "Tail3_675",
+          "Tail4_674",
+          "EndTail4_673"
+        ],
+        "forelimbs": [
+          "RShoulder_705",
+          "RArm_704",
+          "RForeArm_703",
+          "RHand_702",
+          "LShoulder_710",
+          "LArm_709",
+          "LForeArm_708",
+          "LHand_707"
+        ],
+        "hindlimbs": [
+          "LThigh_666",
+          "LLeg_665",
+          "LFoot_664",
+          "EndLFoot_661",
+          "LToe_663",
+          "EndLToe_662",
+          "RThigh_672",
+          "RLeg_671",
+          "RFoot_670",
+          "EndRFoot_667",
+          "RToe_669",
+          "EndRToe_668"
+        ],
+        "feelers_ribbons": [
+          "RFeeler1_687",
+          "RFeeler2_686",
+          "RFeeler3_685",
+          "RFeeler4_684",
+          "RFeeler5_683",
+          "LFeeler1_697",
+          "LFeeler2_696",
+          "LFeeler3_695",
+          "LFeeler4_694",
+          "LFeeler5_693"
+        ],
+        "fins_flukes": [],
+        "hair_bangs": []
+      },
+      "animations": [
+        {
+          "name": "Armature.003Action",
+          "duration_seconds": 25.458,
+          "channel_count": 174,
+          "target_count": 58
+        },
+        {
+          "name": "Armature.005Action",
+          "duration_seconds": 27.25,
+          "channel_count": 174,
+          "target_count": 58
+        },
+        {
+          "name": "Armature.007Action",
+          "duration_seconds": 27.125,
+          "channel_count": 174,
+          "target_count": 58
+        },
+        {
+          "name": "Armature.008Action",
+          "duration_seconds": 27.125,
+          "channel_count": 174,
+          "target_count": 58
+        },
+        {
+          "name": "Armature.011Action",
+          "duration_seconds": 24.75,
+          "channel_count": 174,
+          "target_count": 58
+        },
+        {
+          "name": "Armature.012Action",
+          "duration_seconds": 25,
+          "channel_count": 174,
+          "target_count": 58
+        },
+        {
+          "name": "ArmatureAction",
+          "duration_seconds": 25.083,
+          "channel_count": 174,
+          "target_count": 58
+        }
+      ],
+      "semantic_animation_slots": {
+        "idle": null,
+        "walk": null,
+        "trot": null,
+        "sit": null,
+        "lie": null,
+        "sleep": null,
+        "wake": null,
+        "groom": null,
+        "stretch": null,
+        "play": null,
+        "eat": null,
+        "reaction": null
+      },
+      "semantic_classification": "needs_visual_classification",
+      "morph_targets": {
+        "primitive_count": 0,
+        "max_per_primitive": 0
+      },
+      "materials": [
+        "Material__24",
+        "Material__25",
+        "Material__26"
+      ],
+      "texture_slots": {
+        "baseColor": 3,
+        "normal": 0,
+        "metallicRoughness": 0,
+        "occlusion": 0,
+        "emissive": 0
+      },
+      "known_anomalies": []
+    },
+    {
+      "species": "sylveon",
+      "asset": "assets/models/sylveon.glb",
+      "blob_sha": "7b6ccd20b963b7dbe79a100824617996c7626ecb",
+      "inspection_state": "verified_from_glb_json",
+      "byte_length": 695580,
+      "gltf": {
+        "version": "2.0",
+        "generator": "Khronos glTF Blender I/O v4.5.51"
+      },
+      "runtime_normalization": {
+        "grounded_y": 0,
+        "target_height_m": 1.35,
+        "forward": "+Z"
+      },
+      "raw_mesh_bounds": {
+        "min": [
+          -10382.6337890625,
+          12.03941822052002,
+          -8851.5234375
+        ],
+        "max": [
+          -10219.0458984375,
+          104.86890411376953,
+          -8735.8955078125
+        ],
+        "size": [
+          163.587891,
+          92.829486,
+          115.62793
+        ],
+        "note": "source-space accessor bounds; runtime loader recenters, grounds and rescales"
+      },
+      "skin_count": 1,
+      "joint_count": 94,
+      "joints": [
+        "GLTF_created_9_rootJoint",
+        "pm0767_00_811",
+        "Origin_807",
+        "Waist_806",
+        "Spine1_786",
+        "Spine2_785",
+        "Neck1_774",
+        "Neck2_773",
+        "FeelerF_742",
+        "LFeelerH1_727",
+        "LFeelerH2_726",
+        "LFeelerH3_725",
+        "LFeelerH4_724",
+        "LFeelerH5_723",
+        "LFeelerH6_722",
+        "LFeelerH7_721",
+        "LFeelerH8_720",
+        "EndLFeelerH8_719",
+        "RFeelerG_729",
+        "EndRFeelerG_728",
+        "RFeelerH1_738",
+        "RFeelerH2_737",
+        "RFeelerH3_736",
+        "RFeelerH4_735",
+        "RFeelerH5_734",
+        "RFeelerH6_733",
+        "RFeelerH7_732",
+        "RFeelerH8_731",
+        "EndRFeelerH8_730",
+        "EndFeelerF_739",
+        "LFeelerG_741",
+        "EndLFeelerG_740",
+        "Head_772",
+        "EndHead_743",
+        "FeelerI_745",
+        "EndFeelerI_744",
+        "LEar1_749",
+        "LEar2_748",
+        "LEar3_747",
+        "EndLEar3_746",
+        "LFeelerA_767",
+        "EndLFeelerA_750",
+        "LFeelerB1_756",
+        "LFeelerB2_755",
+        "LFeelerB3_754",
+        "LFeelerB4_753",
+        "LFeelerB5_752",
+        "EndLFeelerB5_751",
+        "LFeelerD_758",
+        "EndLFeelerD_757",
+        "LFeelerE_760",
+        "EndLFeelerE_759",
+        "LFeelerC1_766",
+        "LFeelerC2_765",
+        "LFeelerC3_764",
+        "LFeelerC4_763",
+        "LFeelerC5_762",
+        "EndLFeelerC5_761",
+        "REar1_771",
+        "REar2_770",
+        "REar3_769",
+        "EndREar3_768",
+        "LShoulder_779",
+        "LArm_778",
+        "LForeArm_777",
+        "LHand_776",
+        "EndLHand_775",
+        "RShoulder_784",
+        "RArm_783",
+        "RForeArm_782",
+        "RHand_781",
+        "EndRHand_780",
+        "Hips_805",
+        "LThigh_792",
+        "LLeg_791",
+        "LFoot_790",
+        "LToe_788",
+        "EndLToe_787",
+        "EndLFoot_789",
+        "RThigh_798",
+        "RLeg_797",
+        "RFoot_796",
+        "EndRFoot_793",
+        "RToe_795",
+        "EndRToe_794",
+        "Tail1_803",
+        "Tail2_802",
+        "Tail3_801",
+        "Tail4_800",
+        "EndTail4_799",
+        "EndHips_804",
+        "pm0767_00_BodySkin_808",
+        "pm0767_00_RibbonASkin_809",
+        "pm0767_00_RibbonBSkin_810"
+      ],
+      "roles": {
+        "head": [
+          "Head_772",
+          "EndHead_743"
+        ],
+        "neck": [
+          "Neck1_774",
+          "Neck2_773"
+        ],
+        "ears": [
+          "LEar1_749",
+          "LEar2_748",
+          "LEar3_747",
+          "EndLEar3_746",
+          "REar1_771",
+          "REar2_770",
+          "REar3_769",
+          "EndREar3_768"
+        ],
+        "tail": [
+          "Tail1_803",
+          "Tail2_802",
+          "Tail3_801",
+          "Tail4_800",
+          "EndTail4_799"
+        ],
+        "forelimbs": [
+          "LShoulder_779",
+          "LArm_778",
+          "LForeArm_777",
+          "LHand_776",
+          "RShoulder_784",
+          "RArm_783",
+          "RForeArm_782",
+          "RHand_781"
+        ],
+        "hindlimbs": [
+          "LThigh_792",
+          "LLeg_791",
+          "LFoot_790",
+          "LToe_788",
+          "EndLToe_787",
+          "EndLFoot_789",
+          "RThigh_798",
+          "RLeg_797",
+          "RFoot_796",
+          "EndRFoot_793",
+          "RToe_795",
+          "EndRToe_794"
+        ],
+        "feelers_ribbons": [
+          "FeelerF_742",
+          "LFeelerH1_727",
+          "LFeelerH2_726",
+          "LFeelerH3_725",
+          "LFeelerH4_724",
+          "LFeelerH5_723",
+          "LFeelerH6_722",
+          "LFeelerH7_721",
+          "LFeelerH8_720",
+          "RFeelerG_729",
+          "RFeelerH1_738",
+          "RFeelerH2_737",
+          "RFeelerH3_736",
+          "RFeelerH4_735",
+          "RFeelerH5_734",
+          "RFeelerH6_733",
+          "RFeelerH7_732",
+          "RFeelerH8_731",
+          "LFeelerG_741",
+          "FeelerI_745",
+          "LFeelerA_767",
+          "LFeelerB1_756",
+          "LFeelerB2_755",
+          "LFeelerB3_754",
+          "LFeelerB4_753",
+          "LFeelerB5_752",
+          "LFeelerD_758",
+          "LFeelerE_760",
+          "LFeelerC1_766",
+          "LFeelerC2_765",
+          "LFeelerC3_764",
+          "LFeelerC4_763",
+          "LFeelerC5_762"
+        ],
+        "fins_flukes": [],
+        "hair_bangs": []
+      },
+      "animations": [
+        {
+          "name": "Armature.003Action",
+          "duration_seconds": 25.458,
+          "channel_count": 282,
+          "target_count": 94
+        },
+        {
+          "name": "Armature.005Action",
+          "duration_seconds": 27.25,
+          "channel_count": 282,
+          "target_count": 94
+        },
+        {
+          "name": "Armature.007Action",
+          "duration_seconds": 27.125,
+          "channel_count": 282,
+          "target_count": 94
+        },
+        {
+          "name": "Armature.008Action",
+          "duration_seconds": 27.125,
+          "channel_count": 282,
+          "target_count": 94
+        },
+        {
+          "name": "Armature.011Action",
+          "duration_seconds": 24.75,
+          "channel_count": 282,
+          "target_count": 94
+        },
+        {
+          "name": "Armature.012Action",
+          "duration_seconds": 25,
+          "channel_count": 282,
+          "target_count": 94
+        },
+        {
+          "name": "ArmatureAction",
+          "duration_seconds": 25.083,
+          "channel_count": 282,
+          "target_count": 94
+        }
+      ],
+      "semantic_animation_slots": {
+        "idle": null,
+        "walk": null,
+        "trot": null,
+        "sit": null,
+        "lie": null,
+        "sleep": null,
+        "wake": null,
+        "groom": null,
+        "stretch": null,
+        "play": null,
+        "eat": null,
+        "reaction": null
+      },
+      "semantic_classification": "needs_visual_classification",
+      "morph_targets": {
+        "primitive_count": 0,
+        "max_per_primitive": 0
+      },
+      "materials": [
+        "Material__10.004",
+        "Material__11.005",
+        "Material__12.005",
+        "Material__13.004"
+      ],
+      "texture_slots": {
+        "baseColor": 4,
+        "normal": 0,
+        "metallicRoughness": 0,
+        "occlusion": 0,
+        "emissive": 0
+      },
+      "known_anomalies": []
+    }
+  ]
+}
