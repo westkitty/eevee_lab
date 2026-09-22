@@ -83,11 +83,11 @@
       return state;
     }
 
-    const fresh = defaultState();
-    let state = Object.assign(fresh, raw);
-    state.ui = Object.assign(fresh.ui, raw.ui || {});
-    state.camera = Object.assign(fresh.camera, raw.camera || {});
-    state.discovery = Object.assign(fresh.discovery, raw.discovery || {});
+    const defaults = defaultState();
+    let state = Object.assign({}, defaults, raw);
+    state.ui = Object.assign({}, defaults.ui, raw.ui || {});
+    state.camera = Object.assign({}, defaults.camera, raw.camera || {});
+    state.discovery = Object.assign({}, defaults.discovery, raw.discovery || {});
 
     if (!raw.version || raw.version < 2) {
       state.roomNarrative = (raw.roomNarrative && typeof raw.roomNarrative === 'object') ? raw.roomNarrative : {};
