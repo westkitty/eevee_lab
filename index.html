@@ -525,6 +525,7 @@
   <script src="src/camera-controller.js"></script>
   <script src="src/rooms.js"></script>
   <script src="src/room-manager.js"></script>
+  <script src="src/creature-actor.js"></script>
   <script src="src/ui-controller.js"></script>
 
   <!-- MAIN THREE.JS APPLICATION JAVASCRIPT -->
@@ -877,6 +878,7 @@
     const photoSystem = new PhotoSystem(save);
     let cameraController = null;
     let roomManager = null;
+    let creatureActor = null;
 
     /* ==========================================================================
        4. THREE.JS PROCEDURAL EEVEE 3D RIG & ANIMATION ENGINE (protected core)
@@ -1202,6 +1204,7 @@
           };
 
           wrapper.userData.isLoaded = true;
+          if (creatureActor) creatureActor.registerModel(sp, wrapper, raw, gltf.animations || []);
           if (currentForm === sp) {
             wrapper.userData.updatePalette(isShiny);
             Object.assign(rig.userData, wrapper.userData);
@@ -1248,6 +1251,7 @@
       const activeM = models[formKey];
       if (activeM.userData.updatePalette) activeM.userData.updatePalette(shiny);
       Object.assign(eeveeRig.userData, activeM.userData);
+      if (creatureActor) creatureActor.setActiveSpecies(formKey);
       updateFaceExpression(currentEmotion);
       if (cameraController && activeM.userData.isLoaded) cameraController.setModelBounds(activeM);
     }
@@ -2114,7 +2118,11 @@
       roomManager = new RoomManager({
         scene, save, discoveryLog, resonance: resonanceTracker, cameraController,
         roomLabel: roomLabelFor,
-        onRoomEnter: (roomId, built) => { showRoomToast(roomId, built); renderRoomGrid(); }
+        onRoomEnter: (roomId, built) => {
+          if (creatureActor) creatureActor.enterRoom(roomId, built);
+          showRoomToast(roomId, built);
+          renderRoomGrid();
+        }
       });
       roomManager.setActiveForm(currentForm);
       roomManager.onDiscoveryFeedback = (found) => { if (found) showDiscoveryToast(found); };
@@ -2123,6 +2131,8 @@
       eeveeRig = createEeveeRig();
       window.eeveeRig = eeveeRig;
       scene.add(eeveeRig);
+      creatureActor = new CreatureActorSystem.CreatureActor({ root: eeveeRig, species: currentForm });
+      window.creatureActor = creatureActor;
 
       renderSpeciesStrip();
       renderJournal();
@@ -2147,6 +2157,7 @@
       let isPetting = false;
       let lastPurrTime = 0;
       let lastClickTime = 0;
+      let tapCandidate = null;
       const reticle = document.getElementById('reticle');
 
       function ndcFromEvent(e) {
@@ -2162,6 +2173,8 @@
 
         const petHits = raycaster.intersectObjects(eeveeRig.children, true);
         if (petHits.length > 0) {
+          tapCandidate = null;
+          if (creatureActor) creatureActor.hold(0.9);
           isPetting = true;
           controls.enabled = false;
           audio.playPurr();
@@ -2179,14 +2192,11 @@
           triggerConfetti();
 
           const now = performance.now();
-          if (now - lastClickTime < 380) {
-            cameraController.focusOnPoint(mouse.x, mouse.y, eeveeRig);
-          }
+          if (now - lastClickTime < 380) cameraController.focusOnPoint(mouse.x, mouse.y, eeveeRig);
           lastClickTime = now;
           return;
         }
 
-        // Diegetic interaction: doors, room props, mementos.
         if (roomManager) {
           const meshes = roomManager.getInteractableMeshes();
           const hits = raycaster.intersectObjects(meshes, true);
@@ -2194,21 +2204,31 @@
             let obj = hits[0].object;
             while (obj && !obj.userData.interactable) obj = obj.parent;
             if (obj && obj.userData.interactable) {
+              tapCandidate = null;
               obj.userData.interactable.onActivate();
               audio.playBoing();
+              return;
             }
           }
         }
+
+        tapCandidate = { x: e.clientX, y: e.clientY, pointerId: e.pointerId };
       });
 
       window.addEventListener('pointermove', (e) => {
+        if (tapCandidate && tapCandidate.pointerId === e.pointerId) {
+          const dx = e.clientX - tapCandidate.x;
+          const dy = e.clientY - tapCandidate.y;
+          if ((dx * dx + dy * dy) > 64) tapCandidate = null;
+        }
+
         if (isPetting && activeGameMode === 'sandbox') {
+          if (creatureActor) creatureActor.hold(0.35);
           petSquishFactor = 0.78 + Math.sin(Date.now() * 0.03) * 0.12;
           const now = Date.now();
           if (now - lastPurrTime > 380) { audio.playPurr(); lastPurrTime = now; }
         }
 
-        // Hover reticle (UX-11): only in sandbox, outside drawers/UI.
         if (activeGameMode === 'sandbox' && !isPhotoMode && !e.target.closest('.interactive') && roomManager && eeveeRig) {
           ndcFromEvent(e);
           raycaster.setFromCamera(mouse, camera);
@@ -2226,7 +2246,26 @@
         }
       });
 
-      window.addEventListener('pointerup', () => { if (isPetting) { isPetting = false; controls.enabled = true; } });
+      window.addEventListener('pointerup', (e) => {
+        if (isPetting) {
+          isPetting = false;
+          controls.enabled = true;
+          if (creatureActor) creatureActor.hold(0.45);
+          tapCandidate = null;
+          return;
+        }
+        if (!tapCandidate || tapCandidate.pointerId !== e.pointerId || activeGameMode !== 'sandbox' || isPhotoMode) {
+          tapCandidate = null;
+          return;
+        }
+        if (creatureActor && roomManager) {
+          ndcFromEvent(e);
+          raycaster.setFromCamera(mouse, camera);
+          const floorHits = raycaster.intersectObjects(roomManager.getWalkableMeshes(), false);
+          if (floorHits.length) creatureActor.moveTo(floorHits[0].point, { manual: true });
+        }
+        tapCandidate = null;
+      });
     }
 
     function onWindowResize() {
@@ -2303,7 +2342,7 @@
         } else if (isLoafMode) {
           eeveeRig.position.y = -0.32;
         } else if (!isVacuumPanicking) {
-          eeveeRig.rotation.y = Math.sin(elapsed * 0.6 * pers.breathRate) * 0.15;
+          if (!creatureActor) eeveeRig.rotation.y = Math.sin(elapsed * 0.6 * pers.breathRate) * 0.15;
           eeveeRig.position.y = 0;
         }
 
@@ -2315,6 +2354,15 @@
           eeveeRig.position.z = -vacuumBot.position.z * 0.7;
           eeveeRig.rotation.y = elapsed * 12;
           eeveeRig.position.y = Math.abs(Math.sin(elapsed * 18)) * 0.5;
+        }
+
+        if (creatureActor) {
+          creatureActor.update(dt, elapsed, {
+            suspended: evolutionSpinTimer > 0 || isDiscoMode || isLoafMode || isVacuumPanicking || treats.length > 0 || treatHungerAngle > 0,
+            reducedMotion: !!(uiChrome && uiChrome.reducedMotion),
+            chillMode: isChillMode,
+            cameraPosition: camera ? camera.position : null
+          });
         }
 
         const mouthWorldPos = new THREE.Vector3();
@@ -2381,6 +2429,8 @@
       get camera() { return camera; },
       get roomManager() { return roomManager; },
       get cameraController() { return cameraController; },
+      get creatureActor() { return creatureActor; },
+      get creatureActorState() { return creatureActor ? creatureActor.getDebugState() : null; },
       get save() { return save; },
       get isPhotoMode() { return isPhotoMode; },
       get isChillMode() { return isChillMode; },
@@ -2389,6 +2439,8 @@
       startArcadeGame, stopArcadeGame, switchGameMode,
       enterPhotoMode, exitPhotoMode, capturePhotoModeShot,
       goToRoom: (id) => roomManager && roomManager.goTo(id),
+      moveCreatureTo: (x, z) => creatureActor && creatureActor.moveTo(new THREE.Vector3(x, 0, z), { manual: true }),
+      lookCreatureAt: (x, y, z) => creatureActor && creatureActor.lookAtWorld(new THREE.Vector3(x, y || 0, z), 1.5),
       startApp
     };
 

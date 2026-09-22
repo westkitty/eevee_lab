@@ -18,6 +18,9 @@
       const mesh = new THREE.Mesh(geo, FX.Materials.stone(color));
       mesh.position.y = -0.15;
       mesh.receiveShadow = true;
+      mesh.name = 'walkable_floor';
+      mesh.userData.walkable = true;
+      mesh.userData.walkRadius = Math.max(0.75, radius - 0.7);
       return mesh;
     },
     wallPanel(width, height, color, opts = {}) {

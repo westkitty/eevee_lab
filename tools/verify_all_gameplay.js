@@ -131,6 +131,9 @@ async function main() {
     return keys.every(k => models[k] && models[k].userData && models[k].userData.isLoaded);
   }, { timeout: 20000 });
   record('load-1', true, 'App loaded, all 9 GLBs report isLoaded');
+  const actorBoot = await page.evaluate(() => window.eeveeApp.creatureActorState);
+  record('actor-boot', !!actorBoot && actorBoot.walkableCount > 0 && actorBoot.species === window.eeveeApp.currentForm,
+    actorBoot ? JSON.stringify(actorBoot) : 'actor unavailable');
   await shot(page, '01_hub_conservatory');
 
   // 2. Initial species + form-switching (1-9).
@@ -155,6 +158,19 @@ async function main() {
   // Back to eevee for the rest of the sandbox tests.
   await page.keyboard.press('1');
   await page.waitForTimeout(300);
+
+  // Phase 1 actor: manual movement uses the same master loop and stays inside room bounds.
+  const actorStart = await page.evaluate(() => window.eeveeApp.creatureActorState.position);
+  await page.evaluate(() => window.eeveeApp.moveCreatureTo(1.0, 0.8));
+  await page.waitForFunction(() => {
+    const s = window.eeveeApp.creatureActorState;
+    return s && s.state === 'idle' && Math.abs(s.position.x - 1.0) < 0.12 && Math.abs(s.position.z - 0.8) < 0.12;
+  }, { timeout: 5000 });
+  const actorEnd = await page.evaluate(() => window.eeveeApp.creatureActorState);
+  record('actor-manual-move', Math.abs(actorEnd.position.x - actorStart.x) > 0.2 && actorEnd.activeSemantic === 'idle',
+    JSON.stringify(actorEnd));
+  await page.evaluate(() => window.eeveeApp.moveCreatureTo(0, 1.4));
+  await page.waitForTimeout(1200);
 
   // 3. Shiny mode.
   await page.keyboard.press('s');
@@ -227,10 +243,12 @@ async function main() {
     const info = await page.evaluate(() => {
       const app = window.eeveeApp;
       let n = 0; app.scene.traverse(c => { if (c.isMesh) n++; });
-      return { roomId: app.roomManager.current.id, meshCount: n, keyLightIntensity: app.roomManager.current.built.lights[1].intensity };
+      const actor = app.creatureActorState;
+      return { roomId: app.roomManager.current.id, meshCount: n, keyLightIntensity: app.roomManager.current.built.lights[1].intensity, actorRoom: actor && actor.roomId, walkableCount: actor && actor.walkableCount };
     });
     meshCounts1[r] = info.meshCount;
-    record(`room-enter-${r}`, info.roomId === r, `mesh=${info.meshCount}, keyLight=${info.keyLightIntensity.toFixed(2)}`);
+    record(`room-enter-${r}`, info.roomId === r && info.actorRoom === r && info.walkableCount > 0,
+      `mesh=${info.meshCount}, keyLight=${info.keyLightIntensity.toFixed(2)}, actorRoom=${info.actorRoom}`);
   }
   await shot(page, '06_room_vaporeon');
   await page.evaluate(() => window.eeveeApp.goToRoom('jolteon'));

@@ -55,6 +55,15 @@
       return this.current.built.interactables.map(i => i.object3D);
     }
 
+    getWalkableMeshes() {
+      if (!this.current) return [];
+      const meshes = [];
+      this.current.built.group.traverse(obj => {
+        if (obj && obj.isMesh && obj.userData && obj.userData.walkable) meshes.push(obj);
+      });
+      return meshes;
+    }
+
     goTo(roomId, opts = {}) {
       const def = global.ROOM_DEFINITIONS[roomId];
       if (!def) return null;
