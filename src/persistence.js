@@ -6,7 +6,7 @@
   'use strict';
 
   const SAVE_KEY = 'eevee_habitat_save';
-  const SAVE_VERSION = 1;
+  const SAVE_VERSION = 2;
   const LEGACY_HIGHSCORE_KEY = 'eevee_dash_highscore';
 
   function defaultState() {
@@ -38,10 +38,40 @@
       resonance: {},                // roomId -> number 0..1
       atmosphereUnlocked: {},       // roomId -> [variantId,...]
       atmosphereSelected: {},       // roomId -> variantId
-      roomMemory: {},               // roomId -> small symbolic state (toy left out, lamp lit, etc.)
-      crossContamination: {},       // roomId -> [markerId,...]
+      roomMemory: {},               // legacy + small bounded symbolic flags
+      roomNarrative: {},            // roomId -> bounded semantic narrative counters/state
+      placedObjects: {},            // roomId -> objectId -> {x,y,z,ry}; never scene serialization
+      crossContamination: {},       // roomId -> [{id,originRoom,originEvent,objectType,destinationRoom}]
       album: []                    // [{id, form, room, score, timestamp, dataSize}]
     };
+  }
+
+  function normalizeLegacyCrossContamination(raw) {
+    const out = {};
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+    const legacyKinds = ['ribbon', 'shell', 'tag'];
+    Object.keys(raw).forEach(roomId => {
+      const list = Array.isArray(raw[roomId]) ? raw[roomId] : [];
+      out[roomId] = list.slice(-4).map((item, index) => {
+        if (item && typeof item === 'object' && item.id) {
+          return {
+            id: String(item.id),
+            originRoom: item.originRoom || 'legacy',
+            originEvent: item.originEvent || 'legacy',
+            objectType: item.objectType || legacyKinds[index % legacyKinds.length],
+            destinationRoom: item.destinationRoom || roomId
+          };
+        }
+        return {
+          id: String(item),
+          originRoom: 'legacy',
+          originEvent: 'legacy-threshold',
+          objectType: legacyKinds[index % legacyKinds.length],
+          destinationRoom: roomId
+        };
+      });
+    });
+    return out;
   }
 
   function migrate(raw) {
@@ -53,15 +83,22 @@
       return state;
     }
 
-    let state = raw;
-    // Future migrations would chain here keyed on state.version.
-    if (!state.version || state.version < SAVE_VERSION) {
-      const fresh = defaultState();
-      state = Object.assign(fresh, state, { version: SAVE_VERSION });
-      state.ui = Object.assign(fresh.ui, state.ui || {});
-      state.camera = Object.assign(fresh.camera, state.camera || {});
-      state.discovery = Object.assign(fresh.discovery, state.discovery || {});
+    const fresh = defaultState();
+    let state = Object.assign(fresh, raw);
+    state.ui = Object.assign(fresh.ui, raw.ui || {});
+    state.camera = Object.assign(fresh.camera, raw.camera || {});
+    state.discovery = Object.assign(fresh.discovery, raw.discovery || {});
+
+    if (!raw.version || raw.version < 2) {
+      state.roomNarrative = (raw.roomNarrative && typeof raw.roomNarrative === 'object') ? raw.roomNarrative : {};
+      state.placedObjects = (raw.placedObjects && typeof raw.placedObjects === 'object') ? raw.placedObjects : {};
+      state.crossContamination = normalizeLegacyCrossContamination(raw.crossContamination || {});
     }
+
+    if (!state.roomNarrative || typeof state.roomNarrative !== 'object' || Array.isArray(state.roomNarrative)) state.roomNarrative = {};
+    if (!state.placedObjects || typeof state.placedObjects !== 'object' || Array.isArray(state.placedObjects)) state.placedObjects = {};
+    state.crossContamination = normalizeLegacyCrossContamination(state.crossContamination || {});
+    state.version = SAVE_VERSION;
     return state;
   }
 
