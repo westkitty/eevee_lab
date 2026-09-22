@@ -245,6 +245,75 @@
     return mesh;
   }
 
+  function createCelMaterialFrom(source, mesh) {
+    if (!source) return source;
+    if (source.isMeshToonMaterial && source.userData && source.userData.phase6Cel) return source;
+
+    const mat = new THREE.MeshToonMaterial({
+      color: source.color ? source.color.clone() : new THREE.Color(0xffffff),
+      map: source.map || null,
+      transparent: !!source.transparent,
+      opacity: source.opacity == null ? 1 : source.opacity,
+      alphaTest: source.alphaTest || 0,
+      side: source.side == null ? THREE.FrontSide : source.side,
+      depthWrite: source.depthWrite !== false,
+      depthTest: source.depthTest !== false,
+      vertexColors: !!source.vertexColors,
+      fog: source.fog !== false
+    });
+    mat.name = source.name || '';
+    if (source.emissive && mat.emissive) mat.emissive.copy(source.emissive);
+    if ('emissiveIntensity' in source) mat.emissiveIntensity = source.emissiveIntensity || 0;
+    if ('skinning' in mat) mat.skinning = !!(mesh && mesh.isSkinnedMesh);
+    if ('morphTargets' in mat) mat.morphTargets = !!(mesh && mesh.morphTargetInfluences);
+    if ('morphNormals' in mat) mat.morphNormals = !!source.morphNormals;
+    mat.userData = Object.assign({}, source.userData || {}, {
+      phase6Cel: true,
+      sourceMaterialType: source.type || 'Material'
+    });
+    mat.needsUpdate = true;
+    return mat;
+  }
+
+  function celifyObject(root) {
+    const converted = new Map();
+    const records = [];
+    if (!root || !root.traverse) return records;
+
+    function convert(source, mesh) {
+      if (!source) return source;
+      if (converted.has(source)) return converted.get(source);
+      if (source.map) source.map.encoding = THREE.sRGBEncoding;
+      const mat = createCelMaterialFrom(source, mesh);
+      converted.set(source, mat);
+      records.push({
+        mat,
+        name: mat.name || source.name || '',
+        color: mat.color ? mat.color.clone() : new THREE.Color(0xffffff),
+        emissive: mat.emissive ? mat.emissive.clone() : new THREE.Color(0x000000),
+        emissiveIntensity: mat.emissiveIntensity || 0
+      });
+      return mat;
+    }
+
+    root.traverse(obj => {
+      if (!obj || !obj.isMesh || !obj.material) return;
+      obj.material = Array.isArray(obj.material)
+        ? obj.material.map(source => convert(source, obj))
+        : convert(obj.material, obj);
+      obj.castShadow = true;
+      obj.receiveShadow = true;
+    });
+    return records;
+  }
+
+  function createCinematicRimLight(color = 0xffffff, intensity = 0.18) {
+    const light = new THREE.DirectionalLight(color, intensity);
+    light.position.set(-4, 4.5, -5);
+    light.userData.phase6CinematicRim = true;
+    return light;
+  }
+
   global.RenderEffects = {
     Materials,
     VFX,
@@ -253,6 +322,9 @@
     createFresnelMaterial,
     createPsychicMaterial,
     createContactShadow,
-    createGroundMark
+    createGroundMark,
+    createCelMaterialFrom,
+    celifyObject,
+    createCinematicRimLight
   };
 })(window);
