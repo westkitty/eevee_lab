@@ -479,6 +479,148 @@ async function main() {
     archiveState.litHistoryStones >= 3 && archiveState.narrative.stageIndex >= 1 && archiveState.history.visitedCount >= 3,
     JSON.stringify(archiveState));
 
+  // Phase 6: transformation, elemental powers and visual unification.
+  const phase6Visual = await page.evaluate(() => {
+    const app = window.eeveeApp;
+    const wrapper = app.eeveeRig.userData.models.eevee;
+    const records = wrapper.userData.phase6MaterialRecords || [];
+    const rimCount = app.roomManager.current.built.lights.filter(l => l.userData && l.userData.phase6CinematicRim).length;
+    return {
+      saveVersion: app.save.state.version,
+      materialCount: records.length,
+      allCel: records.length > 0 && records.every(r => r.mat && r.mat.isMeshToonMaterial && r.mat.userData && r.mat.userData.phase6Cel),
+      rimCount
+    };
+  });
+  record('phase6-save-v3', phase6Visual.saveVersion === 3, JSON.stringify(phase6Visual));
+  record('phase6-cel-models', phase6Visual.allCel === true, JSON.stringify(phase6Visual));
+  record('phase6-cinematic-rim', phase6Visual.rimCount >= 1, JSON.stringify(phase6Visual));
+
+  // Physical evolution is explicitly two-step: approach/offer first, commit second.
+  const evolutionOffer = await page.evaluate(() => {
+    const app = window.eeveeApp;
+    if (app.currentForm !== 'eevee') app.selectEeveelution('eevee');
+    app.goToRoom('conservatory');
+    const stone = app.roomManager.current.built.interactables.find(i => i.id === 'evolution_jolteon');
+    if (!stone) return null;
+    const started = stone.onActivate();
+    return { started, state: app.evolutionState, actor: app.creatureActorState };
+  });
+  record('phase6-evolution-offer',
+    !!evolutionOffer && evolutionOffer.state.active === true &&
+    evolutionOffer.state.targetSpecies === 'jolteon' && evolutionOffer.actor.targetSource === 'evolution',
+    JSON.stringify(evolutionOffer));
+
+  await page.waitForFunction(() => {
+    const s = window.eeveeApp.evolutionState;
+    return s && s.state === 'ready';
+  }, { timeout: 8000 });
+
+  const evolutionCommit = await page.evaluate(() => {
+    const app = window.eeveeApp;
+    const stone = app.roomManager.current.built.interactables.find(i => i.id === 'evolution_jolteon');
+    stone.onActivate();
+    return app.evolutionState;
+  });
+  record('phase6-evolution-commit',
+    evolutionCommit.commitRequested === true &&
+    (evolutionCommit.state === 'charge' || evolutionCommit.state === 'ready'),
+    JSON.stringify(evolutionCommit));
+
+  await page.waitForFunction(() => {
+    const app = window.eeveeApp;
+    return app.currentForm === 'jolteon' && app.evolutionState && app.evolutionState.active === false;
+  }, { timeout: 5000 });
+  const evolutionComplete = await page.evaluate(() => ({
+    form: window.eeveeApp.currentForm,
+    state: window.eeveeApp.evolutionState,
+    manager: window.eeveeApp.creatureManagerState
+  }));
+  record('phase6-evolution-complete',
+    evolutionComplete.form === 'jolteon' &&
+    evolutionComplete.state.active === false &&
+    evolutionComplete.manager.activeCount === 1,
+    JSON.stringify(evolutionComplete));
+
+  // Explicit shiny profile applies to named Jolteon materials while the GLB remains cel-rendered.
+  const shinyProfile = await page.evaluate(() => {
+    const app = window.eeveeApp;
+    const wrapper = app.eeveeRig.userData.models.jolteon;
+    const before = (wrapper.userData.phase6MaterialRecords || []).map(r => ({
+      name: r.name,
+      original: r.color.getHex(),
+      live: r.mat.color.getHex()
+    }));
+    app.toggleShinyMode();
+    const after = (wrapper.userData.phase6MaterialRecords || []).map(r => ({
+      name: r.name,
+      original: r.color.getHex(),
+      live: r.mat.color.getHex(),
+      cel: !!(r.mat.userData && r.mat.userData.phase6Cel)
+    }));
+    return {
+      shiny: app.isShiny,
+      before,
+      after,
+      exactKeys: Object.keys(EeveePhase6System.SHINY_PROFILES.jolteon.exact)
+    };
+  });
+  const shinyNamedChanged = shinyProfile.exactKeys.every(name => {
+    const row = shinyProfile.after.find(r => r.name === name);
+    return row && row.live !== row.original && row.cel;
+  });
+  record('phase6-targeted-shiny',
+    shinyProfile.shiny === true && shinyNamedChanged,
+    JSON.stringify(shinyProfile.after));
+
+  await page.evaluate(() => window.eeveeApp.toggleShinyMode());
+  await page.waitForTimeout(100);
+
+  // Species ability mutates the room semantically and survives a room rebuild.
+  await page.evaluate(() => window.eeveeApp.goToRoom('jolteon'));
+  await page.waitForTimeout(250);
+  const abilityUse = await page.evaluate(() => {
+    const app = window.eeveeApp;
+    const used = app.useSpeciesAbility();
+    const state = app.habitatState;
+    const target = app.roomManager.getAbilityTargets()[0];
+    return {
+      used,
+      mutations: state.abilities,
+      active: target && target.userData.abilityActive,
+      rimCount: app.roomManager.current.built.lights.filter(l => l.userData && l.userData.phase6CinematicRim).length
+    };
+  });
+  record('phase6-ability-use',
+    abilityUse.used === true &&
+    abilityUse.mutations.some(m => m.abilityId === 'relay-charge' && m.mutation === 'charged') &&
+    abilityUse.active === 'relay-charge',
+    JSON.stringify(abilityUse));
+
+  await page.evaluate(() => window.eeveeApp.goToRoom('conservatory'));
+  await page.waitForTimeout(200);
+  await page.evaluate(() => window.eeveeApp.goToRoom('jolteon'));
+  await page.waitForTimeout(200);
+  const abilityRestored = await page.evaluate(() => {
+    const app = window.eeveeApp;
+    const target = app.roomManager.getAbilityTargets()[0];
+    return {
+      active: target && target.userData.abilityActive,
+      mutation: app.habitatState.abilities.find(m => m.targetId === 'ability_jolteon') || null
+    };
+  });
+  record('phase6-ability-restores',
+    abilityRestored.active === 'relay-charge' &&
+    abilityRestored.mutation && abilityRestored.mutation.species === 'jolteon',
+    JSON.stringify(abilityRestored));
+
+  // Restore Eevee for the protected legacy sandbox regression sequence below.
+  await page.evaluate(() => {
+    window.eeveeApp.goToRoom('conservatory');
+    window.eeveeApp.selectEeveelution('eevee');
+  });
+  await page.waitForTimeout(350);
+
   // 3. Shiny mode.
   await page.keyboard.press('s');
   await page.waitForTimeout(200);
