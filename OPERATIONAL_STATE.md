@@ -7,12 +7,12 @@
   "project_name": "Eevee Lab",
   "project_root": "/",
   "artifact_path": "index.html",
-  "state_revision": 4,
+  "state_revision": 5,
   "last_updated": "2026-09-22",
   "current_baseline": {
-    "identity": "3b65d19ce6344230df3eeaa28516b4075f75c534",
-    "state": "phase2-implemented",
-    "last_verified": "source-scope-and-phase2-structure"
+    "identity": "f0ceaa8340cae57bd4364f0dd835016f18f8997d",
+    "state": "phase3-implemented",
+    "last_verified": "source-scope-and-phase3-structure"
   },
   "scope_boundaries": [
     "The vanilla Three.js Habitat House browser project in westkitty/eevee_lab."
@@ -34,11 +34,12 @@
 
 ## 2. Current Baseline
 
-- **Primary artifact:** `3b65d19ce6344230df3eeaa28516b4075f75c534`
+- **Primary artifact:** `f0ceaa8340cae57bd4364f0dd835016f18f8997d`
 - **Protected pre-Phase-0 runtime baseline:** `661a37bc7f86e5ff2b7da28d02e8c44ad696e007`.
 - **Protected pre-Phase-1 implementation baseline:** `0e31de1b392bb6cab1895818047ad45982a87a08`.
 - **Protected pre-Phase-2 implementation baseline:** `0c8f9adc9f251c044f4cb290cc6c6ec2f110c8cc`.
-- **Baseline state:** Phase 2 Physical Interaction Layer is committed. Source scope and ownership structure are verified; browser/runtime behavior remains unverified in the current execution environment.
+- **Protected pre-Phase-3 implementation baseline:** `39dfb95e65f0391722f0e40ce39916b7dcb615bd`.
+- **Baseline state:** Phase 3 Personality, Memory and Relationship is committed. Source scope, bounded persistence, and behavior ownership are verified; browser/runtime behavior remains unverified in the current execution environment.
 - **Source/build/install identity:** Vanilla global-script Three.js r128; no bundler or framework.
 - **Active default user route:** `index.html` → Habitat House → Conservatory / habitat rooms.
 - **Delivery state:** Repository has GitHub Pages enabled; live delivery is not reverified here.
@@ -76,6 +77,11 @@ The project remains a dependency-free static browser experience. Eevee and all e
 - **VER-012:** Source inspection confirms exactly one `animate()` owner, one `setupPettingInteraction()` owner, one `interactionSystem.update()` seam, and one `creatureActor.update()` seam after Phase 2.
 - **VER-013:** No model binary, vendored library, persistence module, save schema, camera subsystem, photo subsystem, procedural audio engine, or Stone Dash implementation file changed in Phase 2.
 - **VER-014:** Direct room props are declared only through the shared `RoomKit` toy/brush builders, preserving data-first reuse rather than per-room interaction forks.
+- **VER-015:** Phase-3 diff from `39dfb95` through `f0ceaa8` is bounded to six intended files: behavior substrate, actor behavior-pose support, narrow runtime wiring, focused behavior tests, browser assertions, and Phase-3 documentation.
+- **VER-016:** Source inspection confirms one master `animate()` owner, one actor update, one behavior-scheduler update, and one behavior-event handoff.
+- **VER-017:** Phase 3 persists no event log and introduces no second familiarity score; bounded semantic memory lives under `creatureMemory.<species>` while existing `BondTracker` remains relationship authority.
+- **VER-018:** Natural rest tracks user quiet separately from creature locomotion, so autonomous wandering does not prevent eventual sleep.
+- **VER-019:** No model binary, vendored library, save version, camera subsystem, audio architecture, photo subsystem, room lifecycle, or Stone Dash implementation file changed in Phase 3.
 
 ## 6. Known Not Working
 
@@ -90,6 +96,8 @@ No confirmed baseline failure is recorded at initialization.
 - **UNV-005:** The local fixed-step actor scenario passed against the implementation candidate during construction, but exact committed-browser behavior is not promoted to verified until `tools/test_creature_actor.js` and `tools/verify_all_gameplay.js` run from a normal checkout.
 - **UNV-006:** Phase-2 direct manipulation, continuous petting, visible brushing, physical food, toy chase/retrieve, long-press context access, optional haptics, and root-ground projection are source-complete but have not run in a browser-capable checkout.
 - **UNV-007:** `tools/test_interaction_system.js` is committed for tactile classification, stroke dynamics, and direct-prop drag/release logic, but cannot be executed in the current environment because the container cannot resolve github.com for a clean checkout.
+- **UNV-008:** Phase-3 memory, needs, sleep/wake, rare spontaneous behavior, familiarity-sensitive calls, initiative, and species bond gestures are source-complete but have not run in a browser-capable checkout.
+- **UNV-009:** `tools/test_creature_behavior.js` and the Phase-3 Playwright assertions are committed but remain unexecuted in this environment.
 
 ## 8. Unknown or Evidence-Stale State
 
@@ -104,7 +112,8 @@ No confirmed baseline failure is recorded at initialization.
 - **PND-004:** Run `tools/verify_all_gameplay.js` in a browser-capable checkout and promote Phase-1/2 runtime behavior only if it passes.
 - **PND-005:** Visually classify any embedded animation clip before mapping it to a semantic slot.
 - **PND-006:** Full limb IK remains deferred until rig-specific foot-chain behavior is visually proven; Phase 2 uses root-ground projection only.
-- **PND-007:** Phase 3 may build personality, memory, sleep, rare behaviors, and familiarity on the actor/event substrate without changing save semantics casually.
+- **PND-007:** Run `node tools/test_creature_behavior.js`.
+- **PND-008:** Phase 4 Multi-Creature Habitat must not begin until the current actor/interaction/behavior ownership contracts are preserved and the first browser-capable regression run is obtained when possible.
 
 ## 10. Active Decisions, Defaults, and Prohibitions
 
@@ -121,6 +130,12 @@ No confirmed baseline failure is recorded at initialization.
 - **DEC-011:** Brush mode is a visible world-space tool and pet/brush responses are based on measured stroke dynamics.
 - **DEC-012:** Physical food may be dragged in-world while the legacy ballistic `feedTreat()` path remains available.
 - **DEC-013:** Phase-2 grounding is root-ground projection only; full per-foot IK is explicitly deferred.
+- **DEC-014:** Existing `BondTracker` remains the sole familiarity authority; Phase 3 only interprets its tiers behaviorally.
+- **DEC-015:** Creature memory stores bounded semantic aggregates, never a chronological interaction transcript.
+- **DEC-016:** Need values are opportunity biases only and never punish absence, neglect, or low engagement.
+- **DEC-017:** BehaviorScheduler may request behavior but may not mutate Three.js objects; CreatureActor remains motion/pose authority.
+- **DEC-018:** Rare moments are temporary tagged events; sleep is a real scheduler state with an explicit wake path.
+- **DEC-019:** Comfortable and bonded familiarity may cause voluntary approach/attention; cautious familiarity preserves attention without forced closeness.
 
 ## 11. Validation and Evidence Matrix
 
@@ -137,14 +152,18 @@ No confirmed baseline failure is recorded at initialization.
 | VAL-009 | Phase-2 change scope is bounded | verified | GitHub compare from 0c8f9ad through Phase-2 implementation shows only intended interaction/runtime/test/docs surfaces | GitHub compare | 3b65d19 | 2026-09-22 | Phase-2 repair |
 | VAL-010 | One master loop and one interaction owner remain | verified-source | Source counts show one animate, one setupPettingInteraction, one interaction update, one actor update | Repository source inspection | 3b65d19 | 2026-09-22 | input/loop change |
 | VAL-011 | Physical interaction browser journey works | unverified | Node/Playwright tests are committed; container clean checkout blocked by github.com DNS resolution | Node + Playwright | 3b65d19 | — | first browser-capable checkout |
+| VAL-012 | Phase-3 change scope is bounded | verified | GitHub compare 39dfb95...f0ceaa8 shows six intended files only | GitHub compare | f0ceaa8 | 2026-09-22 | Phase-3 repair |
+| VAL-013 | Behavior ownership remains singular | verified-source | One animate owner, one actor update, one scheduler update, one event handoff | Repository source inspection | f0ceaa8 | 2026-09-22 | actor/scheduler change |
+| VAL-014 | Relationship memory is bounded and non-punitive | verified-source | No persisted event log, no new bond score, capped aggregate counters only | Repository source inspection | f0ceaa8 | 2026-09-22 | memory schema change |
+| VAL-015 | Phase-3 runtime user path works | unverified | Focused Node and Playwright assertions committed but unavailable to execute here | Node + Playwright | f0ceaa8 | — | first browser-capable checkout |
 
 ## 12. Current Change Scope and Impact Radius
 
-- **Allowed Phase-2 changes:** direct interaction module, shared toy/brush metadata, tactile-stroke input wiring, physical-food flow, lightweight prop physics, toy chase/retrieve, root-ground metadata, focused tests, Phase-2 report, operational state.
-- **Protected and unchanged:** model binaries, Three.js version, save schema, one-heavy-room disposal architecture, camera subsystem, procedural audio architecture, photo subsystem, UI accessibility fallback, Stone Dash rules.
-- **Potentially affected behavior:** petting pointer flow, camera drag discrimination, room toy behavior, feed interactions, brush action, Reduced Motion, actor transform ownership, room transitions.
-- **Mandatory checks:** one frame-loop owner; one pointer-interaction owner; direct props bounded to walkable room space; special actions preserve actor authority; wheel fallback remains; old `feedTreat()` API remains; room disposal does not acquire new persistent prop ownership.
-- **Unavailable proof:** committed Node/Playwright execution from a clean checkout in this environment.
+- **Allowed Phase-3 changes:** bounded creature memory, needs/opportunity state, behavior scheduler, external actor behavior poses, familiarity-sensitive response wiring, rare/bond/sleep events, focused tests, Phase-3 report, operational state.
+- **Protected and unchanged:** model binaries, Three.js version, save version, one-heavy-room lifecycle, camera subsystem, procedural audio architecture, photo storage, direct interaction ownership, Stone Dash rules.
+- **Potentially affected behavior:** idle/autonomous cadence, call response, pet/brush/toy/feed memory, sleep/wake behavior, rare spontaneous moments, bonded initiative.
+- **Mandatory checks:** BondTracker remains sole familiarity score; no unbounded history; no neglect decay; scheduler never mutates scene objects; actor remains transform authority; sleep wakes on interaction/special action; rare events expire.
+- **Unavailable proof:** committed Node/Playwright execution in this environment.
 - **Repair class:** bounded feature implementation.
 
 ## 13. Compact Revision Log
@@ -187,3 +206,15 @@ No confirmed baseline failure is recorded at initialization.
 - **Validation added:** focused `tools/test_interaction_system.js` plus Phase-2 assertions in `tools/verify_all_gameplay.js`.
 - **Declared unverified:** runtime/browser execution remains unavailable because the current container cannot resolve github.com for a clean checkout.
 - **Next safe phase:** Phase 3 Personality, Memory and Relationship can build on the actor + interaction event semantics after preserving the same runtime proof requirement.
+
+
+### Revision 5 — 2026-09-22
+
+- **Artifact/source identity:** `f0ceaa8340cae57bd4364f0dd835016f18f8997d`
+- **State deltas:** Phase 3 Personality, Memory and Relationship implemented and pushed.
+- **New behavior:** bounded semantic memory, need/opportunity state, actual sleep/wake, nine species rare moments, nine bonded personal gestures, familiarity-sensitive calls, voluntary initiative, favorite touch/toy/food tracking, quiet/sleep-room memory.
+- **Preservation evidence:** existing BondTracker remains authoritative; no save-version bump or event log; scheduler requests behavior while CreatureActor exclusively owns pose/movement.
+- **Adversarial repair:** quiet companionship is tracked independently from autonomous locomotion so natural sleep remains reachable.
+- **Validation added:** focused `tools/test_creature_behavior.js` plus Phase-3 assertions in the broad Playwright suite.
+- **Declared unverified:** browser/runtime execution remains unavailable in the current container.
+- **Next safe phase:** Phase 4 Multi-Creature Habitat, but only with the existing single-owner actor/interaction/behavior contracts preserved.
