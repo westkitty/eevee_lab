@@ -873,15 +873,74 @@ async function main() {
   const exitedMode = await page.evaluate(() => window.eeveeApp.activeGameMode);
   record('arcade-exit', exitedMode === 'sandbox', `mode=${exitedMode}`);
 
-  // 31. Mobile viewport: UI must not cover the central character region.
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.waitForTimeout(400);
-  const mobileCenterClear = await page.evaluate(() => {
-    const el = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
-    return !el || el.id === 'webgl-canvas';
-  });
-  record('mobile-center-clear', mobileCenterClear === true, 'center viewport hit-tests to the canvas at 390x844');
-  await shot(page, '13_mobile_view');
+  // 31-35. Adaptive viewport matrix: phone portrait, phone landscape,
+  // tablet portrait, tablet landscape/small desktop, and wide desktop.
+  async function inspectAdaptiveViewport(name, width, height, expectedMode) {
+    await page.setViewportSize({ width, height });
+    await page.waitForTimeout(250);
+
+    // Closed-state chrome must stay inside the viewport and keep the center clear.
+    const closed = await page.evaluate(() => {
+      const rect = el => {
+        const r = el.getBoundingClientRect();
+        return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
+      };
+      const center = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+      return {
+        viewport: { width: innerWidth, height: innerHeight },
+        overflowX: document.documentElement.scrollWidth - innerWidth,
+        centerId: center ? center.id : null,
+        species: rect(document.getElementById('species-strip')),
+        drawerFab: rect(document.getElementById('drawer-fab')),
+        interactionFab: rect(document.getElementById('interaction-fab'))
+      };
+    });
+
+    const inside = r => r.left >= -1 && r.top >= -1 && r.right <= width + 1 && r.bottom <= height + 1;
+    record(`responsive-${name}-closed`,
+      closed.overflowX <= 1 && closed.centerId === 'webgl-canvas' &&
+      inside(closed.species) && inside(closed.drawerFab) && inside(closed.interactionFab),
+      JSON.stringify(closed));
+
+    // Open the main controls: it must become a bottom sheet in portrait phones,
+    // a bounded side pane elsewhere, never exceed the viewport, and remain scrollable.
+    await page.evaluate(() => {
+      const d = document.getElementById('control-drawer');
+      if (!d.classList.contains('open')) toggleDrawer();
+    });
+    await page.waitForTimeout(380);
+    const open = await page.evaluate(() => {
+      const d = document.getElementById('control-drawer');
+      const r = d.getBoundingClientRect();
+      const cs = getComputedStyle(d);
+      return {
+        left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height,
+        overflowY: cs.overflowY,
+        viewport: { width: innerWidth, height: innerHeight }
+      };
+    });
+    const openInside = open.left >= -1 && open.top >= -1 && open.right <= width + 1 && open.bottom <= height + 1;
+    const modeOk = expectedMode === 'bottom-sheet'
+      ? Math.abs(open.bottom - height) <= 2 && open.width >= width * 0.95 && open.height < height
+      : Math.abs(open.right - width) <= 2 && open.width < width * 0.65;
+    record(`responsive-${name}-drawer`, openInside && modeOk && /auto|scroll/.test(open.overflowY), JSON.stringify(open));
+    await page.evaluate(() => closeDrawer());
+    await page.waitForTimeout(80);
+
+    return { closed, open };
+  }
+
+  await inspectAdaptiveViewport('phone-portrait', 390, 844, 'bottom-sheet');
+  await shot(page, '13_phone_portrait');
+  await inspectAdaptiveViewport('phone-landscape', 844, 390, 'side-pane');
+  await shot(page, '14_phone_landscape');
+  await inspectAdaptiveViewport('tablet-portrait', 800, 1280, 'side-pane');
+  await shot(page, '15_tablet_portrait');
+  await inspectAdaptiveViewport('tablet-landscape', 1180, 820, 'side-pane');
+  await shot(page, '16_tablet_landscape');
+  await inspectAdaptiveViewport('desktop-wide', 1440, 900, 'side-pane');
+  await shot(page, '17_desktop_wide');
+
   await page.setViewportSize({ width: 1280, height: 800 });
 
   console.log(`\n=== Console errors captured: ${consoleErrors.length} ===`);
