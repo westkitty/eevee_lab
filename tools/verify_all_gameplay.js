@@ -908,7 +908,11 @@ async function main() {
       const d = document.getElementById('control-drawer');
       if (!d.classList.contains('open')) toggleDrawer();
     });
-    await page.waitForTimeout(380);
+    await page.waitForFunction(() => {
+      const d = document.getElementById('control-drawer');
+      const r = d.getBoundingClientRect();
+      return r.left >= -1 && r.top >= -1 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1;
+    }, { timeout: 2500 });
     const open = await page.evaluate(() => {
       const d = document.getElementById('control-drawer');
       const r = d.getBoundingClientRect();
