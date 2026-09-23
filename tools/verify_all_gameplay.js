@@ -837,11 +837,22 @@ async function main() {
   await page.evaluate(() => onSetReducedMotion(false));
 
   // 29. Desktop viewport: UI must not cover the central ~75% where the character stands.
-  const centerClear = await page.evaluate(() => {
+  const centerProbe = await page.evaluate(() => {
     const el = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
-    return !el || el.id === 'webgl-canvas';
+    return {
+      clear: !el || el.id === 'webgl-canvas',
+      tag: el ? el.tagName : null,
+      id: el ? el.id : null,
+      className: el ? String(el.className || '') : null,
+      pointerEvents: el ? getComputedStyle(el).pointerEvents : null,
+      opacity: el ? getComputedStyle(el).opacity : null,
+      display: el ? getComputedStyle(el).display : null,
+      visibility: el ? getComputedStyle(el).visibility : null,
+      text: el ? String(el.textContent || '').trim().slice(0, 160) : null
+    };
   });
-  record('desktop-center-clear', centerClear === true, 'center viewport hit-tests to the canvas, not chrome');
+  console.log('desktop-center-probe', JSON.stringify(centerProbe));
+  record('desktop-center-clear', centerProbe.clear === true, JSON.stringify(centerProbe));
 
   // 30. Stone Dash: start, steer, jump, score advances, exit.
   await page.evaluate(() => window.eeveeApp.switchGameMode('arcade'));
