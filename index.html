@@ -477,7 +477,7 @@
 
     /* Coarse-pointer ergonomics: comfortably above the WCAG minimum while
        preserving the compact mouse/trackpad presentation. */
-    @media (pointer: coarse) {
+    @media (any-pointer: coarse) {
       :root { --hud-touch: 48px; }
       .drawer-btn, .room-grid button, .lore-tab, #photo-mode-bar button, .btn-restart {
         min-height: 48px;
@@ -796,7 +796,6 @@
     @media (min-width: 1800px) {
       .corner.tl, #interaction-fab { left: max(calc(var(--safe-left) + 18px), calc((100vw - 1680px) / 2)); }
       .corner.tr, #drawer-fab { right: max(calc(var(--safe-right) + 18px), calc((100vw - 1680px) / 2)); }
-      #control-drawer { right: max(0px, calc((100vw - 1760px) / 2)); }
     }
 
     /* Density (UX-08): Minimal hides optional persistent chrome; Standard adds breadcrumb;
