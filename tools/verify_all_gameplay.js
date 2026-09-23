@@ -755,21 +755,24 @@ async function main() {
   }
   record('room-no-leak', leakFree, 'mesh counts stable across repeated visits to all 10 rooms');
 
-  // 20. Lighting differs meaningfully between two rooms (data-driven per-room lighting).
+  // 20. Lighting remains meaningfully room-specific under the Phase-7 living-world layer.
+  // The accelerated clock deliberately owns live default-atmosphere intensity, so two rooms can
+  // legitimately share an instantaneous intensity. Hemisphere sky + ground colors remain the
+  // stable room-authored signature and must both differ.
   await page.evaluate(() => window.eeveeApp.goToRoom('umbreon'));
   await page.waitForTimeout(200);
   const umbreonLight = await page.evaluate(() => {
     const light = window.eeveeApp.roomManager.current.built.lights[0];
-    return { intensity: light.intensity, color: light.color.getHexString() };
+    return { intensity: light.intensity, color: light.color.getHexString(), groundColor: light.groundColor.getHexString() };
   });
   await page.evaluate(() => window.eeveeApp.goToRoom('leafeon'));
   await page.waitForTimeout(200);
   const leafeonLight = await page.evaluate(() => {
     const light = window.eeveeApp.roomManager.current.built.lights[0];
-    return { intensity: light.intensity, color: light.color.getHexString() };
+    return { intensity: light.intensity, color: light.color.getHexString(), groundColor: light.groundColor.getHexString() };
   });
   record('room-lighting-differs',
-    umbreonLight.color !== leafeonLight.color && Math.abs(umbreonLight.intensity - leafeonLight.intensity) > 0.02,
+    umbreonLight.color !== leafeonLight.color && umbreonLight.groundColor !== leafeonLight.groundColor,
     `umbreon=${JSON.stringify(umbreonLight)}, leafeon=${JSON.stringify(leafeonLight)}`);
 
   // 21. Camera: close zoom substantially closer than the old fixed minDistance (4.0).
