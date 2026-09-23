@@ -81,7 +81,8 @@
   }
 
   function weatherFor(roomId, clockState) {
-    const options = ROOM_WEATHER[roomId] || ROOM_WEATHER.conservatory;
+    const expansion = global.EXPANSION_REGISTRY ? global.EXPANSION_REGISTRY.weather[roomId] : null;
+    const options = ROOM_WEATHER[roomId] || expansion || ROOM_WEATHER.conservatory;
     const segment = Math.floor(clockState.habitatHour / 4);
     const h = hashString(roomId + ':' + clockState.dayIndex + ':' + segment);
     return options[h % options.length];
@@ -317,7 +318,9 @@
       return Object.assign({}, clock, {
         roomId: this.roomId || 'conservatory',
         weather,
-        life: LIFE_BY_ROOM[this.roomId] || 'motes'
+        life: LIFE_BY_ROOM[this.roomId]
+          || (global.EXPANSION_REGISTRY && global.EXPANSION_REGISTRY.life[this.roomId])
+          || 'motes'
       });
     }
 

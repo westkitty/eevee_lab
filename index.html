@@ -182,6 +182,52 @@
       font-size: 0.72rem; font-weight: 700; color: #55341c; cursor: pointer; padding: 4px 8px;
     }
     .room-grid button.active { background: #ffb834; color: #fff; }
+    /* ---- Region transition veil ---- */
+    #region-veil { position: fixed; inset: 0; z-index: 60; pointer-events: none; opacity: 0; }
+    #region-veil .veil-a, #region-veil .veil-b { position: absolute; inset: 0; }
+    #region-veil .veil-label {
+      position: absolute; left: 50%; bottom: 14%; transform: translateX(-50%); font-family: var(--font-display);
+      font-size: 0.9rem; letter-spacing: 0.18em; text-transform: uppercase; color: #fff; opacity: 0; text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    }
+    #region-veil.play { animation: veilFade 1.15s ease both; }
+    #region-veil.play .veil-label { animation: veilLabel 1.15s ease both; }
+    @keyframes veilFade { 0% { opacity: 0; } 22% { opacity: 1; } 62% { opacity: 1; } 100% { opacity: 0; } }
+    @keyframes veilLabel { 0%, 25% { opacity: 0; transform: translateX(-50%) translateY(8px); } 45%, 70% { opacity: 1; transform: translateX(-50%) translateY(0); } 100% { opacity: 0; } }
+    /* Tidewild: sea-spray + a wave that sweeps up from the bottom */
+    #region-veil.tidewild .veil-a { background: radial-gradient(ellipse at 50% 120%, rgba(214,240,246,0.95) 0%, rgba(63,193,201,0.85) 35%, rgba(18,72,92,0.95) 75%); }
+    #region-veil.tidewild .veil-b { background: repeating-radial-gradient(circle at 50% 110%, rgba(255,255,255,0.18) 0 14px, transparent 14px 46px); animation: waveUp 1.15s ease-in-out both; }
+    @keyframes waveUp { 0% { transform: translateY(100%) scaleY(1.4); } 50% { transform: translateY(0) scaleY(1); } 100% { transform: translateY(-100%) scaleY(1.4); } }
+    /* Emberpeak: altitude cloud + stone aperture closing/opening */
+    #region-veil.emberpeak .veil-a { background: radial-gradient(circle at 50% 50%, transparent 0%, transparent 18%, #4a3a30 19%, #2b211b 100%); animation: apertureShut 1.15s ease-in-out both; }
+    #region-veil.emberpeak .veil-b { background: linear-gradient(180deg, rgba(233,238,247,0.0), rgba(233,238,247,0.6) 50%, rgba(233,238,247,0)); animation: cloudDrift 1.15s linear both; }
+    @keyframes apertureShut { 0% { transform: scale(6); } 50% { transform: scale(1); } 100% { transform: scale(6); } }
+    @keyframes cloudDrift { 0% { transform: translateX(-30%); opacity: 0.2; } 50% { opacity: 0.9; } 100% { transform: translateX(30%); opacity: 0.2; } }
+    /* Undercity: shutter slams down, signage streaks past like a tunnel */
+    #region-veil.undercity .veil-a { background: repeating-linear-gradient(180deg, #14161f 0 22px, #1f2230 22px 26px); animation: shutterDown 1.15s cubic-bezier(0.7,0,0.3,1) both; }
+    #region-veil.undercity .veil-b { background: repeating-linear-gradient(90deg, transparent 0 60px, rgba(255,63,164,0.55) 60px 66px, transparent 66px 140px, rgba(63,214,255,0.5) 140px 144px, transparent 144px 260px); animation: signageStreak 1.15s linear both; mix-blend-mode: screen; }
+    @keyframes shutterDown { 0% { transform: translateY(-100%); } 40% { transform: translateY(0); } 65% { transform: translateY(0); } 100% { transform: translateY(100%); } }
+    @keyframes signageStreak { 0% { transform: translateX(40%) skewX(-12deg); opacity: 0; } 35% { opacity: 1; } 100% { transform: translateX(-60%) skewX(-12deg); opacity: 0; } }
+    /* Dreamway: geometry inversion — the world turns inside out through a soft iris */
+    #region-veil.dreamway .veil-a { background: conic-gradient(from 0deg, #2a2450, #9b7bff, #ff9ad0, #2a2450); animation: dreamSpin 1.15s ease-in-out both; filter: blur(2px); }
+    #region-veil.dreamway .veil-b { background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.9) 0%, transparent 28%); animation: dreamIris 1.15s ease-in-out both; }
+    @keyframes dreamSpin { 0% { transform: scale(0.2) rotate(0deg); border-radius: 50%; } 50% { transform: scale(2) rotate(180deg); border-radius: 30%; } 100% { transform: scale(0.2) rotate(360deg); border-radius: 50%; } }
+    @keyframes dreamIris { 0% { transform: scale(3); } 50% { transform: scale(0.4); } 100% { transform: scale(3); } }
+    /* Conservatory return: a plain warm dissolve */
+    #region-veil.conservatory .veil-a { background: #f3ead8; }
+    body.reduced-motion #region-veil.play { animation-duration: 0.3s; }
+    body.reduced-motion #region-veil .veil-a, body.reduced-motion #region-veil .veil-b, body.reduced-motion #region-veil .veil-label { animation: none !important; transform: none !important; }
+
+    .expedition-list { display: flex; flex-direction: column; gap: 6px; }
+    .expedition { border: 1px solid var(--glass-border); border-radius: 12px; overflow: hidden; }
+    .expedition-head {
+      display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border: 0; cursor: pointer;
+      background: rgba(255,255,255,0.35); font: inherit; font-size: 0.8rem; color: #4a3220; text-align: left;
+    }
+    .expedition-head .swatch { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+    .expedition-head .tag { margin-left: auto; font-size: 0.65rem; opacity: 0.7; }
+    .expedition-head.active { background: #ffb834; color: #fff; }
+    .expedition .room-grid { padding: 6px; }
+    .expedition .room-grid button { font-size: 0.72rem; }
 
     /* ---- Interaction popover (UX-06: replaces the six-card toy panel) ---- */
     #interaction-fab { position: absolute; bottom: 16px; left: 16px; z-index: 30; }
@@ -448,6 +494,10 @@
         <div class="drawer-title">Habitats</div>
         <div class="room-grid" id="room-grid"></div>
       </div>
+      <div class="drawer-section" id="expedition-section">
+        <div class="drawer-title">Expeditions</div>
+        <div class="expedition-list" id="expedition-list"></div>
+      </div>
       <div class="drawer-section">
         <div class="drawer-title">Atmosphere</div>
         <div class="drawer-row" id="atmosphere-row"></div>
@@ -459,6 +509,10 @@
         </div>
       </div>
     </div>
+
+    <!-- Region transition veil: a full-screen, region-specific occlusion that
+         plays when crossing into/out of/between expedition rooms. -->
+    <div id="region-veil" aria-hidden="true"><div class="veil-a"></div><div class="veil-b"></div><div class="veil-label" id="region-veil-label"></div></div>
 
     <!-- Photo mode bar -->
     <div id="photo-mode-bar" class="interactive">
@@ -529,6 +583,12 @@
   <script src="src/photo-system.js"></script>
   <script src="src/camera-controller.js"></script>
   <script src="src/rooms.js"></script>
+  <!-- Expansions: additive regions (hub + nine habitats each). Load after rooms.js, before room-manager.js. -->
+  <script src="src/expansions/expansion-kit.js"></script>
+  <script src="src/expansions/tidewild-coast.js"></script>
+  <script src="src/expansions/emberpeak-ruins.js"></script>
+  <script src="src/expansions/neon-undercity.js"></script>
+  <script src="src/expansions/starfall-dreamway.js"></script>
   <script src="src/room-manager.js"></script>
   <script src="src/creature-behavior.js"></script>
   <script src="src/creature-actor.js"></script>
@@ -881,6 +941,7 @@
     const FX = window.RenderEffects;
     if (!FX) throw new Error("Eevee Lab requires RenderEffects");
 
+    window.habitatSave = save; // read-only seam for expansion region state (expeditions.*)
     const worldState = new HabitatWorldStateSystem.HabitatWorldState(save);
     const bondTracker = new DiscoverySystem.BondTracker(save);
     const interactionMemory = new DiscoverySystem.InteractionMemory();
@@ -2437,16 +2498,56 @@
       });
     }
 
+    function roomButton(id) {
+      const def = ROOM_DEFINITIONS[id];
+      const btn = document.createElement('button');
+      const short = def.expansionId && !def.isHub ? def.displayName.split(' — ')[0] : def.displayName.split(' — ')[0].replace('The ', '');
+      btn.textContent = short;
+      btn.title = def.displayName;
+      btn.className = roomManager && roomManager.current && roomManager.current.id === id ? 'active' : '';
+      btn.onclick = () => { goToRoomImmediate(id); closeDrawer(); };
+      return btn;
+    }
+
     function renderRoomGrid() {
       const grid = document.getElementById('room-grid');
       grid.innerHTML = '';
       global_ROOM_ORDER().forEach(id => {
-        const def = ROOM_DEFINITIONS[id];
-        const btn = document.createElement('button');
-        btn.textContent = def.displayName.split(' — ')[0].replace('The ', '');
-        btn.className = roomManager && roomManager.current && roomManager.current.id === id ? 'active' : '';
-        btn.onclick = () => { goToRoomImmediate(id); closeDrawer(); };
-        grid.appendChild(btn);
+        if (ROOM_DEFINITIONS[id].expansionId) return; // expansions render in their own section
+        grid.appendChild(roomButton(id));
+      });
+      renderExpeditions();
+    }
+
+    function renderExpeditions() {
+      const list = document.getElementById('expedition-list');
+      const section = document.getElementById('expedition-section');
+      if (!list) return;
+      const registry = window.EXPANSION_REGISTRY;
+      const expansions = registry ? registry.expansions : [];
+      if (!expansions.length) { if (section) section.style.display = 'none'; return; }
+      list.innerHTML = '';
+      const currentId = roomManager && roomManager.current ? roomManager.current.id : null;
+      const currentDef = currentId ? ROOM_DEFINITIONS[currentId] : null;
+      expansions.forEach(exp => {
+        const wrap = document.createElement('div');
+        wrap.className = 'expedition';
+        const head = document.createElement('button');
+        head.className = 'expedition-head' + (currentDef && currentDef.expansionId === exp.id ? ' active' : '');
+        head.setAttribute('aria-expanded', String(currentDef && currentDef.expansionId === exp.id));
+        head.innerHTML = `<span class="swatch" style="background:#${exp.doorColor.toString(16).padStart(6, '0')}"></span><span>${exp.displayName.split(' — ')[0]}</span><span class="tag">${exp.tagline || ''}</span>`;
+        const grid = document.createElement('div');
+        grid.className = 'room-grid';
+        grid.style.display = currentDef && currentDef.expansionId === exp.id ? 'grid' : 'none';
+        grid.appendChild(roomButton(exp.id));
+        (registry.roomsByExpansion[exp.id] || []).forEach(rid => grid.appendChild(roomButton(rid)));
+        head.onclick = () => {
+          const open = grid.style.display !== 'none';
+          grid.style.display = open ? 'none' : 'grid';
+          head.setAttribute('aria-expanded', String(!open));
+        };
+        wrap.appendChild(head); wrap.appendChild(grid);
+        list.appendChild(wrap);
       });
     }
     function global_ROOM_ORDER() { return ROOM_ORDER; }
@@ -2496,7 +2597,31 @@
       if (audioDirector && livingWorld && livingWorld.state) audioDirector.apply(livingWorld.state);
     }
 
+    /* Region transitions: play the destination region's veil when crossing a
+       region boundary (Conservatory ↔ region, or region ↔ region). Moving
+       between rooms inside one region uses the existing camera cinematic only. */
+    let lastRegionId = null;
+    function playRegionVeil(roomId) {
+      const def = ROOM_DEFINITIONS[roomId];
+      const regionId = def && def.expansionId ? def.expansionId : 'conservatory';
+      const changed = lastRegionId !== null && regionId !== lastRegionId;
+      lastRegionId = regionId;
+      if (!changed || isPhotoMode || activeGameMode !== 'sandbox') return false;
+      const veil = document.getElementById('region-veil');
+      if (!veil) return false;
+      document.body.classList.toggle('reduced-motion', !!(uiChrome && uiChrome.reducedMotion));
+      const exp = (window.EXPANSION_REGISTRY ? window.EXPANSION_REGISTRY.expansions : []).find(e => e.id === regionId);
+      document.getElementById('region-veil-label').textContent = exp ? exp.displayName.split(' — ')[0] : 'The Conservatory';
+      veil.className = '';
+      void veil.offsetWidth; // restart animation
+      veil.className = regionId + ' play';
+      clearTimeout(veil.hideTimeout);
+      veil.hideTimeout = setTimeout(() => { veil.className = ''; }, 1300);
+      return true;
+    }
+
     function showRoomToast(roomId, built) {
+      playRegionVeil(roomId);
       const def = ROOM_DEFINITIONS[roomId];
       document.getElementById('room-toast-name').textContent = def.displayName;
       const narrative = roomManager && roomManager.current ? roomManager.current.narrativeState : null;

@@ -32,6 +32,12 @@
         requestDoor: (targetId, doorObject) => this.requestDoor(targetId, doorObject),
         requestEvolution: (targetSpecies, stoneObject) => this.requestEvolution(targetSpecies, stoneObject),
         roomLabel: this.roomLabel,
+        activeForm: () => this._activeForm || 'eevee',
+        unlockBehavior: (id, label) => {
+          const unlocked = this.discoveryLog.unlockBehavior(id, label);
+          if (unlocked) this.onDiscoveryFeedback && this.onDiscoveryFeedback({ label }, null);
+          return unlocked;
+        },
         onRoomProp: (roomId2, detail) => {
           this.resonance.bump(roomId2, 0.08);
           const found = this.discoveryLog.checkCombo(roomId2, this._activeForm, 'roomProp');

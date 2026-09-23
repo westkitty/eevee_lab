@@ -102,6 +102,8 @@
     unlockBehavior(id, label) {
       if (this.hasBehavior(id)) return false;
       this.save.set(`discovery.behaviors.${id}`, true);
+      // Expansion discoveries are not in the static table; keep their label.
+      if (!DISCOVERY_TABLE.some(d => d.id === id) && label) this.save.set(`discovery.behaviorLabels.${id}`, String(label));
       this.onUnlock({ type: 'behavior', id, label });
       return true;
     }
@@ -137,6 +139,11 @@
       const mementos = this.save.get('discovery.mementos', {});
       const rares = this.save.get('discovery.rareMoments', {});
       DISCOVERY_TABLE.forEach(d => { if (behaviors[d.id]) entries.push({ type: 'behavior', id: d.id, label: d.label }); });
+      const extraLabels = this.save.get('discovery.behaviorLabels', {});
+      Object.keys(behaviors).forEach(id => {
+        if (DISCOVERY_TABLE.some(d => d.id === id)) return;
+        entries.push({ type: 'behavior', id, label: extraLabels[id] || id });
+      });
       Object.keys(mementos).forEach(id => entries.push({ type: 'memento', id, label: id }));
       Object.keys(rares).forEach(id => entries.push({ type: 'rare', id, label: id }));
       return entries;

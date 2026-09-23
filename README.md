@@ -44,6 +44,24 @@ permitted by your browser — a local server is more reliable.
   stays grown) and unlocks a second atmosphere variant (Settings drawer → Atmosphere) once
   you've discovered something there.
 
+## Expeditions — four expansion regions
+
+Beyond the nine original habitats, the Conservatory now has four **expedition gates** (the
+smaller inner-ring doors), each leading to a whole new region with its own hub and nine more
+habitats — one per Eeveelution, each with its own environment, weather, and native setpiece:
+
+| Region | Hub | Flavour |
+|---|---|---|
+| ⛵ **Tidewild Coast** | Driftwood Harbor | Tide pools, a lighthouse, a sea cave, an iceberg, a ribbon-rigged shipwreck |
+| ⛰ **Emberpeak Ruins** | The Pilgrim's Stair | Hot springs, a caldera, a fallen sky-temple, a lantern monastery, a glacier pass |
+| 🌃 **Neon Undercity** | Lantern Alley Junction | An arcade, an aquarium bar, a substation rooftop, a subway platform, a karaoke loft |
+| 🌙 **Starfall Dreamway** | The Pillow Nebula | A sea of glass, a static meadow, a comet garden, a tilted clocktower, a library of unwritten books |
+
+Open the control drawer → **Expeditions** to jump straight to any room, or walk through the
+gates. Species abilities, narrative stages, mementos, atmosphere variants, the living-world
+clock/weather and the Journal all work in the new rooms. Full room-by-room breakdown and
+architecture notes in [`docs/EXPANSIONS.md`](docs/EXPANSIONS.md).
+
 ## UI & camera controls
 
 The default view is deliberately empty — the creature fills the screen. Controls fade after
@@ -141,6 +159,8 @@ itself is a set of plain, dependency-free scripts loaded before it:
   custom shader accents (water ripple, fresnel rim), ground-contact helpers
 - `src/rooms.js` — the data-driven room definitions (Conservatory + 9 habitats) and the
   shared `RoomKit` prop/doorway/memento builders
+- `src/expansions/expansion-kit.js` + `src/expansions/*.js` — the four expedition regions
+  (hub + nine habitats each), registered declaratively on top of `rooms.js`
 - `src/room-manager.js` — one-room-at-a-time lifecycle (enter/exit/update/dispose), habitat
   memory, cross-room trace seeding, atmosphere variant application
 - `src/discovery-system.js` — species personalities, toy preferences, bond/familiarity,
