@@ -837,6 +837,13 @@ async function main() {
   await page.evaluate(() => onSetReducedMotion(false));
 
   // 29. Desktop viewport: UI must not cover the central ~75% where the character stands.
+  // Reload can finish app restoration slightly before the existing loading overlay completes
+  // its hide transition on slower/headless renderers. Wait for the actual interaction surface
+  // instead of assuming a fixed post-reload delay.
+  await page.waitForFunction(() => {
+    const el = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+    return !el || el.id === 'webgl-canvas';
+  }, { timeout: 5000 });
   const centerClear = await page.evaluate(() => {
     const el = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
     return !el || el.id === 'webgl-canvas';
