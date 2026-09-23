@@ -1,0 +1,48 @@
+name: Responsive HUD gate 2
+
+on:
+  push:
+    branches:
+      - ci/responsive-hud-gate2
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run focused contracts
+        run: |
+          node tools/test_expansions.js
+          node tools/test_phase7_living_world.js
+          node tools/test_phase6_system.js
+          node tools/test_habitat_state.js
+          node tools/test_room_manager_phase5.js
+          node tools/test_creature_manager.js
+          node tools/test_creature_behavior.js
+          node tools/test_interaction_system.js
+          node tools/test_creature_actor.js
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Playwright
+        run: |
+          npm init -y
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Run browser + responsive matrix
+        run: |
+          python3 -m http.server 8099 >/tmp/eevee-http.log 2>&1 &
+          node tools/verify_all_gameplay.js
