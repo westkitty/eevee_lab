@@ -7,12 +7,12 @@
   "project_name": "Eevee Lab",
   "project_root": "/",
   "artifact_path": "index.html",
-  "state_revision": 12,
+  "state_revision": 13,
   "last_updated": "2026-09-23",
   "current_baseline": {
-    "identity": "4d4c0ee9f08b5f612647d86e3f81490cf6e6dace",
-    "state": "expeditions-integrated-browser-verified",
-    "last_verified": "expansions-focused-contracts-plus-broad-browser-ci"
+    "identity": "bdb4e8109fede35e0ac634be3089035cd9d40253",
+    "state": "adaptive-hud-browser-verified",
+    "last_verified": "adaptive-five-viewport-browser-matrix-plus-focused-contracts"
   },
   "scope_boundaries": [
     "The vanilla Three.js Habitat House browser project in westkitty/eevee_lab."
@@ -34,7 +34,7 @@
 
 ## 2. Current Baseline
 
-- **Primary artifact:** `4d4c0ee9f08b5f612647d86e3f81490cf6e6dace`
+- **Primary artifact:** `bdb4e8109fede35e0ac634be3089035cd9d40253`
 - **Protected pre-Phase-0 runtime baseline:** `661a37bc7f86e5ff2b7da28d02e8c44ad696e007`.
 - **Protected pre-Phase-1 implementation baseline:** `0e31de1b392bb6cab1895818047ad45982a87a08`.
 - **Protected pre-Phase-2 implementation baseline:** `0c8f9adc9f251c044f4cb290cc6c6ec2f110c8cc`.
@@ -43,11 +43,11 @@
 - **Protected pre-Phase-5 implementation baseline:** `eb5d02152f7ed588c3ac3fc6d3d9c8613d15f44f`.
 - **Protected pre-Phase-6 implementation baseline:** `8ac85ce77defac04ce0a7dace0679793dadc5c59`.
 - **Protected pre-Phase-7 implementation baseline:** `6246e1ca3e453691b0ceaf474b01ef851ddca8eb`.
-- **Baseline state:** The four expedition regions are integrated on top of the verified Phase-7.5 runtime. The expansion lifecycle contract passes across all 50 registered rooms; all eight prior focused contracts still pass; and the full Playwright journey completes 86/86 with zero console/page errors on GitHub Actions. Expansion-room visual composition has not been manually inspected and remains explicitly unverified.
+- **Baseline state:** The expedition-integrated runtime now has a viewport-adaptive HUD for phone portrait, phone landscape, tablet portrait, tablet landscape/small desktop, and wide desktop. Safe-area insets, dynamic viewport height, portrait bottom sheets, compact-landscape edge rails, bounded tablet/desktop panes, coarse-pointer target sizing, and ultrawide edge rails are implemented. The expanded Playwright journey completes 95/95 with zero console/page errors, and all focused Phase-1–7 plus expansion contracts remain green. Manual visual composition review of the new responsive layouts remains unverified.
 - **Source/build/install identity:** Vanilla global-script Three.js r128; no bundler or framework.
 - **Active default user route:** `index.html` → Habitat House → Conservatory / habitat rooms.
-- **Delivery state:** The verified expansion integration is on `main`. GitHub Pages delivery of this new baseline remains unverified until the public route is checked after deployment.
-- **Last verified baseline:** `4d4c0ee9f08b5f612647d86e3f81490cf6e6dace` in GitHub Actions for focused contracts and the full Playwright journey; the earlier Phase-7.5 rendered desktop/mobile inspection remains valid only for the pre-expansion baseline.
+- **Delivery state:** The adaptive responsive baseline is on `main`. GitHub Pages delivery of this baseline remains unverified until the public route is checked after deployment.
+- **Last verified baseline:** `bdb4e8109fede35e0ac634be3089035cd9d40253` in GitHub Actions for focused contracts and the expanded 95-check Playwright journey across five representative viewport classes; rendered visual review of the new adaptive layouts has not yet been performed.
 
 ## 3. Artifact Contract
 
@@ -65,6 +65,7 @@ The project remains a dependency-free static browser experience. Eevee and all e
 - **INV-008:** Preserve third-party model provenance and licensing records.
 - **INV-009:** Engine migration must remain isolated from creature-AI/gameplay feature work until parity is proven.
 - **INV-010:** Expansion regions are additive: they register through `ExpansionKit` / `EXPANSION_REGISTRY`; the original ten room ids, their order, and their save keys remain unchanged.
+- **INV-011:** Responsive changes must preserve the creature-first clear center, safe-area containment, no horizontal document overflow, usable touch targets, and bounded open-drawer geometry across phone portrait, phone landscape, tablet portrait, tablet landscape, and desktop.
 
 ## 5. Verified Working Behavior
 
@@ -125,6 +126,9 @@ The project remains a dependency-free static browser experience. Eevee and all e
 - **VER-055:** `tools/test_expansions.js` passes on GitHub Actions: all 50 rooms are registered and navigated through real doors/RoomManager; 36 setpieces, 36 mementos, and 4 hub curios execute; four regions persist their consequences; disposal leaves the scene empty; and a legacy pre-expansion save retains its keys.
 - **VER-056:** The final integration gate passes the expansion contract plus all eight pre-existing focused Phase-1–7 Node contracts on the merged application tree.
 - **VER-057:** The final GitHub Actions Playwright journey completes **86 passed, 0 failed** with **0 console/page errors**. The harness now waits for the existing loading overlay to finish intercepting input after reload and checks room-authored hemisphere colors rather than nondeterministic instantaneous intensity owned by the accelerated Phase-7 living-world clock.
+- **VER-058:** The adaptive HUD pass changes only `index.html` and `tools/verify_all_gameplay.js`. No assets, model binaries, gameplay modules, save schema, dependencies, Three.js runtime, room definitions, or engine ownership paths changed.
+- **VER-059:** The final responsive GitHub Actions gate passes all focused Phase-1–7 plus expansion contracts and the complete browser journey with **95 passed, 0 failed** and **0 console/page errors**.
+- **VER-060:** Responsive geometry is verified at 390×844 phone portrait, 844×390 phone landscape, 800×1280 tablet portrait, 1180×820 tablet landscape/small desktop, and 1440×900 wide desktop. Each closed state preserves center-canvas hit testing and no horizontal overflow; each open control drawer settles fully within the viewport and remains vertically scrollable.
 
 ## 6. Known Not Working
 
@@ -135,6 +139,7 @@ No confirmed baseline failure is recorded at initialization.
 - **UNV-003:** Umbreon's 2,192,044-byte GLB exceeds the connector's historical inline binary contents limit. Its repository identity, source armature, runtime normalization, and runtime bone/material lookup behavior are recorded, but its complete raw joint/clip/material inventory still needs regeneration by `tools/inspect_glb_manifest.py` in a normal checkout.
 - **UNV-018:** Live GitHub Pages delivery of the current expansion baseline remains unverified until the public route is checked after deployment.
 - **UNV-019:** The 40 expansion habitats and four new hubs have strong headless construction/lifecycle coverage, but their rendered visual composition has not yet been manually inspected in a real browser.
+- **UNV-020:** The adaptive HUD has browser/geometry verification across five viewport classes, but the new responsive compositions have not yet received manual rendered visual QA.
 
 ## 8. Unknown or Evidence-Stale State
 
@@ -149,6 +154,7 @@ No confirmed baseline failure is recorded at initialization.
 - **PND-016:** Verify the live GitHub Pages route for the expansion-integrated baseline: startup, asset requests, expedition controls, and one representative original-room journey.
 - **PND-017:** Phase 8 Observation & Media may begin from `4d4c0ee9f08b5f612647d86e3f81490cf6e6dace`, preserving the now-green expansion/focused/browser gates and all active invariants.
 - **PND-018:** Perform manual rendered inspection of representative rooms from Tidewild Coast, Emberpeak Ruins, Neon Undercity, and Starfall Dreamway before making any claim that expansion visual composition is verified.
+- **PND-019:** Perform manual rendered inspection of phone portrait, phone landscape, tablet portrait, tablet landscape, and desktop adaptive HUD compositions before promoting responsive visual polish from browser-verified to visually verified.
 
 ## 10. Active Decisions, Defaults, and Prohibitions
 
@@ -237,17 +243,19 @@ No confirmed baseline failure is recorded at initialization.
 | VAL-034 | Expansion lifecycle contract | verified-focused | 50 rooms navigate/build/tick/activate/dispose; 36 setpieces, 36 mementos, 4 hub curios execute; legacy save preserved | GitHub Actions Node contract | 4d4c0ee | 2026-09-23 | expansion/room integration change |
 | VAL-035 | Expansion-integrated broad browser gate | verified-browser | 86 passed, 0 failed; zero console/page errors after deterministic overlay/lighting synchronization | GitHub Actions Playwright | 4d4c0ee | 2026-09-23 | runtime/harness integration change |
 | VAL-036 | Merge preservation and ancestry | verified | integration is ahead of prior main with zero behind; main-only Phase-7.5 report/state preserved; no force push used | GitHub compare/ref evidence | 4d4c0ee | 2026-09-23 | branch integration |
+| VAL-037 | Adaptive viewport geometry | verified-browser | phone portrait, phone landscape, tablet portrait, tablet landscape and wide desktop all preserve center-clear closed state, bounded controls, no horizontal overflow, and in-viewport scrollable drawers | GitHub Actions Playwright | bdb4e81 | 2026-09-23 | responsive UI change |
+| VAL-038 | Adaptive broad regression | verified-browser | full browser journey plus responsive matrix: 95 passed, 0 failed, zero console/page errors; focused expansion and Phase-1–7 contracts also pass | GitHub Actions Node + Playwright | bdb4e81 | 2026-09-23 | responsive UI/harness change |
 
 ## 12. Current Change Scope and Impact Radius
 
-- **Expansion integration scope:** four additive expedition regions (hub + nine habitats each), expansion registry/kit, bounded world-state seams, expedition UI, region transitions, documentation, expansion regression coverage, and deterministic broad-harness synchronization.
-- **Protected and unchanged:** nine model binaries, Three.js r128, no-bundler/global-script architecture, save schema v3, one-heavy-room lifecycle, one GLB load path, existing audio architecture, creature ownership boundaries, photo/camera architecture and Stone Dash rules.
-- **Expansion result:** `tools/test_expansions.js` passes across all 50 rooms, including real door traversal, lifecycle/disposal, setpieces, mementos, hub curios, cross-room consequences, and legacy-save preservation.
-- **Browser result:** 86 passed, 0 failed, zero console/page errors in the final GitHub Actions Playwright gate.
-- **Focused result:** expansion contract plus all eight pre-existing Phase-1–7 focused Node contracts pass.
-- **Evidence limit:** representative expansion-room visual composition has not yet been manually inspected; do not promote it to visually verified from headless lifecycle coverage alone.
-- **Remaining delivery unknown:** live GitHub Pages after the expansion merge.
-- **Next safe phase:** continue from `4d4c0ee9f08b5f612647d86e3f81490cf6e6dace`, preserving the green expansion/focused/browser gates.
+- **Adaptive HUD scope:** responsive CSS and browser regression coverage only. Phone portrait uses thumb-first bottom sheets; short landscape uses edge rails and compact side panes; tablets use bounded wider panes; desktop remains sparse with constrained HUD rails; safe-area and dynamic viewport units are foundational.
+- **Protected and unchanged:** nine model binaries, Three.js r128, no-bundler/global-script architecture, save schema v3, one-heavy-room lifecycle, one GLB load path, living-world/audio architecture, creature ownership boundaries, room/expansion definitions, photo/camera behavior and Stone Dash rules.
+- **Browser result:** 95 passed, 0 failed, zero console/page errors in the final GitHub Actions Playwright gate.
+- **Responsive result:** five representative viewport classes pass center-clear, no-horizontal-overflow, bounded FAB/species-strip geometry, and fully settled in-viewport drawer checks.
+- **Focused result:** expansion contract plus all eight pre-existing Phase-1–7 focused Node contracts pass unchanged.
+- **Evidence limit:** rendered visual composition of the new adaptive layouts has not yet been manually inspected.
+- **Remaining delivery unknown:** live GitHub Pages after the adaptive HUD merge.
+- **Next safe phase:** continue from `bdb4e8109fede35e0ac634be3089035cd9d40253`, preserving INV-011 and the green 95-check responsive browser gate.
 
 ## 13. Compact Revision Log
 
@@ -383,4 +391,16 @@ No confirmed baseline failure is recorded at initialization.
 - **Broad validation:** Playwright completes 86 passed / 0 failed with zero console/page errors after replacing two timing-sensitive assertions with deterministic synchronization consistent with existing Phase-7 behavior.
 - **Declared unverified:** live GitHub Pages delivery of this baseline and manual rendered composition of representative expansion rooms.
 - **Next safe action:** verify Pages and visually inspect representative rooms from all four expansion regions before claiming expansion visual QA closure.
+
+### Revision 13 — 2026-09-23
+
+- **Artifact/source identity:** `bdb4e8109fede35e0ac634be3089035cd9d40253`
+- **State delta:** Added a bounded adaptive-HUD system for phone portrait, phone landscape, tablet portrait, tablet landscape/small desktop, wide desktop, notched safe areas, hybrid touch devices and ultrawide monitors.
+- **Layout behavior:** portrait phones use bottom-sheet controls/settings and thumb-zone navigation; short landscape moves the species selector to a vertical edge rail and compresses chrome; tablets and desktops use bounded side panes; photo, toast, arcade, lore and settings surfaces respect viewport and safe-area limits.
+- **Preservation:** implementation changes are confined to `index.html` and `tools/verify_all_gameplay.js`; no runtime dependency, model, asset, gameplay, save, room, expansion or engine architecture changed.
+- **Adversarial repair:** the new viewport matrix exposed hidden horizontal document overflow caused by the offscreen absolute control drawer. The drawer was corrected to viewport-fixed positioning. A second false failure came from sampling its CSS transition mid-flight; the harness now waits for settled drawer geometry rather than sleeping a fixed interval.
+- **Focused validation:** all expansion and Phase-1–7 focused contracts pass.
+- **Broad validation:** full Playwright journey plus five viewport classes completes 95 passed / 0 failed with zero console/page errors.
+- **Declared unverified:** manual rendered visual QA of the new adaptive compositions and live GitHub Pages delivery.
+- **Next safe action:** visually inspect representative phone/tablet/desktop captures and verify the public Pages route before promoting visual/delivery claims.
 
