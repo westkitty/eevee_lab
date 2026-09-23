@@ -7,12 +7,12 @@
   "project_name": "Eevee Lab",
   "project_root": "/",
   "artifact_path": "index.html",
-  "state_revision": 10,
+  "state_revision": 11,
   "last_updated": "2026-09-22",
   "current_baseline": {
-    "identity": "30715710146880400bc1dda3a479f2b7aa1e2643",
-    "state": "phase7-implemented",
-    "last_verified": "phase6-focused-evolution-ability-persistence-syntax-and-source-scope"
+    "identity": "634f4df71e7ea3a0c5d8a9ee21b0026a94f35a67",
+    "state": "phase7.5-browser-verified",
+    "last_verified": "phase7.5-focused-broad-browser-and-manual-rendered-inspection"
   },
   "scope_boundaries": [
     "The vanilla Three.js Habitat House browser project in westkitty/eevee_lab."
@@ -34,7 +34,7 @@
 
 ## 2. Current Baseline
 
-- **Primary artifact:** `76401e4d84a8b554432362b152adc9a78ffb3051`
+- **Primary artifact:** `634f4df71e7ea3a0c5d8a9ee21b0026a94f35a67`
 - **Protected pre-Phase-0 runtime baseline:** `661a37bc7f86e5ff2b7da28d02e8c44ad696e007`.
 - **Protected pre-Phase-1 implementation baseline:** `0e31de1b392bb6cab1895818047ad45982a87a08`.
 - **Protected pre-Phase-2 implementation baseline:** `0c8f9adc9f251c044f4cb290cc6c6ec2f110c8cc`.
@@ -43,11 +43,11 @@
 - **Protected pre-Phase-5 implementation baseline:** `eb5d02152f7ed588c3ac3fc6d3d9c8613d15f44f`.
 - **Protected pre-Phase-6 implementation baseline:** `8ac85ce77defac04ce0a7dace0679793dadc5c59`.
 - **Protected pre-Phase-7 implementation baseline:** `6246e1ca3e453691b0ceaf474b01ef851ddca8eb`.
-- **Baseline state:** Phase 7 Living World, Atmosphere and Sound is committed. Clock/weather/audio contracts and prior pure-system regressions are focused-verified on a disposable current checkout; the broad browser journey is unresolved because CreatureActor was unavailable during the current Playwright attempt.
+- **Baseline state:** Phase 7.5 Browser Runtime Recovery is verified on a disposable current checkout. The missing RenderEffects binding is repaired; focused contracts pass; the full Playwright journey completes 86/86 with zero console/page errors; representative rendered desktop/mobile scenes were manually inspected without a blocking visual defect.
 - **Source/build/install identity:** Vanilla global-script Three.js r128; no bundler or framework.
 - **Active default user route:** `index.html` → Habitat House → Conservatory / habitat rooms.
-- **Delivery state:** Repository has GitHub Pages enabled; live delivery is not reverified here.
-- **Last verified baseline:** Unknown in this state record.
+- **Delivery state:** Repository has GitHub Pages enabled; live Pages delivery of the Phase-7.5 repair is still unverified until the repaired commits are pushed/deployed and checked.
+- **Last verified baseline:** `634f4df71e7ea3a0c5d8a9ee21b0026a94f35a67` on the authorized Apple-silicon Mac disposable checkout.
 
 ## 3. Artifact Contract
 
@@ -115,6 +115,11 @@ The project remains a dependency-free static browser experience. Eevee and all e
 - **VER-046:** Phase 7 adds no second animation loop, AudioContext, GLB load path, dependency, model binary change or save-schema migration; RoomManager remains the heavy-room lifecycle owner.
 - **VER-047:** Ambient life and weather use two batched `THREE.Points` populations; room-owned Phase-7 geometries/materials are disposed through the existing heavy-room lifecycle.
 - **VER-048:** Existing manual atmosphere variants retain lighting authority while the default atmosphere allows the living-world clock to drive habitat lighting.
+- **VER-049:** Phase 7.5 clean-checkout reproduction proved the earliest current browser failure was `ReferenceError: FX is not defined` in the GLB load callback; CreatureActor itself was present. The bounded repair binds `window.RenderEffects` before `FX.celifyObject(...)`.
+- **VER-050:** After the repair and harness synchronization fixes, `tools/verify_all_gameplay.js` completes **86 passed, 0 failed** with **0 console/page errors** on the authorized Mac. Actor boot/manual movement, Phase-2 interactions, Phase-3 behavior, Phase-4 multi-creature, Phase-5 doors/world state, Phase-6 evolution/abilities, repeated room lifecycle, media/persistence, reduced motion, mobile center-clear UI and Stone Dash all pass in one journey.
+- **VER-051:** The eight focused Node contracts for Phase 7, Phase 6, habitat state, room manager, creature manager, creature behavior, interaction system and creature actor all pass after the final browser-harness edits.
+- **VER-052:** Manual rendered inspection of controlled desktop/mobile captures found no Phase-7.5 visual blocker: cel treatment, native Vaporeon readability, vista/weather/ambient particles, Jolteon ability VFX, interaction popover, physical-evolution ready state and mobile UI remained usable/readable.
+- **VER-053:** Source inspection after the repair still shows one `animate()` owner, one `gltfLoader.load()` site and one AudioContext construction path. The second textual `requestAnimationFrame` occurrence is a one-shot evolution-flash opacity callback, not another simulation/render loop.
 
 ## 6. Known Not Working
 
@@ -122,48 +127,21 @@ No confirmed baseline failure is recorded at initialization.
 
 ## 7. Implemented but Unverified
 
-- **UNV-001:** `tools/verify_all_gameplay.js` exists and encodes the current broad regression path, but it could not be executed in the current Phase-0 environment because the working container cannot clone/fetch the repository binary payloads and the authorized desktop device is offline.
-- **UNV-002:** The README-described runtime behavior remains source-backed but is not newly browser-verified in this execution environment.
-- **UNV-003:** Umbreon's 2,192,044-byte GLB exceeds the current connector's inline binary contents limit. Its repository identity, source armature, runtime normalization, and runtime bone/material lookup behavior are recorded, but its complete raw joint/clip/material inventory must be regenerated by `tools/inspect_glb_manifest.py` in a normal checkout.
-- **UNV-004:** Phase-1 CreatureActor runtime integration is source-complete and its browser regression assertions are committed, but the browser suite has not run in this execution environment.
-- **UNV-005:** The local fixed-step actor scenario passed against the implementation candidate during construction, but exact committed-browser behavior is not promoted to verified until `tools/test_creature_actor.js` and `tools/verify_all_gameplay.js` run from a normal checkout.
-- **UNV-006:** Phase-2 direct manipulation, continuous petting, visible brushing, physical food, toy chase/retrieve, long-press context access, optional haptics, and root-ground projection are source-complete but have not run in a browser-capable checkout.
-- **UNV-007:** `tools/test_interaction_system.js` is committed for tactile classification, stroke dynamics, and direct-prop drag/release logic, but cannot be executed in the current environment because the container cannot resolve github.com for a clean checkout.
-- **UNV-008:** Phase-3 memory, needs, sleep/wake, rare spontaneous behavior, familiarity-sensitive calls, initiative, and species bond gestures are source-complete but have not run in a browser-capable checkout.
-- **UNV-009:** `tools/test_creature_behavior.js` and the Phase-3 Playwright assertions are committed but remain unexecuted in this environment.
-- **UNV-010:** The Eevee + Vaporeon Conservatory pair, visible social behaviors, companion focus, room/form restoration, toy competition, and synchronized nap browser journeys are implemented and asserted in Playwright but have not run in a browser-capable checkout.
-- **UNV-011:** Current GitHub Pages delivery has not been reverified after Phase 4.
-- **UNV-012:** Phase-5 portal preview rendering, physical walk-through-door choreography, destination continuation, visible room-state progression, persistent furnishing drag/drop, provenance trace rendering, and Conservatory history display are asserted in Playwright but have not run in a browser-capable checkout.
-- **UNV-013:** The updated persistent-furnishing assertion in `tools/test_interaction_system.js` is committed but was not separately executed from the exact repository checkout in this environment.
-- **UNV-014:** Phase-6 visible cel rendering, two-step evolution camera/flash choreography, room ability VFX, persistent mutation visuals, distinct ability controls and cinematic rim lighting are asserted in Playwright but have not run in a current browser checkout.
-- **UNV-015:** The authorized Mac contains `/Users/andrew/EEvEE_Lab`, but that checkout is still at `661a37b`; it was deliberately not used as evidence for current Phase-6 browser behavior.
-- **UNV-016:** A current broad Playwright attempt launched successfully using installed Google Chrome but failed the protected journey: `actor-boot` reported CreatureActor unavailable and the suite later crashed when the Phase-1 movement assertion dereferenced missing actor state. Root cause is unresolved; no Phase-1 through Phase-7 browser behavior is promoted from this run.
-- **UNV-017:** Phase-7 visual quality of vistas, weather motion and ambient-life composition is not yet manually approved in a rendered browser session.
-- **UNV-018:** Live GitHub Pages delivery remains unverified after Phase 7.
-- **UNV-019:** Phase-7.5 source forensics found an exact symptom match for a stale-served-runtime failure mode: protected baseline `661a37b` has no `src/creature-actor.js`, no `CreatureActorSystem` reference and no `creatureActorState` API, while current `main` has all three. The broad harness accepts whichever page is already serving at `BASE_URL` and does not verify the served checkout identity. A server rooted at `661a37b` could therefore finish the nine-model wait, report `actor-boot` unavailable and then fail at the Phase-1 movement dereference exactly as observed. This is strong source evidence for a stale/static-server candidate, not browser proof of root cause.
+- **UNV-003:** Umbreon's 2,192,044-byte GLB exceeds the connector's historical inline binary contents limit. Its repository identity, source armature, runtime normalization, and runtime bone/material lookup behavior are recorded, but its complete raw joint/clip/material inventory still needs regeneration by `tools/inspect_glb_manifest.py` in a normal checkout.
+- **UNV-018:** Live GitHub Pages delivery of the Phase-7.5 repair remains unverified until the repaired commits are pushed/deployed and the public route is checked.
 
 ## 8. Unknown or Evidence-Stale State
 
-- **UNK-001:** Current live browser/GitHub Pages behavior is not reverified in this state record.
+- **UNK-001:** Public GitHub Pages delivery is not yet verified for the Phase-7.5 repair. Local current-browser behavior is verified.
 - **UNK-002:** Semantic meanings of the seven opaque primary-pack animation clips remain intentionally unclassified pending visual playback evidence.
 
 ## 9. Pending Work
 
-- **PND-001:** In the first normal checkout, regenerate `assets/models/rig-manifest.json` so Umbreon's deep binary inventory replaces the partial evidence entry.
-- **PND-002:** Run `node tools/test_creature_actor.js`.
-- **PND-003:** Run `node tools/test_interaction_system.js`.
-- **PND-004:** Run `tools/verify_all_gameplay.js` in a current browser-capable checkout and promote Phase-1 through Phase-6 runtime behavior only if it passes.
+- **PND-001:** Regenerate `assets/models/rig-manifest.json` in a normal checkout so Umbreon's deep binary inventory replaces the partial evidence entry.
 - **PND-005:** Visually classify any embedded animation clip before mapping it to a semantic slot.
 - **PND-006:** Full limb IK remains deferred until rig-specific foot-chain behavior is visually proven; Phase 2 uses root-ground projection only.
-- **PND-007:** Run `node tools/test_creature_behavior.js`.
-- **PND-008:** Before expanding beyond the Eevee + Vaporeon Conservatory slice, obtain the first browser-capable multi-creature regression run when possible and keep companion history/persistence out of scope until that slice is proven.
-- **PND-009:** Re-run the exact committed `tools/test_interaction_system.js` in the first normal checkout and confirm persistent furnishings cannot become projectiles.
-- **PND-010:** Update or create a current disposable Eevee Lab checkout before the next full Playwright run; do not treat the stale `661a37b` local checkout as current runtime evidence.
-- **PND-011:** Diagnose the current broad-browser CreatureActor boot failure before relying on end-to-end Playwright proof; preserve the passing focused contracts while isolating whether the failure predates or was exposed by Phase 7.
-- **PND-012:** Manually inspect Phase-7 vista placement, micro-weather readability, reduced-motion behavior and ambient-life composition in a rendered browser session.
-- **PND-013:** Re-run the full Playwright suite after the actor-boot repair and promote browser behavior only if the protected Phase-1 through Phase-7 journey passes.
-- **PND-014:** Phase 8 may expand observation/media systems only after the browser actor-boot failure is repaired or explicitly isolated from that work.
-- **PND-015:** On the next browser-capable run, prove the served checkout before mutation: capture static-server working directory/HEAD, failed script requests, `window.CreatureActorSystem`, `window.eeveeApp`, and `window.eeveeApp.creatureActor`. If a stale server is confirmed, restart the server from a disposable checkout at current remote `main` and rerun the full suite before changing application code.
+- **PND-016:** After pushing Phase-7.5, verify the live GitHub Pages route for startup, asset requests and a representative user journey.
+- **PND-017:** Phase 8 Observation & Media may begin from `634f4df71e7ea3a0c5d8a9ee21b0026a94f35a67`, preserving the now-green broad browser gate and all active invariants.
 
 ## 10. Active Decisions, Defaults, and Prohibitions
 
@@ -217,44 +195,48 @@ No confirmed baseline failure is recorded at initialization.
 |---|---|---|---|---|---|---|---|
 | VAL-001 | Baseline source architecture exists as documented | observed-source | README, index.html, src/, libs/, tools/ | Repository inspection | 661a37b | 2026-09-21 | architecture change |
 | VAL-002 | Broad regression harness exists | observed-source | tools/verify_all_gameplay.js | Source inspection | 661a37b | 2026-09-21 | test rewrite |
-| VAL-003 | Runtime user journey passes | unverified | Not executable in current environment; no runtime file changed by Phase 0 | Browser/Playwright regression suite | 61cea67 | — | next browser-capable checkout |
+| VAL-003 | Runtime user journey passes | verified-browser | Phase-7.5 broad journey completes 86/86 with zero console/page errors | Browser/Playwright regression suite | 634f4df | 2026-09-22 | runtime or harness change |
 | VAL-004 | Phase-0 change scope is additive only | verified | GitHub compare 661a37b...61cea67: seven files added, zero existing files modified/deleted | GitHub compare | 61cea67 | 2026-09-21 | any Phase-0 repair |
 | VAL-005 | Rig manifest/contract schemas are internally valid | verified | py_compile + synthetic-fixture schema test + role-pattern regression PASS | Local container tests | 61cea67 | 2026-09-21 | tooling/schema change |
 | VAL-006 | Phase-1 change scope is bounded | verified | GitHub compare 0e31de1...b0692d7 shows only seven intended files | GitHub compare | b0692d7 | 2026-09-21 | Phase-1 repair |
 | VAL-007 | One master loop / one actor update seam | verified-source | Source counts: one animate owner, one actor update/register/room-sync path | Repository source inspection | b0692d7 | 2026-09-21 | runtime integration change |
-| VAL-008 | Creature Actor browser user path works | unverified | Regression assertions committed but not executable in current environment | node unit test + Playwright suite | b0692d7 | — | first browser-capable checkout |
+| VAL-008 | Creature Actor browser user path works | verified-browser | Actor boot and bounded manual movement pass in the 86/86 current browser journey | Node + Playwright | 634f4df | 2026-09-22 | actor/runtime change |
 | VAL-009 | Phase-2 change scope is bounded | verified | GitHub compare from 0c8f9ad through Phase-2 implementation shows only intended interaction/runtime/test/docs surfaces | GitHub compare | 3b65d19 | 2026-09-22 | Phase-2 repair |
 | VAL-010 | One master loop and one interaction owner remain | verified-source | Source counts show one animate, one setupPettingInteraction, one interaction update, one actor update | Repository source inspection | 3b65d19 | 2026-09-22 | input/loop change |
-| VAL-011 | Physical interaction browser journey works | unverified | Node/Playwright tests are committed; container clean checkout blocked by github.com DNS resolution | Node + Playwright | 3b65d19 | — | first browser-capable checkout |
+| VAL-011 | Physical interaction browser journey works | verified-browser | direct props, throw, brush and physical-food assertions pass in the broad journey; focused interaction contract also passes | Node + Playwright | 634f4df | 2026-09-22 | interaction change |
 | VAL-012 | Phase-3 change scope is bounded | verified | GitHub compare 39dfb95...f0ceaa8 shows six intended files only | GitHub compare | f0ceaa8 | 2026-09-22 | Phase-3 repair |
 | VAL-013 | Behavior ownership remains singular | verified-source | One animate owner, one actor update, one scheduler update, one event handoff | Repository source inspection | f0ceaa8 | 2026-09-22 | actor/scheduler change |
 | VAL-014 | Relationship memory is bounded and non-punitive | verified-source | No persisted event log, no new bond score, capped aggregate counters only | Repository source inspection | f0ceaa8 | 2026-09-22 | memory schema change |
-| VAL-015 | Phase-3 runtime user path works | unverified | Focused Node and Playwright assertions committed but unavailable to execute here | Node + Playwright | f0ceaa8 | — | first browser-capable checkout |
+| VAL-015 | Phase-3 runtime user path works | verified-browser | bounded memory, bond gesture, sleep/wake pass in the broad journey; focused behavior contract passes | Node + Playwright | 634f4df | 2026-09-22 | behavior change |
 | VAL-016 | Phase-4 change scope is bounded | verified | GitHub compare a86c343...2526dda touches only six intended implementation/test/doc surfaces | GitHub compare | 2526dda | 2026-09-22 | Phase-4 repair |
 | VAL-017 | One render loop and one normal multi-actor update seam remain | verified-source | One animate owner, one manager constructor/update call, no manager requestAnimationFrame | Repository source inspection | 2526dda | 2026-09-22 | manager/update change |
 | VAL-018 | Multi-creature path does not reload character GLBs | verified-source | Exactly one gltfLoader.load call site remains; companion activation reparents an existing wrapper | Repository source inspection | 2526dda | 2026-09-22 | asset-loading change |
 | VAL-019 | Companion reparent/restore contract works in focused logic | verified-focused | Manager contract + lifecycle tests pass for roster, separation, greeting, toy race, nap scheduling and original-parent/visibility restoration | Container Node contract tests | 2526dda | 2026-09-22 | manager lifecycle change |
-| VAL-020 | Eevee + Vaporeon browser user journey works | unverified | Broad Playwright assertions committed; no browser-capable checkout available here | Playwright | 2526dda | — | first browser-capable checkout |
+| VAL-020 | Eevee + Vaporeon browser user journey works | verified-browser | pair activation, separation, greeting, toy competition and restoration pass in the broad journey | Playwright | 634f4df | 2026-09-22 | multi-creature change |
 | VAL-021 | Phase-5 change scope is bounded | verified | GitHub compare eb5d021...f2f8f32 touches twelve intended world/room/persistence/actor/interaction/test/report files only | GitHub compare | f2f8f32 | 2026-09-22 | Phase-5 repair |
 | VAL-022 | Save-v2 semantic world-state contract works | verified-focused | test_habitat_state PASS: migration, nested defaults, narrative, placements, provenance, history | Container Node contract | f2f8f32 | 2026-09-22 | persistence/world-state change |
 | VAL-023 | Door/room lifecycle and placement restoration work | verified-focused | test_room_manager_phase5 PASS: one heavy room, handoff, entry/continue, narrative apply, restore/capture | Container Node contract | f2f8f32 | 2026-09-22 | room-manager lifecycle change |
 | VAL-024 | Phase-5 ownership remains singular | verified-source | One animate, one RoomManager.goTo, one door choreography owner, one GLB load site, zero scene serialization | Repository source inspection | f2f8f32 | 2026-09-22 | runtime/lifecycle change |
-| VAL-025 | Physical habitat browser journey works | unverified | Playwright assertions committed for portal, walk-through door, persistence, provenance and Conservatory history; browser unavailable here | Playwright | f2f8f32 | — | first browser-capable checkout |
+| VAL-025 | Physical habitat browser journey works | verified-browser | portal preview, door approach/swap, placement restoration, provenance trace and Conservatory history pass in the broad journey | Playwright | 634f4df | 2026-09-22 | room/world change |
 | VAL-026 | Phase-6 focused species-system contract works | verified-focused | test_phase6_system PASS from current GitHub main source on authorized Mac | Node contract | 3071571 | 2026-09-22 | evolution/ability/shiny change |
 | VAL-027 | Save-v3 migration and ability persistence work | verified-focused | updated test_habitat_state PASS from current GitHub main source on authorized Mac | Node contract | 3071571 | 2026-09-22 | persistence/world-state change |
 | VAL-028 | Changed Phase-6 modules are syntactically valid | verified | node --check exit 0 for six changed source modules | Node syntax check | 3071571 | 2026-09-22 | source change |
 | VAL-029 | Phase-6 ownership remains singular | verified-source | one animate, one GLB load, one evolution controller/tick, one ability system, one celify seam | Repository source inspection | 3071571 | 2026-09-22 | runtime architecture change |
-| VAL-030 | Phase-6 visible browser journey works | unverified | Playwright assertions committed; local Eevee checkout is stale at 661a37b | Playwright | 3071571 | — | current browser checkout |
+| VAL-030 | Phase-6 visible browser journey works | verified-browser | cel materials, rim light, two-step evolution, targeted shiny and ability persistence pass in the broad journey and representative frames were visually inspected | Playwright + rendered inspection | 634f4df | 2026-09-22 | Phase-6/render change |
+
+| VAL-031 | Phase-7.5 broad browser gate | verified-browser | 86 passed, 0 failed; zero console/page errors from clean disposable current checkout | Playwright | 634f4df | 2026-09-22 | runtime/harness change |
+| VAL-032 | Phase-7 rendered composition | verified-manual | controlled desktop/mobile captures inspected for cel treatment, weather/ambient readability, ability VFX, interaction popover, evolution ready state and mobile usability | Rendered browser inspection | 634f4df | 2026-09-22 | visual/lighting/UI change |
+| VAL-033 | Phase-7.5 focused contracts | verified-focused | all eight focused Node contracts pass after final harness edits | Node contracts | 634f4df | 2026-09-22 | relevant source/test change |
 
 ## 12. Current Change Scope and Impact Radius
 
-- **Allowed Phase-7 changes:** deterministic habitat clock, room micro-weather, lightweight vistas, ambient-life populations, reused-context procedural ambience, room lifecycle integration, HUD state exposure, focused tests, browser harness portability, report and operational state.
-- **Protected and unchanged:** nine model binaries, Three.js r128, global-script/no-bundler architecture, save schema v3, Phase-6 cel/shiny material ownership, one-heavy-room lifecycle, single GLB load path, manual atmosphere selection, camera/photo architecture, creature behavior contracts and Stone Dash rules.
-- **Potentially affected behavior:** room lighting/fog, room disposal, reduced-motion ambient movement, audio initialization/volume, sandbox↔arcade transitions, room breadcrumb/mood copy and browser regression execution.
-- **Mandatory checks:** no second AudioContext; no second frame loop; room-owned living resources dispose; manual atmosphere lighting survives; reduced motion lowers ambient movement/population; arcade suspends fog/ambience; prior focused pure-system contracts remain green.
-- **Validated here:** Phase-7 clock/weather/audio contract, source syntax, Phase-6 and Phase-1–5 focused pure-system regressions, final Phase-7 diff.
-- **Failed/unresolved proof:** full browser journey currently fails because CreatureActor is unavailable at actor-boot; Phase-7 visual composition and live Pages remain unverified.
-- **Repair class:** bounded feature implementation with a newly exposed browser-regression blocker.
+- **Phase-7.5 repair scope:** bind the already-loaded RenderEffects namespace before cel conversion; correct stale/timing-sensitive broad-regression assertions; record executable and rendered evidence.
+- **Protected and unchanged:** nine model binaries, Three.js r128, no-bundler/global-script architecture, save schema v3, one-heavy-room lifecycle, one GLB load path, existing audio architecture, creature ownership boundaries, photo/camera architecture and Stone Dash rules.
+- **Browser result:** 86 passed, 0 failed, zero console/page errors on a disposable current checkout.
+- **Focused result:** all eight Phase-1–7 focused Node contracts pass after the final harness edits.
+- **Rendered result:** representative desktop/mobile scenes manually inspected; no Phase-7.5 visual blocker.
+- **Remaining delivery unknown:** live GitHub Pages after the repair push.
+- **Next safe phase:** Phase 8 Observation & Media may begin after this state closure is pushed; do not regress the green browser gate.
 
 ## 13. Compact Revision Log
 
@@ -366,3 +348,16 @@ No confirmed baseline failure is recorded at initialization.
 - **Source evidence:** `661a37b` lacks the CreatureActor script/global/debug API that the current harness expects, while current `main` includes them. Because the harness does not establish served-source identity, a stale server can reproduce the observed `actor unavailable` → movement-null-dereference chain.
 - **Evidence limit:** the authorized Mac could not be re-entered in this session (DEX//REACH exposed no connected node; the alternate remote-computer connector reported the MacBook Air offline), so the stale-server candidate is not promoted to confirmed root cause and no browser repair is claimed.
 - **Next safe action:** establish a current disposable checkout and server identity on the Mac, reproduce with console/page/network evidence, then either restart the stale server with no app-code mutation or repair the earliest proven runtime defect. Phase 8 remains blocked until broad Playwright completes.
+
+
+### Revision 11 — 2026-09-22
+
+- **Artifact/source identity:** `634f4df71e7ea3a0c5d8a9ee21b0026a94f35a67`
+- **State delta:** Phase 7.5 Browser Runtime Recovery gate promoted to browser-verified and manually visually verified.
+- **Root cause:** clean current checkout reproduced `ReferenceError: FX is not defined` inside all GLB load callbacks; the missing `window.RenderEffects` binding was repaired. CreatureActor itself was present, so the earlier actor-unavailable symptom was not the earliest current failure.
+- **Broad validation:** full Playwright journey completed 86 passed / 0 failed with zero console/page errors.
+- **Focused validation:** all eight focused Node contracts passed after final harness edits.
+- **Visual validation:** controlled desktop/mobile captures showed no blocker in cel rendering, native-room readability, Phase-7 weather/ambient composition, ability VFX, interaction popover, evolution ready state or mobile controls.
+- **Preservation:** one render loop owner, one GLB load site, one AudioContext construction path, one-heavy-room lifecycle and save-v3 semantics remain intact.
+- **Remaining unverified:** live GitHub Pages delivery of the repaired commit.
+- **Next safe phase:** Phase 8 Observation & Media.
