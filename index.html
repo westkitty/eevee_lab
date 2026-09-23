@@ -878,6 +878,9 @@
        3. HABITAT SYSTEM INSTANCES
        ========================================================================== */
     const save = new SaveManager();
+    const FX = window.RenderEffects;
+    if (!FX) throw new Error("Eevee Lab requires RenderEffects");
+
     const worldState = new HabitatWorldStateSystem.HabitatWorldState(save);
     const bondTracker = new DiscoverySystem.BondTracker(save);
     const interactionMemory = new DiscoverySystem.InteractionMemory();

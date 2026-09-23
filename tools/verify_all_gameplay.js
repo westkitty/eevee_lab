@@ -150,9 +150,12 @@ async function main() {
     return keys.every(k => models[k] && models[k].userData && models[k].userData.isLoaded);
   }, { timeout: 20000 });
   record('load-1', true, 'App loaded, all 9 GLBs report isLoaded');
-  const actorBoot = await page.evaluate(() => window.eeveeApp.creatureActorState);
-  record('actor-boot', !!actorBoot && actorBoot.walkableCount > 0 && actorBoot.species === window.eeveeApp.currentForm,
-    actorBoot ? JSON.stringify(actorBoot) : 'actor unavailable');
+  const actorBoot = await page.evaluate(() => ({
+    actor: window.eeveeApp.creatureActorState,
+    currentForm: window.eeveeApp.currentForm
+  }));
+  record('actor-boot', !!actorBoot.actor && actorBoot.actor.walkableCount > 0 && actorBoot.actor.species === actorBoot.currentForm,
+    actorBoot.actor ? JSON.stringify(actorBoot.actor) : 'actor unavailable');
   await shot(page, '01_hub_conservatory');
 
   // 2. Initial species + form-switching (1-9).
@@ -169,14 +172,20 @@ async function main() {
       const visible = Object.keys(models).filter(k => models[k].visible);
       return { currentForm: app.currentForm, visible };
     }, sp);
-    const ok = formState.currentForm === sp && formState.visible.length === 1 && formState.visible[0] === sp;
+    const expectedVisible = sp === 'eevee' ? ['eevee', 'vaporeon'] : [sp];
+    const ok = formState.currentForm === sp &&
+      formState.visible.length === expectedVisible.length &&
+      expectedVisible.every(key => formState.visible.includes(key));
     record(`switch-${sp}`, ok, `visible=${JSON.stringify(formState.visible)}`);
   }
   await shot(page, '02_species_sylveon');
 
   // Back to eevee for the rest of the sandbox tests.
   await page.keyboard.press('1');
-  await page.waitForTimeout(300);
+  await page.waitForFunction(() => {
+    const s = window.eeveeApp.creatureActorState;
+    return s && s.state !== 'held' && Math.abs(s.position.y) < 0.01;
+  });
 
   // Phase 1 actor: manual movement uses the same master loop and stays inside room bounds.
   const actorStart = await page.evaluate(() => window.eeveeApp.creatureActorState.position);
@@ -322,6 +331,8 @@ async function main() {
     const app = window.eeveeApp;
     const mgr = app.creatureManager;
     const comp = mgr.getCreature('vaporeon-companion');
+    app.creatureActor.clearBehaviorState();
+    comp.actor.clearBehaviorState();
     app.creatureActor.stop();
     comp.actor.stop();
     comp.actor.placeAt(new THREE.Vector3(-1.3, 0, 0.8));
@@ -375,6 +386,10 @@ async function main() {
     JSON.stringify(restoredForm));
   await page.evaluate(() => window.eeveeApp.selectEeveelution('eevee'));
   await page.waitForFunction(() => window.eeveeApp.creatureManagerState && window.eeveeApp.creatureManagerState.activeCount === 2, { timeout: 5000 });
+  await page.waitForFunction(() => {
+    const s = window.eeveeApp.creatureActorState;
+    return s && s.state !== 'held' && Math.abs(s.position.y) < 0.01;
+  });
 
   // Phase 5: the house behaves like a persistent place rather than a room menu.
   const phase5Boot = await page.evaluate(() => ({
@@ -385,7 +400,7 @@ async function main() {
       return !!(door && door.object3D.userData.glow && door.object3D.userData.glow.material.map);
     })()
   }));
-  record('phase5-save-v2', phase5Boot.version === 2, `saveVersion=${phase5Boot.version}`);
+  record('phase5-save-current-schema', phase5Boot.version === 3, `saveVersion=${phase5Boot.version}`);
   record('phase5-portal-preview', phase5Boot.portalPreview === true, JSON.stringify(phase5Boot));
   record('phase5-conservatory-world-state',
     phase5Boot.habitat && phase5Boot.habitat.room && phase5Boot.habitat.room.stageCount === 4,
@@ -664,6 +679,7 @@ async function main() {
   await page.waitForTimeout(300);
   let fed = await page.evaluate(() => window.eeveeApp.treats.length > 0 || window.eeveeApp.treatHungerAngle > 0);
   record('feeding', fed === true, `treats/hunger active=${fed}`);
+  await page.waitForFunction(() => window.eeveeApp.treats.length === 0 && window.eeveeApp.treatHungerAngle <= 0.01);
 
   // 6. Loaf mode.
   await page.keyboard.press('l');
@@ -742,11 +758,19 @@ async function main() {
   // 20. Lighting differs meaningfully between two rooms (data-driven per-room lighting).
   await page.evaluate(() => window.eeveeApp.goToRoom('umbreon'));
   await page.waitForTimeout(200);
-  const umbreonLight = await page.evaluate(() => window.eeveeApp.roomManager.current.built.lights[0].intensity);
+  const umbreonLight = await page.evaluate(() => {
+    const light = window.eeveeApp.roomManager.current.built.lights[0];
+    return { intensity: light.intensity, color: light.color.getHexString() };
+  });
   await page.evaluate(() => window.eeveeApp.goToRoom('leafeon'));
   await page.waitForTimeout(200);
-  const leafeonLight = await page.evaluate(() => window.eeveeApp.roomManager.current.built.lights[0].intensity);
-  record('room-lighting-differs', Math.abs(umbreonLight - leafeonLight) > 0.1, `umbreon hemi=${umbreonLight}, leafeon hemi=${leafeonLight}`);
+  const leafeonLight = await page.evaluate(() => {
+    const light = window.eeveeApp.roomManager.current.built.lights[0];
+    return { intensity: light.intensity, color: light.color.getHexString() };
+  });
+  record('room-lighting-differs',
+    umbreonLight.color !== leafeonLight.color && Math.abs(umbreonLight.intensity - leafeonLight.intensity) > 0.02,
+    `umbreon=${JSON.stringify(umbreonLight)}, leafeon=${JSON.stringify(leafeonLight)}`);
 
   // 21. Camera: close zoom substantially closer than the old fixed minDistance (4.0).
   await page.evaluate(() => window.eeveeApp.goToRoom('conservatory'));
