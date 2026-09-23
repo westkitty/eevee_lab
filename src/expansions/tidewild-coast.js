@@ -18,8 +18,9 @@
     mood: 'Salt wind, gull-cries and a harbor built out of whatever floated in.',
     doorColor: 0x3fc1c9,
 
+    transition: 'tidewild',
     hub: {
-      radius: 6.4, floorColor: 0xd9c9a6,
+      radius: 7.2, floorColor: 0xd9c9a6,
       weather: ['clear', 'mist', 'rain', 'breeze'], life: 'droplets',
       stages: [
         { id: 'landfall', label: 'Landfall' }, { id: 'moored', label: 'Boats Moored' },
@@ -27,44 +28,66 @@
       ],
       lights: { hemiSky: 0xd8f3ff, hemiGround: 0x4b6b6e, hemiIntensity: 0.6, keyColor: 0xfff3d0, keyIntensity: 0.95, keyPos: [6, 9, 3] },
       variants: [{ id: 'noon', label: 'Noon Glare' }, { id: 'goldhour', label: 'Gold Hour', keyColor: 0xffb070, hemiIntensity: 0.4 }],
-      build(api) {
-        // Water beyond the pier, driftwood piles, a bell buoy centrepiece.
-        const sea = P.waterDisk(11, 0x2f8fb0, -0.05);
-        api.add(sea);
-        const pierMat = api.FX.Materials.wood(0x8a6a44);
-        for (let i = 0; i < 7; i++) {
-          const plank = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.08, 0.32), pierMat);
-          plank.position.set(0, 0.04, 2.4 + i * 0.36); api.add(P.shadowed(plank));
-        }
-        for (let i = 0; i < 6; i++) {
-          const a = (i / 6) * Math.PI * 2 + 0.4;
-          const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 1.0, 7), pierMat);
-          post.position.set(Math.cos(a) * 5.9, 0.5, Math.sin(a) * 5.9);
-          api.add(P.shadowed(post));
-          const rope = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.025, 6, 12), api.FX.Materials.cloth(0xe6d7b4));
-          rope.position.set(Math.cos(a) * 5.9, 0.85, Math.sin(a) * 5.9); rope.rotation.x = Math.PI / 2;
-          api.add(rope);
-        }
-        for (let i = 0; i < 5; i++) { const t = P.tree(0xa07a4c, 0x5fb46a, 3.2, 'palm'); t.position.set(Math.cos(i * 1.3) * 4.4, 0, Math.sin(i * 1.3) * 4.4); api.add(t); }
-
-        const buoy = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.3, 10), api.FX.Materials.cloth(0xe8523f));
-        body.position.y = 0.65;
-        const bell = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 0.22, 10), api.FX.Materials.metal(0xd9b36a));
-        bell.position.y = 1.45;
-        buoy.add(P.shadowed(body), P.shadowed(bell));
-        buoy.position.set(0, 0, -2.4);
-        let ring = 0;
-        api.curio(buoy, 'tidewild_bell', 'the harbor bell', 'tidewild_bell_rung', 'Rang the harbor bell — every gull on the coast objected.', () => { ring = 1; });
-        api.onUpdate((dt, t) => {
-          buoy.rotation.z = Math.sin(t * 1.3) * 0.06 + Math.sin(t * 9) * 0.12 * ring;
-          ring = Math.max(0, ring - dt * 0.6);
-        });
-        const mist = api.FX.VFX.droplets({ area: [12, 3, 12], baseY: 2.2, count: 20 });
-        api.particles(mist);
-        api.add(P.backdrop(8, 10.5, i => P.mountain(i % 2 ? 0x5d7a86 : 0x77939c, 2.4 + (i % 3), 2.2)));
+      // Geography decides where each habitat is reached from:
+      //  - the beach arc (south/east): tidepools, bonfire cove, mangroves
+      //  - the pier head (north, out over water): drop-off, iceberg, wreck
+      //  - the cliff foot (west): lighthouse, sea cave, tidal clock
+      doorLayout() {
         return {
-          applyStage(stage) { body.material.emissiveIntensity = 0; buoy.scale.setScalar(1 + stage * 0.04); }
+          eevee:    { x:  4.6, z:  3.2, ry: -0.95 },
+          flareon:  { x:  5.9, z:  0.4, ry: -1.5 },
+          leafeon:  { x:  2.4, z:  5.4, ry: -0.4 },
+          vaporeon: { x: -1.3, y: 0.32, z: -5.9, ry: 0.2, scale: 0.9 },
+          glaceon:  { x:  1.3, y: 0.32, z: -5.9, ry: -0.2, scale: 0.9 },
+          sylveon:  { x:  0,   y: 0.32, z: -6.6, ry: 0, scale: 0.9 },
+          jolteon:  { x: -5.6, z: -1.6, ry: 1.85 },
+          umbreon:  { x: -6.0, z:  1.2, ry: 1.4 },
+          espeon:   { x: -4.4, z:  3.8, ry: 1.0 },
+          conservatory: { x: -2.6, z: 6.0, ry: 0.4 }
+        };
+      },
+      build(api) {
+        const region = api.region;
+        // Sea beyond the sand; a long pier reaching north over it.
+        const sea = P.waterDisk(14, 0x2f8fb0, -0.05); api.add(sea);
+        const sand = new THREE.Mesh(new THREE.CircleGeometry(7.2, 48, Math.PI * 0.05, Math.PI * 1.05), api.FX.Materials.stone(0xd9c9a6));
+        sand.rotation.x = -Math.PI / 2; sand.position.y = 0.0; api.add(sand);
+        const pierMat = api.FX.Materials.wood(0x8a6a44);
+        for (let i = 0; i < 14; i++) { const plank = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.08, 0.36), pierMat); plank.position.set(0, 0.28, -1.6 - i * 0.4); api.add(P.shadowed(plank)); }
+        const pierHead = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.1, 2.0), pierMat); pierHead.position.set(0, 0.28, -6.2); api.add(P.shadowed(pierHead));
+        for (let i = 0; i < 8; i++) { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 1.3, 7), pierMat); post.position.set(i % 2 ? 1.4 : -1.4, 0.25, -2 - Math.floor(i / 2) * 1.5); api.add(P.shadowed(post)); const rope = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.025, 6, 12), api.FX.Materials.cloth(0xe6d7b4)); rope.position.set(post.position.x, 0.85, post.position.z); rope.rotation.x = Math.PI / 2; api.add(rope); }
+        // Cliff to the west with the lighthouse silhouette above the Jolteon door.
+        for (let i = 0; i < 5; i++) { const r = P.rock(0x5d6a70, 1.2 + (i % 2) * 0.5); r.position.set(-6.8 + (i % 2) * 0.6, 0.6 + i * 0.35, -3.5 + i * 1.6); api.add(r); }
+        const farTower = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.3, 2.0, 10), api.FX.Materials.stone(0xe8e2d6)); farTower.position.set(-7.4, 2.9, -2.2); api.add(farTower);
+        const farLamp = P.orb(0xfff2a8, 0.14, region.get('lighthouseLit') ? 1.6 : 0.15); farLamp.position.set(-7.4, 4.0, -2.2); api.add(farLamp);
+        const farBeam = new THREE.PointLight(0xfff2a8, region.get('lighthouseLit') ? 0.8 : 0, 9); farBeam.position.copy(farLamp.position); api.add(farBeam);
+        // Boats moored along the pier appear as the region's setpieces are used.
+        const boats = []; for (let i = 0; i < 4; i++) { const b = new THREE.Group(); const hull = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.35, 0.5), api.FX.Materials.wood([0xb8563f, 0x4f8fb0, 0xd9b36a, 0x6fa06a][i])); hull.position.y = 0.05; b.add(P.shadowed(hull)); const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, 1.0, 5), pierMat); mast.position.y = 0.6; b.add(mast); b.position.set(i % 2 ? 2.2 : -2.2, -0.02, -2.6 - Math.floor(i / 2) * 2.4); b.visible = false; b.userData.seed = i; api.add(b); boats.push(b); }
+        // Palms + driftwood on the beach; distant islands.
+        for (let i = 0; i < 4; i++) { const t = P.tree(0xa07a4c, 0x5fb46a, 3.0 + (i % 2) * 0.6, 'palm'); t.position.set(3.2 + i * 0.9, 0, 4.6 - i * 1.4); api.add(t); }
+        for (let i = 0; i < 6; i++) { const d = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.09, 0.9 + (i % 3) * 0.4, 6), api.FX.Materials.wood(0xbfa383)); d.rotation.z = Math.PI / 2; d.rotation.y = i * 0.9; d.position.set(1.5 + Math.cos(i) * 2.2, 0.08, 2.4 + Math.sin(i * 1.7) * 1.6); api.add(P.shadowed(d)); }
+        api.add(P.backdrop(8, 13, i => P.mountain(i % 2 ? 0x5d7a86 : 0x77939c, 2.4 + (i % 3), 2.4)));
+        // Mementos found across the coast wash up at the tide line.
+        const washed = region.mementos(); washed.forEach((id, i) => { const m = api.RoomKit.memento(['shell', 'tag', 'ribbon', 'notebook'][i % 4], 0xf2e9d8); m.scale.setScalar(0.7); m.position.set(-1.4 + i * 0.7, 0.06, 1.0 + Math.sin(i) * 0.3); api.add(m); });
+
+        // Anchor: the harbor bell buoy at the pier head. Ringing it also rolls a swell along the pier.
+        const buoy = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.3, 10), api.FX.Materials.cloth(0xe8523f)); body.position.y = 0.65;
+        const bell = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 0.22, 10), api.FX.Materials.metal(0xd9b36a)); bell.position.y = 1.45;
+        buoy.add(P.shadowed(body), P.shadowed(bell)); buoy.position.set(2.8, 0, -6.0);
+        let ring = 0, swell = 0;
+        api.curio(buoy, 'tidewild_bell', 'the harbor bell', 'tidewild_bell_rung', 'Rang the harbor bell — every gull on the coast objected.', () => { ring = 1; swell = 1; });
+        const mist = api.particles(api.FX.VFX.droplets({ area: [14, 3, 14], baseY: 2.2, count: 22 }));
+        const gulls = api.particles(api.FX.VFX.dust({ area: [10, 1, 10], baseY: 4.2, count: 6, color: 0xffffff, size: 0.12, opacity: 0.8 }));
+        api.onUpdate((dt, t) => {
+          ring = Math.max(0, ring - dt * 0.6); swell = Math.max(0, swell - dt * 0.4);
+          buoy.rotation.z = Math.sin(t * 1.3) * 0.06 + Math.sin(t * 9) * 0.12 * ring;
+          boats.forEach(b => { b.rotation.z = Math.sin(t * 1.1 + b.userData.seed) * 0.05 + Math.sin(t * 4 + b.position.z) * 0.12 * swell; b.position.y = -0.02 + Math.sin(t * 0.9 + b.userData.seed) * 0.03; });
+          gulls.points.rotation.y += dt * 0.15;
+          farLamp.material.emissiveIntensity = region.get('lighthouseLit') ? 1.2 + Math.max(0, Math.sin(t * 1.4)) * 0.8 : 0.15;
+        });
+        return {
+          applyStage(stage) { boats.forEach((b, i) => { b.visible = i < stage + Math.min(1, region.setpieceUses('tidewild_vaporeon')); }); }
         };
       }
     },
@@ -102,6 +125,8 @@
             anemones.forEach((an, i) => { an.scale.y = 1 - ease(shy) * 0.75 + Math.sin(t * 2 + i) * 0.05; an.position.y = 0.12 * an.scale.y; });
           });
           api.onStage(stage => anemones.forEach(an => { an.material.emissiveIntensity = 0.5 + stage * 0.25; }));
+          // Smoke from Bonfire Cove is visible over the headland once Flareon has lit it.
+          if (api.region.get('bonfireLit')) { const smoke = api.particles(api.FX.VFX.dust({ area: [0.8, 3, 0.8], baseY: 1.5, count: 16, color: 0xd8d8d8, size: 0.14, opacity: 0.35 })); smoke.points.position.set(4.2, 0, -3.0); const glow = P.orb(0xff7a2f, 0.08, 1.2); glow.position.set(4.2, 0.6, -3.0); api.add(glow); }
           api.toy('ball', 0xffd166, new THREE.Vector3(1.6, 0.22, 1.3));
           api.memento('shell', 0x9fe3e8, new THREE.Vector3(-1.9, 0.1, 1.5), 'Sea glass, tumbled soft, in nine colours. Someone was collecting one of each.');
           api.particles(api.FX.VFX.droplets({ area: [7, 2, 7], baseY: 1.6, count: 12 }));
@@ -110,6 +135,7 @@
       },
 
       vaporeon: {
+        consequence: 'reefDived',
         name: 'Glassreef Drop-off', mood: 'The reef falls away into blue. Vaporeon has been down there and back, twice.',
         floor: { radius: 4.6, color: 0x2a6f86 }, weather: ['mist', 'rain', 'drizzle'], life: 'droplets',
         lights: { hemiSky: 0x9fe6ff, hemiGround: 0x0b3448, hemiIntensity: 0.48, keyColor: 0x6fd7ff, keyIntensity: 0.9, keyPos: [2, 7, 4] },
@@ -145,6 +171,7 @@
       },
 
       jolteon: {
+        consequence: 'lighthouseLit',
         name: 'Stormwatch Lighthouse', mood: 'The lamp still turns. The storms come to it, not the other way round.',
         floor: { radius: 4.0, color: 0x5d6068 }, weather: ['storm', 'static', 'rain', 'clear'], life: 'sparks',
         lights: { hemiSky: 0xb9c6dd, hemiGround: 0x1b2230, hemiIntensity: 0.38, keyColor: 0xfff5c2, keyIntensity: 0.7, keyPos: [-3, 8, 2] },
@@ -185,6 +212,7 @@
       },
 
       flareon: {
+        consequence: 'bonfireLit',
         name: 'Bonfire Cove', mood: 'A sheltered cove where the driftwood fire never quite goes out.',
         floor: { radius: 4.4, color: 0xd9c092 }, weather: ['clear', 'embers', 'breeze'], life: 'embers',
         lights: { hemiSky: 0xffd7b0, hemiGround: 0x4a2f22, hemiIntensity: 0.42, keyColor: 0xff9a5c, keyIntensity: 0.85, keyPos: [-4, 6, 3] },
@@ -265,7 +293,11 @@
           const glow = new THREE.Mesh(new THREE.RingGeometry(2.4, 2.75, 40), api.FX.Materials.emissiveAccent(0x4fe0c8, 0.2)); glow.rotation.x = -Math.PI / 2; glow.position.y = 0.03; api.add(glow);
           const stalactites = []; for (let i = 0; i < 12; i++) { const s = new THREE.Mesh(new THREE.ConeGeometry(0.12 + (i % 3) * 0.05, 0.9 + (i % 4) * 0.4, 6), api.FX.Materials.stone(0x2b3140)); const a = i * 0.52, r = 1.2 + (i % 5) * 0.55; s.position.set(Math.cos(a) * r, 3.6 - (i % 4) * 0.2, Math.sin(a) * r); s.rotation.x = Math.PI; api.add(s); stalactites.push(s); }
           const rings = []; for (let i = 0; i < 5; i++) { const r = P.ring(0.28 + i * 0.05, 0.02, 0x8899ff, 0.1); r.rotation.x = 0; const a = i * 1.26; r.position.set(Math.cos(a) * 3.4, 1.2 + (i % 2) * 0.5, Math.sin(a) * 3.4); r.lookAt(0, r.position.y, 0); api.add(r); rings.push(r); }
-          const walls = P.backdrop(9, 4.6, i => P.rock(0x252b38, 1.2 + (i % 2) * 0.6)); api.add(walls);
+          const walls = P.backdrop(9, 4.6, i => (i === 4 ? null : P.rock(0x252b38, 1.2 + (i % 2) * 0.6))); api.add(walls);
+          // The cave mouth faces the lighthouse. If Jolteon has lit it, its beam sweeps past the opening.
+          const mouth = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.6), new THREE.MeshBasicMaterial({ color: 0x0c1a2a, side: THREE.DoubleSide })); api.own(mouth.material); mouth.position.set(0, 1.3, 4.5); api.add(mouth);
+          const sweep = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 2.6), new THREE.MeshBasicMaterial({ color: 0xfff2a8, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false })); api.own(sweep.material); sweep.position.set(0, 1.3, 4.45); api.add(sweep);
+          const lit = api.region.get('lighthouseLit', false);
           const fire = api.particles(api.FX.VFX.fireflies({ area: [6, 2.5, 6], baseY: 0.4, count: 20, color: 0x4fe0c8 }));
           let echo = 0, stageLevel = 0;
           api.prop(water, 'tidewild_umbreon_pool', 'the blackwater pool', { echoed: true }, () => { echo = 1; });
@@ -274,6 +306,7 @@
             rings.forEach((r, i) => { const wave = Math.max(0, Math.sin(t * 3 - i * 0.8)) * echo; r.material.emissiveIntensity = 0.1 + stageLevel * 0.3 + wave * 1.2; r.scale.setScalar(1 + wave * 0.3); });
             glow.material.emissiveIntensity = 0.2 + stageLevel * 0.25 + echo * 0.6;
             fire.points.material.opacity = 0.4 + echo * 0.5;
+            if (lit) { const ph = (t * 0.35) % 1; sweep.position.x = -1.1 + ph * 2.2; sweep.material.opacity = Math.sin(ph * Math.PI) * 0.55; }
           });
           api.onStage(stage => { stageLevel = stage; });
           api.memento('shell', 0x8899ff, new THREE.Vector3(1.9, 0.1, 1.7), 'A moon-shell, ringed like Umbreon\'s legs. It hums very quietly at night.');
@@ -349,6 +382,8 @@
           });
           api.onStage(stage => peaks.forEach((pk, i) => pk.scale.setScalar(1 + stage * 0.08 + i * 0.01)));
           api.add(P.backdrop(6, 7.5, i => P.mountain(0xdff3fa, 2.2 + (i % 2), 2.6)));
+          const farLamp = P.orb(0xfff2a8, 0.1, api.region.get('lighthouseLit') ? 1.8 : 0.1); farLamp.position.set(-5.5, 2.4, -4.5); api.add(farLamp);
+          api.onUpdate((dt, t) => { if (api.region.get('lighthouseLit')) farLamp.material.emissiveIntensity = 1 + Math.max(0, Math.sin(t * 1.4)) * 1.2; });
           api.memento('tag', 0x8be5f5, new THREE.Vector3(1.6, 0.1, 1.5), 'A bottle frozen into the berg, message half-read: "...if you find this, the cold one says hello."');
           return { spawnPoint: new THREE.Vector3(0, 0, 1.0) };
         }

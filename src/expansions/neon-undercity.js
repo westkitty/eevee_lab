@@ -27,8 +27,9 @@
     mood: 'Rain on neon, trains overhead, and a street that smells of noodles and ozone.',
     doorColor: 0xff3fa4,
 
+    transition: 'undercity',
     hub: {
-      radius: 6.0, floorColor: 0x1f2230,
+      radius: 6.4, floorColor: 0x1f2230,
       weather: ['rain', 'drizzle', 'mist', 'clear'], life: 'sparks',
       stages: [
         { id: 'stranger', label: 'Stranger in Town' }, { id: 'regular', label: 'Regular' },
@@ -36,33 +37,75 @@
       ],
       lights: { hemiSky: 0x5a4a8a, hemiGround: 0x0a0a14, hemiIntensity: 0.32, keyColor: 0xff9ad0, keyIntensity: 0.55, keyPos: [3, 8, 2], fillColor: 0x3fd6ff, fillIntensity: 0.3, fillPos: [-5, 4, -3] },
       variants: [{ id: 'midnight', label: 'Midnight' }, { id: 'lastcall', label: 'Last Call', keyColor: 0xffc36a, hemiIntensity: 0.22 }],
+      // Lantern Alley is vertical. Street level: the market, the arcade, the bar.
+      // Mezzanine catwalk: the karaoke loft, the farm ladder, the platform stairs down.
+      // Rooftop line: substation and data spire. The rink is the shutter at the alley's end.
+      doorLayout() {
+        return {
+          flareon:  { x: -4.9, y: 0,   z:  1.2, ry: 1.35 },
+          eevee:    { x:  4.9, y: 0,   z:  1.4, ry: -1.35 },
+          vaporeon: { x: -4.6, y: 0,   z: -1.8, ry: 1.75 },
+          glaceon:  { x:  0,   y: 0,   z: -5.6, ry: 0 },
+          umbreon:  { x:  4.4, y: 0,   z: -2.2, ry: -1.75 },
+          sylveon:  { x: -3.6, y: 2.3, z: -3.4, ry: 1.2, scale: 0.8 },
+          leafeon:  { x:  3.6, y: 2.3, z: -3.6, ry: -1.2, scale: 0.8 },
+          jolteon:  { x: -2.0, y: 4.5, z: -4.6, ry: 0.5, scale: 0.7 },
+          espeon:   { x:  2.0, y: 4.5, z: -4.6, ry: -0.5, scale: 0.7 },
+          conservatory: { x: 0, y: 0, z: 6.0, ry: Math.PI }
+        };
+      },
       build(api) {
-        // Wet asphalt sheen, a viaduct overhead, stalls and a ramen cart centrepiece.
-        const sheen = new THREE.Mesh(new THREE.CircleGeometry(5.9, 48), new THREE.MeshStandardMaterial({ color: 0x14161f, metalness: 0.6, roughness: 0.25 })); api.own(sheen.material); sheen.rotation.x = -Math.PI / 2; sheen.position.y = 0.01; api.add(sheen);
+        const region = api.region;
+        const sheen = new THREE.Mesh(new THREE.CircleGeometry(6.3, 48), new THREE.MeshStandardMaterial({ color: 0x14161f, metalness: 0.6, roughness: 0.25 })); api.own(sheen.material); sheen.rotation.x = -Math.PI / 2; sheen.position.y = 0.01; api.add(sheen);
+        // Alley walls: two tall facades with stacked windows, AC units and pipes. Mezzanine catwalk between them.
+        const facade = api.FX.Materials.stone(0x22252f); const winMat = api.FX.Materials.emissiveAccent(0xfff0b3, 0.7);
+        [-1, 1].forEach(side => { const wall = new THREE.Mesh(new THREE.BoxGeometry(1.2, 7.5, 9), facade); wall.position.set(side * 6.3, 3.75, -1.5); api.add(P.shadowed(wall)); for (let y = 1; y < 7; y += 0.9) for (let z = -5; z < 3; z += 1.1) { if (((y * 7 + z * 3) | 0) % 3 === 0) continue; const w = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.42), winMat); w.position.set(side * 5.69, y, z); w.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2; api.add(w); } for (let k = 0; k < 3; k++) { const ac = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.5), api.FX.Materials.metal(0x6d7480)); ac.position.set(side * 5.5, 1.8 + k * 1.7, -4 + k * 2.4); api.add(ac); } const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 7.2, 6), api.FX.Materials.metal(0x4a4f5a)); pipe.position.set(side * 5.6, 3.6, -0.2); api.add(pipe); });
+        const catwalk = new THREE.Mesh(new THREE.BoxGeometry(11, 0.12, 1.2), api.FX.Materials.metal(0x3a3f4b)); catwalk.position.set(0, 2.3, -3.6); api.add(P.shadowed(catwalk));
+        for (let i = 0; i < 12; i++) { const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.9, 4), api.FX.Materials.metal(0x6d7480)); bar.position.set(-5.2 + i * 0.95, 2.8, -3.0); api.add(bar); }
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(11, 0.04, 0.04), api.FX.Materials.metal(0x6d7480)); rail.position.set(0, 3.25, -3.0); api.add(rail);
+        const stairs = new THREE.Group(); for (let i = 0; i < 9; i++) { const st = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.06, 0.32), api.FX.Materials.metal(0x3a3f4b)); st.position.set(0, 0.25 * i, -0.3 - i * 0.32); stairs.add(st); } stairs.position.set(3.0, 0, -0.5); api.add(stairs);
+        const ladder = new THREE.Group(); for (let i = 0; i < 6; i++) { const r = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.04, 0.04), api.FX.Materials.metal(0x6d7480)); r.position.y = 2.6 + i * 0.35; ladder.add(r); } ladder.position.set(0, 0, -4.1); api.add(ladder);
+        // Viaduct across the alley's mouth; the train passes overhead. If Umbreon summoned the last
+        // train, it is *this* train: lit, slow, stopping briefly above the alley.
         const via = api.FX.Materials.stone(0x2a2d38);
-        for (let i = 0; i < 5; i++) { const col = new THREE.Mesh(new THREE.BoxGeometry(0.5, 4.2, 0.5), via); col.position.set(-4 + i * 2, 2.1, -4.6); api.add(P.shadowed(col)); }
-        const deck = new THREE.Mesh(new THREE.BoxGeometry(11, 0.4, 1.6), via); deck.position.set(0, 4.4, -4.6); api.add(P.shadowed(deck));
-        const train = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.9, 0.9), api.FX.Materials.metal(0x9aa7b8)); train.position.set(-8, 5.1, -4.6); api.add(train);
-        const trainWin = api.FX.Materials.emissiveAccent(0xfff0b3, 0.9); for (let i = 0; i < 6; i++) { const w = new THREE.Mesh(new THREE.PlaneGeometry(0.35, 0.3), trainWin); w.position.set(-1.3 + i * 0.5, 0.1, 0.46); train.add(w); }
-        const signs = []; const cols = [0xff3fa4, 0x3fd6ff, 0xfff066, 0x9b5de5, 0x00f5a0];
-        for (let i = 0; i < 7; i++) { const s = neonSign(api, cols[i % cols.length], 0.9 + (i % 3) * 0.3, 0.25); const a = i * 0.9 + 0.4; s.position.set(Math.cos(a) * 5.4, 1.8 + (i % 3) * 0.5, Math.sin(a) * 5.4); s.lookAt(0, s.position.y, 0); api.add(s); signs.push(s); }
+        const deck = new THREE.Mesh(new THREE.BoxGeometry(13, 0.4, 1.6), via); deck.position.set(0, 4.4, -5.4); api.add(P.shadowed(deck));
+        for (let i = 0; i < 2; i++) { const col = new THREE.Mesh(new THREE.BoxGeometry(0.5, 4.2, 0.5), via); col.position.set(-4 + i * 8, 2.1, -5.4); api.add(P.shadowed(col)); }
+        const lastTrain = region.get('lastTrainArrived', false);
+        const train = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.9, 0.9), api.FX.Materials.metal(lastTrain ? 0x3a3f4b : 0x9aa7b8)); train.position.set(-9, 5.1, -5.4); api.add(train);
+        const trainWin = api.FX.Materials.emissiveAccent(lastTrain ? 0xfff4c8 : 0x8a90a0, lastTrain ? 1.2 : 0.4); for (let i = 0; i < 6; i++) { const w = new THREE.Mesh(new THREE.PlaneGeometry(0.35, 0.3), trainWin); w.position.set(-1.3 + i * 0.5, 0.1, 0.46); train.add(w); }
+        // Neon: staggered up the facades so the alley reads tall.
+        const cols = [0xff3fa4, 0x3fd6ff, 0xfff066, 0x9b5de5, 0x00f5a0];
+        const signs = []; for (let i = 0; i < 10; i++) { const side = i % 2 ? 1 : -1; const s = neonSign(api, cols[i % cols.length], 0.9 + (i % 3) * 0.3, 0.25); s.position.set(side * 5.6, 1.4 + i * 0.55, -4.5 + (i * 1.3) % 7); s.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2; api.add(s); signs.push(s); }
+        // Vending machine, crates, a puddle-lit stray Voltorb sign.
+        const vend = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.6, 0.6), api.FX.Materials.stone(0x2b1f3a)); vend.position.set(4.2, 0.8, 3.4); api.add(P.shadowed(vend)); const vendGlow = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 1.1), api.FX.Materials.emissiveAccent(0x3fd6ff, 0.8)); vendGlow.position.set(3.84, 0.9, 3.4); vendGlow.rotation.y = -Math.PI / 2; api.add(vendGlow);
+        for (let i = 0; i < 5; i++) { const c = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), api.FX.Materials.wood(0x6b4a33)); c.position.set(-4.2 + (i % 2) * 0.55, 0.25 + Math.floor(i / 2) * 0.5, 3.6 + (i % 3) * 0.2); api.add(P.shadowed(c)); }
+        // Ramen cart under the catwalk — the anchor.
         const cart = new THREE.Group();
         const body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.9, 0.7), api.FX.Materials.wood(0x6b4a33)); body.position.y = 0.55; cart.add(P.shadowed(body));
         const awning = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.05, 1.0), api.FX.Materials.cloth(0xd83c3c)); awning.position.y = 1.5; cart.add(awning);
         const lanternA = P.lantern(0xffc66b); lanternA.position.set(-0.9, 0, 0); lanternA.scale.setScalar(0.8); cart.add(lanternA);
         const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.18, 0.2, 10), api.FX.Materials.metal(0x8a8f99)); pot.position.set(0.3, 1.1, 0); cart.add(pot);
-        cart.position.set(0, 0, -2.2); 
-        const steam = api.particles(api.FX.VFX.dust({ area: [0.5, 1.2, 0.5], baseY: 1.2, count: 12, color: 0xffffff })); steam.points.position.set(0.3, 0, -2.2);
+        cart.position.set(-1.6, 0, -1.6); cart.rotation.y = 0.4;
+        const steam = api.particles(api.FX.VFX.dust({ area: [0.5, 1.2, 0.5], baseY: 1.2, count: 12, color: 0xffffff })); steam.points.position.set(-1.4, 0, -1.5);
+        // Stools fill with "regulars" (small lit bowls) as setpieces around the city get used.
+        const bowls = []; for (let i = 0; i < 4; i++) { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.07, 0.08, 8), api.FX.Materials.emissiveAccent(0xffd9a0, 0.5)); b.position.set(-1.6 + Math.cos(0.4) * (-0.2 + i * 0.35), 1.0, -1.6 + 0.5); b.visible = false; api.add(b); bowls.push(b); }
         let slurp = 0;
         api.curio(cart, 'undercity_ramen_cart', 'the ramen cart', 'undercity_ramen_bowl', 'Ordered at the ramen cart. The cook did not ask what an Eevee eats; the cook already knew.', () => { slurp = 1; });
-        const rain = api.particles(api.FX.VFX.droplets({ area: [12, 5, 12], baseY: 4.5, count: 40 }));
-        api.add(P.backdrop(9, 9.5, i => P.tower(0x171923, 5 + (i % 4) * 1.5, 1.1 + (i % 2) * 0.4, cols[i % cols.length])));
+        // Mementos: pinned to the noticeboard by the stairs.
+        const board = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 0.06), api.FX.Materials.wood(0x3a2a22)); board.position.set(2.2, 1.3, 2.6); api.add(board);
+        region.mementos().forEach((id, i) => { const m = api.RoomKit.memento(['tag', 'ribbon', 'notebook', 'frame'][i % 4], cols[i % 5]); m.scale.setScalar(0.5); m.position.set(1.75 + (i % 4) * 0.3, 1.5 - Math.floor(i / 4) * 0.35, 2.64); api.add(m); });
+        const rain = api.particles(api.FX.VFX.droplets({ area: [12, 6, 12], baseY: 5.5, count: 44 }));
+        const puddles = []; for (let i = 0; i < 5; i++) { const p = new THREE.Mesh(new THREE.CircleGeometry(0.4 + (i % 2) * 0.3, 16), new THREE.MeshStandardMaterial({ color: 0x1a1d2a, metalness: 0.9, roughness: 0.05, transparent: true, opacity: 0.7 })); api.own(p.material); p.rotation.x = -Math.PI / 2; p.position.set(Math.cos(i * 1.7) * 3.2, 0.015, Math.sin(i * 1.3) * 3.2); api.add(p); puddles.push(p); }
+        api.add(P.backdrop(9, 11, i => P.tower(0x171923, 6 + (i % 4) * 1.5, 1.1 + (i % 2) * 0.4, cols[i % cols.length])));
+        let dwell = 0;
         api.onUpdate((dt, t) => {
           slurp = Math.max(0, slurp - dt * 0.3); steam.points.material.opacity = 0.25 + slurp * 0.5;
-          train.position.x += dt * 3.2; if (train.position.x > 9) train.position.x = -9;
+          if (lastTrain) { if (dwell > 0) dwell -= dt; else { train.position.x += dt * 1.6; if (Math.abs(train.position.x) < 0.05) dwell = 3.5; if (train.position.x > 9) train.position.x = -9; } }
+          else { train.position.x += dt * 3.2; if (train.position.x > 9) train.position.x = -9; }
           signs.forEach((s, i) => { const flick = Math.sin(t * (7 + i)) > 0.92 ? 0.3 : 1; s.userData.tube.material.emissiveIntensity = 1.3 * flick; s.userData.light.intensity = 0.5 * flick; });
+          puddles.forEach((p, i) => { p.material.opacity = 0.55 + Math.sin(t * 2 + i) * 0.12; });
         });
-        return { applyStage(stage) { signs.forEach(s => { s.userData.light.distance = 3.5 + stage * 0.8; }); } };
+        return { applyStage(stage) { const used = Object.keys(region.record().setpieces).length; bowls.forEach((b, i) => { b.visible = i < Math.min(4, stage + Math.floor(used / 2)); }); signs.forEach(s => { s.userData.light.distance = 3.5 + stage * 0.8; }); } };
       }
     },
 
@@ -98,7 +141,8 @@
             if (phase > 0) { phase += dt; const d = phase < 1 ? phase : phase < 2 ? 1 : phase < 3 ? 3 - phase : 0; hand.position.y = 1.0 - d * 0.75; cable.scale.y = 1 + d * 0.75; cable.position.y = 2.0 - cable.scale.y / 2; hand.children.forEach(p => { p.children[0].rotation.z = phase > 1 && phase < 3 ? 0.1 : 0.5; }); if (win && phase > 2 && phase < 3) pile[0].position.y = hand.position.y - 0.25; if (phase > 3) { phase = 0; pile[0].position.y = 0.13; } }
             cranes.forEach((c, i) => { c.userData.strip.material.emissiveIntensity = 0.7 + Math.sin(t * 3 + i) * 0.3; c.userData.prize.position.y = 0.85 + Math.sin(t * 2 + i) * 0.02; });
           });
-          api.onStage(stage => cranes.forEach((c, i) => { c.userData.prize.visible = i >= stage * 2; }));
+          const surged = api.region.get('gridSurged', false);
+          api.onStage(stage => cranes.forEach((c, i) => { c.userData.prize.visible = i >= stage * 2; c.userData.strip.material = surged ? api.FX.Materials.emissiveAccent(K.SPECIES_COLOR[K.SPECIES[i]], 1.4) : c.userData.strip.material; }));
           api.particles(api.FX.VFX.sparkles({ area: [6, 3, 6], baseY: 0.6, count: 18, color: 0xff9ad0 }));
           api.toy('ball', 0xff6b6b, new THREE.Vector3(1.4, 0.22, 1.4));
           api.memento('notebook', 0xe0b47a, new THREE.Vector3(-1.5, 0.1, 1.5), 'A capsule toy, still in its capsule. Inside: a tiny plastic Eevee. Meta.');
@@ -139,6 +183,7 @@
       },
 
       jolteon: {
+        consequence: 'gridSurged',
         name: 'Substation Rooftop', mood: 'The city\'s power comes through here. On a good night Jolteon can taste every streetlight.',
         floor: { radius: 4.0, color: 0x32363f }, weather: ['static', 'storm', 'rain'], life: 'sparks',
         lights: { hemiSky: 0x6a7fa8, hemiGround: 0x0c0e14, hemiIntensity: 0.36, keyColor: 0xfff5b0, keyIntensity: 0.6, keyPos: [-3, 8, 2], fillColor: 0xff3fa4, fillIntensity: 0.25, fillPos: [4, 3, -3] },
@@ -241,6 +286,7 @@
       },
 
       umbreon: {
+        consequence: 'lastTrainArrived',
         name: 'Last Train Platform', mood: 'An abandoned subway platform. The last train never came, so Umbreon waits for it out of principle.',
         floor: { radius: 4.4, color: 0x24262e }, weather: ['clear', 'moon-haze', 'drizzle'], life: 'fireflies',
         lights: { hemiSky: 0x4a5270, hemiGround: 0x08090e, hemiIntensity: 0.3, keyColor: 0xb9c6ff, keyIntensity: 0.4, keyPos: [0, 6, 3], fillColor: 0xfff066, fillIntensity: 0.15, fillPos: [-4, 3, -3] },
@@ -259,11 +305,12 @@
           const headlight = new THREE.PointLight(0xfff4c8, 0, 14); headlight.position.set(-9, 1.0, -2.8); api.add(headlight);
           const train = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.6, 1.2), api.FX.Materials.metal(0x3a3f4b)); train.position.set(-12, 0.8, -2.8); api.add(train);
           let arrive = 0, stageLevel = 0;
+          if (api.region.get('lastTrainArrived')) { train.position.x = 0; headlight.position.x = -1.8; headlight.intensity = 0.6; }
           api.prop(board, 'undercity_umbreon_board', 'the departure board', { announced: true }, () => { arrive = 6; train.position.x = -12; });
           api.onUpdate((dt, t) => {
-            tubes.forEach((tube, i) => { tube.material.emissiveIntensity = Math.sin(t * (9 + i * 2)) > 0.85 ? 0.05 : 0.6 + stageLevel * 0.1; });
+            tubes.forEach((tube, i) => { tube.material.emissiveIntensity = !api.region.get('songSung') && Math.sin(t * (9 + i * 2)) > 0.85 ? 0.05 : 0.6 + stageLevel * 0.1; });
             boardText.material.emissiveIntensity = arrive > 0 ? 0.9 + Math.sin(t * 8) * 0.4 : 0.2 + stageLevel * 0.15;
-            if (arrive > 0) { arrive -= dt; const x = -12 + (6 - arrive) * 2.2; train.position.x = Math.min(0, x); headlight.position.x = train.position.x - 1.8; headlight.intensity = arrive > 0.5 ? 2.2 : 0; if (arrive <= 0) { train.position.x = -12; headlight.intensity = 0; } }
+            if (arrive > 0) { arrive -= dt; const x = -12 + (6 - arrive) * 2.2; train.position.x = Math.min(0, x); headlight.position.x = train.position.x - 1.8; headlight.intensity = arrive > 0.5 ? 2.2 : 0; if (arrive <= 0) { train.position.x = 0; headlight.intensity = 0.6; } }
           });
           api.onStage(stage => { stageLevel = stage; stripe.material.emissiveIntensity = 0.3 + stage * 0.3; });
           api.particles(api.FX.VFX.dust({ area: [8, 3, 6], baseY: 0.3, count: 24, color: 0x9aa7b8 }));
@@ -313,7 +360,8 @@
           const ice = new THREE.Mesh(new THREE.CircleGeometry(3.6, 40), new THREE.MeshStandardMaterial({ color: 0xdff4ff, metalness: 0.3, roughness: 0.15 })); api.own(ice.material); ice.rotation.x = -Math.PI / 2; ice.position.y = 0.02; api.add(ice);
           const boards = new THREE.Mesh(new THREE.CylinderGeometry(3.8, 3.8, 0.7, 40, 1, true), api.FX.Materials.cloth(0xf4f4f4)); boards.material.side = THREE.DoubleSide; boards.position.y = 0.35; api.add(boards);
           const shelving = api.FX.Materials.metal(0x6d7480); for (let i = 0; i < 6; i++) { const s = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.6, 0.4), shelving); const a = i * 1.05 + 0.5; s.position.set(Math.cos(a) * 4.9, 1.3, Math.sin(a) * 4.9); s.lookAt(0, 1.3, 0); api.add(s); const crate = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.3), api.FX.Materials.wood(0x8a6a44)); crate.position.set(Math.cos(a) * 4.9, 2.0, Math.sin(a) * 4.9); api.add(crate); }
-          const flood = []; for (let i = 0; i < 4; i++) { const f = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.15, 0.4), api.FX.Materials.emissiveAccent(0xffffff, 0.6)); const a = i * 1.57 + 0.78; f.position.set(Math.cos(a) * 2.6, 3.6, Math.sin(a) * 2.6); api.add(f); flood.push(f); }
+          const gridOn = api.region.get('gridSurged', false);
+          const flood = []; for (let i = 0; i < 4; i++) { const f = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.15, 0.4), api.own(api.FX.Materials.emissiveAccent(0xffffff, 0.6).clone())); f.material.emissiveIntensity = gridOn ? 1.6 : 0.3; const fl = new THREE.PointLight(0xffffff, gridOn ? 0.6 : 0, 6); f.add(fl); const a = i * 1.57 + 0.78; f.position.set(Math.cos(a) * 2.6, 3.6, Math.sin(a) * 2.6); api.add(f); flood.push(f); }
           const ball = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 10), api.FX.Materials.metal(0xd9dde3)); ball.position.set(0, 3.4, 0); api.add(ball);
           const ballLight = new THREE.PointLight(0xff8ad0, 0, 8); ballLight.position.set(0, 3.0, 0); api.add(ballLight);
           const zam = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.4, 0.5), api.FX.Materials.metal(0x3fa9d6)); zam.position.set(1.4, 0.2, 1.0); zam.visible = false; api.add(zam);
@@ -333,6 +381,7 @@
       },
 
       sylveon: {
+        consequence: 'songSung',
         name: 'Karaoke Lantern Loft', mood: 'A tiny karaoke room above a laundromat. Sylveon holds the mic with a ribbon and takes requests.',
         floor: { radius: 3.8, color: 0x3a2434 }, weather: ['clear', 'petals', 'drizzle'], life: 'ribbons',
         lights: { hemiSky: 0xff9ad0, hemiGround: 0x1a0c18, hemiIntensity: 0.4, keyColor: 0xffb3d9, keyIntensity: 0.7, keyPos: [2, 6, 3], fillColor: 0x3fd6ff, fillIntensity: 0.3, fillPos: [-3, 3, -2] },

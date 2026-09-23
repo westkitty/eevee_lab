@@ -16,8 +16,9 @@
     mood: 'Thin air, warm stone underfoot, and prayer flags that were here before the road.',
     doorColor: 0xd0653a,
 
+    transition: 'emberpeak',
     hub: {
-      radius: 6.2, floorColor: 0xa89786,
+      radius: 7.0, floorColor: 0xa89786,
       weather: ['clear', 'mist', 'breeze', 'snow'], life: 'motes',
       stages: [
         { id: 'base-camp', label: 'Base Camp' }, { id: 'first-stair', label: 'First Stair Climbed' },
@@ -25,32 +26,62 @@
       ],
       lights: { hemiSky: 0xe9eef7, hemiGround: 0x4a3a30, hemiIntensity: 0.6, keyColor: 0xffe7c9, keyIntensity: 1.0, keyPos: [-5, 10, 3] },
       variants: [{ id: 'highsun', label: 'High Sun' }, { id: 'alpenglow', label: 'Alpenglow', keyColor: 0xff8f6a, hemiIntensity: 0.38 }],
+      // The Stair climbs in switchbacks from base camp (south, low) to the
+      // summit gate (north, high). Habitats are reached at the altitude that
+      // suits them: the hut and springs low, the caldera off the mid-terrace,
+      // aerie / sanctum / glacier at the top.
+      doorLayout() {
+        return {
+          eevee:    { x:  3.4, y: 0.0,  z:  4.6, ry: -0.6 },
+          vaporeon: { x: -3.6, y: 0.0,  z:  4.2, ry: 0.7 },
+          leafeon:  { x:  5.2, y: 0.44, z:  1.4, ry: -1.3, scale: 0.95 },
+          flareon:  { x: -5.4, y: 0.44, z:  0.8, ry: 1.4, scale: 0.95 },
+          umbreon:  { x:  4.6, y: 0.88, z: -2.2, ry: -1.9, scale: 0.9 },
+          espeon:   { x: -4.8, y: 0.88, z: -2.4, ry: 1.9, scale: 0.9 },
+          jolteon:  { x:  2.0, y: 1.32, z: -5.0, ry: -2.6, scale: 0.85 },
+          glaceon:  { x: -2.0, y: 1.32, z: -5.0, ry: 2.6, scale: 0.85 },
+          sylveon:  { x:  0.0, y: 1.76, z: -6.0, ry: Math.PI, scale: 0.85 },
+          conservatory: { x: 0, y: 0, z: 6.4, ry: Math.PI }
+        };
+      },
       build(api) {
-        // Terraced stairs rising toward a broken temple gate; prayer flags strung between cairns.
-        for (let i = 0; i < 5; i++) { const step = P.slab(2.6 - i * 0.2, 0.22, 0.7, 0xb8a894); step.position.set(0, 0.11 + i * 0.22, -2.2 - i * 0.62); api.add(step); }
-        const gate = P.arch(0xc2b19b, 2.2, 2.8); gate.position.set(0, 1.1, -5.2); api.add(gate);
-        const cairns = [];
-        for (let i = 0; i < 6; i++) {
-          const g = new THREE.Group(); for (let k = 0; k < 4; k++) { const r = P.rock(0x8f857a, 0.28 - k * 0.05); r.position.y = k * 0.3 + 0.1; g.add(r); }
-          const a = i * 1.05 + 0.5; g.position.set(Math.cos(a) * 4.6, 0, Math.sin(a) * 4.6); api.add(g); cairns.push(g);
-        }
-        const flags = [];
-        for (let i = 0; i < 18; i++) {
-          const f = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.2), new THREE.MeshToonMaterial({ color: [0x3f7fd0, 0xf5f5f5, 0xd63c3c, 0x5fb85f, 0xf3c53d][i % 5], side: THREE.DoubleSide }));
-          const a = (i / 18) * Math.PI * 2; f.position.set(Math.cos(a) * 4.4, 2.2 + Math.sin(i * 1.7) * 0.15, Math.sin(a) * 4.4); f.lookAt(0, 2.2, 0); api.add(f); flags.push(f);
-        }
-        const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.6, 12), api.FX.Materials.metal(0xd9a24a)); wheel.position.set(1.9, 0.9, -1.2);
-        const wheelPost = P.pillar(0x8f857a, 0.6, 0.06); wheelPost.position.set(1.9, 0, -1.2); api.add(wheelPost);
+        const region = api.region;
+        const stone = api.FX.Materials.stone(0xb8a894);
+        // Four terraces stepping north, each 0.44 higher. Walk surface stays the flat floor; the
+        // terraces are dressing that reads as a climb from the camera.
+        const terraces = [[0, 0.0, 3.0, 7.0], [0, 0.44, 0.6, 5.6], [0, 0.88, -2.0, 4.6], [0, 1.32, -4.6, 3.4], [0, 1.76, -6.2, 2.0]];
+        terraces.forEach(([x, y, z, w], i) => { const t = new THREE.Mesh(new THREE.CylinderGeometry(w, w + 0.3, 0.44, 24, 1, false, 0, Math.PI), stone); t.rotation.y = Math.PI; t.position.set(x, y - 0.22, z + w * 0.15); if (i > 0) api.add(P.shadowed(t)); for (let k = 0; k < 3; k++) { const step = P.slab(1.6, 0.12, 0.34, 0xc9baa2); step.position.set(0, y - 0.3 + k * 0.14, z + w * 0.15 + w - 0.2 + k * 0.34); if (i > 0) api.add(step); } });
+        const gate = P.arch(0xc2b19b, 2.4, 3.0); gate.position.set(0, 1.76, -7.2); api.add(gate);
+        if (region.get('spireStruck')) { const scorch = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.6, 0.05), api.FX.Materials.emissiveAccent(0xfff066, 0.5)); scorch.position.set(0.35, 3.0, -7.1); scorch.rotation.z = 0.25; api.add(scorch); }
+        // Cairns line the switchbacks; prayer flags string between terraces.
+        const cairns = []; [[-2.2, 0, 3.6], [2.6, 0.44, 1.2], [-2.8, 0.88, -1.6], [2.9, 1.32, -4.2], [-1.4, 1.76, -5.8]].forEach(([x, y, z]) => { const g = new THREE.Group(); for (let k = 0; k < 4; k++) { const r = P.rock(0x8f857a, 0.26 - k * 0.05); r.position.y = k * 0.28 + 0.1; g.add(r); } g.position.set(x, y, z); api.add(g); cairns.push(g); });
+        const flags = []; for (let i = 0; i < 26; i++) { const f = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.2), new THREE.MeshToonMaterial({ color: [0x3f7fd0, 0xf5f5f5, 0xd63c3c, 0x5fb85f, 0xf3c53d][i % 5], side: THREE.DoubleSide })); api.own(f.material); const k = i / 26; f.position.set(Math.sin(k * Math.PI * 4) * 4.2, 2.2 + k * 1.9 + Math.sin(i * 1.7) * 0.12, 5.5 - k * 12.5); api.add(f); flags.push(f); }
+        // Lanterns along the stair: dark until Umbreon rings the monastery bell.
+        const lanternsLit = region.get('lanternsLit', false);
+        const lanterns = []; [[1.6, 0, 4.0], [-1.8, 0.44, 1.4], [1.8, 0.88, -1.2], [-1.6, 1.32, -4.0], [0.9, 1.76, -6.0], [-0.9, 1.76, -6.0]].forEach(([x, y, z], i) => { const l = P.lantern(0xffb070); l.position.set(x, y, z); l.userData.glow.material = api.own(l.userData.glow.material.clone()); l.userData.glow.material.emissiveIntensity = lanternsLit ? 1.4 : 0.05; l.children.forEach(c => { if (c.isPointLight) { c.intensity = lanternsLit ? 0.55 : 0; l.userData.light = c; } }); l.userData.seed = i; api.add(l); lanterns.push(l); });
+        // Summit peaks + distant monastery silhouette that mirrors Umbreon's room.
+        api.add(P.backdrop(7, 12, i => P.mountain(i % 2 ? 0x6f7f95 : 0x8a97a8, 5 + (i % 3) * 1.4, 3)));
+        const farPagoda = new THREE.Group(); for (let i = 0; i < 3; i++) { const roof = new THREE.Mesh(new THREE.ConeGeometry(0.7 - i * 0.15, 0.3, 4), api.FX.Materials.stone(0x3a2f3a)); roof.position.y = 0.6 + i * 0.5; roof.rotation.y = Math.PI / 4; farPagoda.add(roof); } farPagoda.position.set(7.5, 3.4, -5.5); api.add(farPagoda);
+        const farGlow = P.orb(0xffb070, 0.08, lanternsLit ? 1.6 : 0.05); farGlow.position.set(7.5, 3.9, -5.5); api.add(farGlow);
+        // Offerings left at the gate: mementos found across the peak.
+        region.mementos().forEach((id, i) => { const m = api.RoomKit.memento(['tag', 'notebook', 'frame', 'shell'][i % 4], 0xd9c6a0); m.scale.setScalar(0.65); m.position.set(-0.9 + i * 0.45, 1.8, -6.7); api.add(m); });
+        // Steam from the hot springs drifts up the west flank once Vaporeon has woken them.
+        if (region.get('springsWoken')) { const steam = api.particles(api.FX.VFX.dust({ area: [1.4, 3, 1.4], baseY: 0.5, count: 18, color: 0xffffff, size: 0.14, opacity: 0.3 })); steam.points.position.set(-5.2, 0, 3.6); }
+
+        // Anchor: prayer wheel on the first landing.
+        const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.6, 12), api.FX.Materials.metal(0xd9a24a)); wheel.position.set(1.9, 1.34, 0.6);
+        const wheelPost = P.pillar(0x8f857a, 0.6, 0.06); wheelPost.position.set(1.9, 0.44, 0.6); api.add(wheelPost);
         let spin = 0;
         api.curio(wheel, 'emberpeak_prayer_wheel', 'a prayer wheel', 'emberpeak_wheel_spun', 'Spun the prayer wheel — it went round nine times, then stopped exactly where it started.', () => { spin = 1; });
-        api.add(P.backdrop(7, 10, i => P.mountain(i % 2 ? 0x6f7f95 : 0x8a97a8, 5 + (i % 3) * 1.4, 3)));
-        api.particles(api.FX.VFX.dust({ area: [12, 4, 12], baseY: 0.4 }));
+        api.particles(api.FX.VFX.dust({ area: [12, 5, 14], baseY: 0.4 }));
+        const cloudShadow = new THREE.Mesh(new THREE.CircleGeometry(3, 20), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.12, depthWrite: false })); api.own(cloudShadow.material); cloudShadow.rotation.x = -Math.PI / 2; cloudShadow.position.y = 0.02; api.add(cloudShadow);
         api.onUpdate((dt, t) => {
-          spin = Math.max(0, spin - dt * 0.4);
-          wheel.rotation.y += dt * (0.4 + spin * 9);
+          spin = Math.max(0, spin - dt * 0.4); wheel.rotation.y += dt * (0.4 + spin * 9);
           flags.forEach((f, i) => { f.rotation.x = Math.sin(t * 2.2 + i) * 0.28; });
+          cloudShadow.position.x = Math.sin(t * 0.08) * 5; cloudShadow.position.z = Math.cos(t * 0.06) * 4;
+          if (lanternsLit) lanterns.forEach(l => { l.userData.glow.material.emissiveIntensity = 1.2 + Math.sin(t * 3 + l.userData.seed) * 0.25; });
         });
-        return { applyStage(stage) { cairns.forEach(c => c.scale.setScalar(1 + stage * 0.05)); } };
+        return { applyStage(stage) { cairns.forEach((c, i) => c.scale.setScalar(i <= stage ? 1.12 : 1)); } };
       }
     },
 
@@ -86,6 +117,7 @@
       },
 
       vaporeon: {
+        consequence: 'springsWoken',
         name: 'Hotspring Terraces', mood: 'Mineral pools stepping down the mountainside. Warm on top, warmer below.',
         floor: { radius: 4.6, color: 0xd8c7a8 }, weather: ['mist', 'clear', 'snow'], life: 'droplets',
         lights: { hemiSky: 0xd6ecff, hemiGround: 0x5a4a3a, hemiIntensity: 0.55, keyColor: 0xffe7c9, keyIntensity: 0.85, keyPos: [4, 8, 2] },
@@ -116,6 +148,7 @@
       },
 
       jolteon: {
+        consequence: 'spireStruck',
         name: 'Thunderhead Aerie', mood: 'The summit ledge where the clouds arrive charged. Jolteon considers this home turf.',
         floor: { radius: 3.8, color: 0x4c5260 }, weather: ['storm', 'static', 'clear'], life: 'sparks',
         lights: { hemiSky: 0xc9d4ee, hemiGround: 0x1c2130, hemiIntensity: 0.42, keyColor: 0xf0f4ff, keyIntensity: 0.8, keyPos: [-2, 9, 1] },
@@ -210,6 +243,7 @@
       },
 
       umbreon: {
+        consequence: 'lanternsLit',
         name: 'Lantern Monastery', mood: 'A cliffside monastery lit by a hundred paper lanterns, kept by no one now but the moon.',
         floor: { radius: 4.2, color: 0x2c2a33 }, weather: ['moon-haze', 'clear', 'mist'], life: 'fireflies',
         lights: { hemiSky: 0x55608a, hemiGround: 0x0a0a12, hemiIntensity: 0.3, keyColor: 0x8899ff, keyIntensity: 0.45, keyPos: [2, 7, -3] },
@@ -225,11 +259,11 @@
           const bell = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.32, 0.5, 12), api.FX.Materials.metal(0x8c7a4a)); bell.position.set(1.8, 1.0, -0.6);
           const frame = P.arch(0x3a2530, 0.9, 1.4); frame.position.set(1.8, 0, -0.6); api.add(frame);
           const moon = P.orb(0xf3f0ff, 0.45, 0.7); moon.position.set(-3, 4.2, -4); api.add(moon);
-          let toll = 0, stageLevel = 0;
+          let toll = api.region.get('lanternsLit') ? 0.6 : 0, stageLevel = 0;
           api.prop(bell, 'emberpeak_umbreon_bell', 'the monastery bell', { tolled: true }, () => { toll = 1; });
           api.onUpdate((dt, t) => {
-            toll = Math.max(0, toll - dt * 0.2);
-            bell.rotation.z = Math.sin(t * 6) * 0.18 * toll;
+            toll = Math.max(api.region.get('lanternsLit') ? 0.35 : 0, toll - dt * 0.2);
+            bell.rotation.z = Math.sin(t * 6) * 0.18 * Math.max(0, toll - 0.35);
             lanterns.forEach(l => { const flick = 0.85 + Math.sin(t * 3 + l.userData.seed) * 0.15; l.material.emissiveIntensity = (0.08 + stageLevel * 0.35 + toll * 1.0) * flick; l.position.y += Math.sin(t + l.userData.seed) * dt * 0.02; });
             light.intensity = stageLevel * 0.25 + toll * 0.9;
           });
@@ -294,6 +328,7 @@
           });
           api.onStage(stage => { stageLevel = stage; });
           api.add(P.backdrop(6, 8, i => P.mountain(0xe6f5fb, 4 + (i % 3), 2.8)));
+          if (api.region.get('lanternsLit')) for (let i = 0; i < 5; i++) { const g = P.orb(0xffb070, 0.06, 1.4); g.position.set(3.5 + i * 0.5, 2.6 + i * 0.22, -6.2); api.add(g); }
           api.memento('tag', 0x8be5f5, new THREE.Vector3(-1.6, 0.1, 1.5), 'A piton hammered into the ice a very long time ago. The ice has since grown around it, protectively.');
           return { spawnPoint: new THREE.Vector3(0, 0, 1.4) };
         }

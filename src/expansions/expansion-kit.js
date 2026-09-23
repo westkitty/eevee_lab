@@ -46,8 +46,9 @@
     shadowed(mesh) { mesh.castShadow = true; mesh.receiveShadow = true; return mesh; },
     rock(color = 0x8a8577, r = 0.4) {
       const m = new THREE.Mesh(new THREE.DodecahedronGeometry(r, 0), FX.Materials.stone(color));
-      m.rotation.set(Math.random() * 0.6, Math.random() * Math.PI, Math.random() * 0.6);
-      m.scale.set(1, 0.6 + Math.random() * 0.5, 1);
+      const k = (r * 1000 + (color & 0xfff)) % 7;
+      m.rotation.set(k * 0.08, k * 0.45, (7 - k) * 0.07);
+      m.scale.set(1, 0.6 + k * 0.07, 1);
       return P.shadowed(m);
     },
     crystal(color = 0x9be7ff, h = 0.8, r = 0.16) {
@@ -168,10 +169,12 @@
       b.position.y = h / 2 - 0.3;
       g.add(b);
       const wmat = FX.Materials.emissiveAccent(windowColor, 0.9);
+      let seed = (h * 97 + w * 31 + (windowColor & 0xff)) | 0;
+      const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
       for (let y = 0.4; y < h - 0.4; y += 0.55) {
-        if (Math.random() < 0.55) {
+        if (rnd() < 0.55) {
           const win = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.22), wmat);
-          win.position.set((Math.random() - 0.5) * (w * 0.6), y, w / 2 + 0.01);
+          win.position.set((rnd() - 0.5) * (w * 0.6), y, w / 2 + 0.01);
           g.add(win);
         }
       }
@@ -189,6 +192,44 @@
       }
     }
   };
+
+  /* --------------------------------------------------------------------
+     Region state: one bounded save record per expedition
+     (`expeditions.<id>`) holding small flags + memento ids. Rooms write
+     flags when their setpiece fires; sibling rooms and the hub read them
+     on build. No scene graph is ever serialized. Falls back to an
+     in-memory store if no SaveManager is available (tests).
+     -------------------------------------------------------------------- */
+  const memoryStore = {};
+  function saveApi() {
+    const s = global.save || (global.habitatSave) || null;
+    if (s && typeof s.get === 'function' && typeof s.set === 'function') return s;
+    return {
+      get(path, fb) { return path in memoryStore ? memoryStore[path] : fb; },
+      set(path, v) { memoryStore[path] = v; return v; }
+    };
+  }
+  function regionRecord(id) {
+    const raw = saveApi().get('expeditions.' + id, null);
+    const rec = raw && typeof raw === 'object' ? raw : {};
+    return {
+      flags: rec.flags && typeof rec.flags === 'object' ? Object.assign({}, rec.flags) : {},
+      mementos: Array.isArray(rec.mementos) ? rec.mementos.slice(0, 12) : [],
+      setpieces: rec.setpieces && typeof rec.setpieces === 'object' ? Object.assign({}, rec.setpieces) : {}
+    };
+  }
+  function writeRegion(id, rec) { saveApi().set('expeditions.' + id, rec); return rec; }
+  function regionApi(expansionId, roomId) {
+    return {
+      flag(name, value) { const r = regionRecord(expansionId); r.flags[name] = value === undefined ? true : value; if (Object.keys(r.flags).length > 24) delete r.flags[Object.keys(r.flags)[0]]; writeRegion(expansionId, r); return r.flags[name]; },
+      get(name, fallback) { const v = regionRecord(expansionId).flags[name]; return v === undefined ? fallback : v; },
+      noteSetpiece() { const r = regionRecord(expansionId); r.setpieces[roomId] = Math.min(99, (Number(r.setpieces[roomId]) || 0) + 1); writeRegion(expansionId, r); return r.setpieces[roomId]; },
+      setpieceUses(rid) { return Number(regionRecord(expansionId).setpieces[rid || roomId]) || 0; },
+      noteMemento(id) { const r = regionRecord(expansionId); if (!r.mementos.includes(id)) r.mementos.push(id); writeRegion(expansionId, r); return r.mementos.length; },
+      mementos() { return regionRecord(expansionId).mementos.slice(); },
+      record() { return regionRecord(expansionId); }
+    };
+  }
 
   function circleSpots(radius, count, y = 0, offset = 0) {
     const out = [];
@@ -215,8 +256,9 @@
     const stageAppliers = [];
     const accent = SPECIES_COLOR[species];
 
+    const region = regionApi(expansion.id, roomId);
     const api = {
-      THREE, FX, P, RoomKit, accent, roomId, species, expansion,
+      THREE, FX, P, RoomKit, accent, roomId, species, expansion, region,
       add(obj) { group.add(obj); return obj; },
       own(material) { if (material) ownedMaterials.push(material); return material; },
       particles(field) { particleFields.push(field); group.add(field.points); return field; },
@@ -227,6 +269,8 @@
         group.add(object3D);
         const entry = RoomKit.makeInteractable(object3D, id, 'prop', label, () => {
           if (onActivate) onActivate();
+          region.noteSetpiece();
+          if (spec.consequence) region.flag(spec.consequence, true);
           ctx.onRoomProp(roomId, detail || { used: true });
         });
         interactables.push(entry);
@@ -247,8 +291,10 @@
         m.position.copy(position);
         group.add(m);
         const id = 'memento_' + roomId;
-        interactables.push(RoomKit.makeInteractable(m, id, 'memento', spec.mementoLabel || 'a memento', () =>
-          ctx.onMemento(roomId, id, text)));
+        interactables.push(RoomKit.makeInteractable(m, id, 'memento', spec.mementoLabel || 'a memento', () => {
+          region.noteMemento(id);
+          ctx.onMemento(roomId, id, text);
+        }));
         return m;
       },
       toy(kind, color, position) {
@@ -299,7 +345,9 @@
   function buildHub(expansion, ctx) {
     const group = new THREE.Group();
     const radius = expansion.hub.radius || 6.2;
-    group.add(RoomKit.floor(radius, expansion.hub.floorColor || 0xd9d2c3, { segments: 48 }));
+    const floor = RoomKit.floor(expansion.hub.walkRadius || radius, expansion.hub.floorColor || 0xd9d2c3, { segments: 48 });
+    if (expansion.hub.hideFloor) { floor.visible = false; }
+    group.add(floor);
 
     const interactables = [];
     const particleFields = [];
@@ -309,8 +357,10 @@
     const doorLights = [];
 
     const hubOwned = [];
+    const region = regionApi(expansion.id, expansion.id);
     const api = {
-      THREE, FX, P, RoomKit, expansion,
+      THREE, FX, P, RoomKit, expansion, region,
+      SPECIES, SPECIES_COLOR,
       add(obj) { group.add(obj); return obj; },
       own(material) { if (material) hubOwned.push(material); return material; },
       particles(field) { particleFields.push(field); group.add(field.points); return field; },
@@ -325,30 +375,44 @@
       }
     };
 
-    // Doors: nine species rooms on a ring, Conservatory gate at the back.
+    // Doors: nine species rooms. The hub spec may supply a layout
+    // (position/rotation/scale per species) so the region's geography, not
+    // a ring, decides where each habitat is reached from.
+    const layout = typeof expansion.hub.doorLayout === 'function' ? expansion.hub.doorLayout(SPECIES, radius) : null;
     SPECIES.forEach((species, i) => {
       const rid = expansion.id + '_' + species;
       const a = (i / SPECIES.length) * Math.PI * 2 - Math.PI / 2 + Math.PI / SPECIES.length;
       const door = RoomKit.doorway(SPECIES_COLOR[species], rid);
-      door.position.set(Math.cos(a) * (radius - 0.9), 0, Math.sin(a) * (radius - 0.9));
-      door.rotation.y = -a + Math.PI / 2;
+      const slot = layout && layout[species];
+      if (slot) {
+        door.position.set(slot.x || 0, slot.y || 0, slot.z || 0);
+        door.rotation.y = slot.ry != null ? slot.ry : Math.atan2(-door.position.x, -door.position.z);
+        if (slot.scale) door.scale.setScalar(slot.scale);
+      } else {
+        door.position.set(Math.cos(a) * (radius - 0.9), 0, Math.sin(a) * (radius - 0.9));
+        door.rotation.y = -a + Math.PI / 2;
+      }
       door.userData.portalTarget = rid;
       group.add(door);
       interactables.push(RoomKit.makeInteractable(door, 'door_' + rid, 'door', ctx.roomLabel(rid), () => ctx.requestDoor(rid, door)));
-      const inward = door.position.clone().multiplyScalar(0.76); inward.y = 0;
-      const cont = door.position.clone().multiplyScalar(0.56); cont.y = 0;
+      const flat = door.position.clone(); flat.y = 0;
+      const len = Math.max(0.01, flat.length());
+      const inward = flat.clone().multiplyScalar(Math.max(0, (len - 1.1) / len)); inward.y = 0;
+      const cont = flat.clone().multiplyScalar(Math.max(0, (len - 2.2) / len)); cont.y = 0;
       entryPoints[rid] = inward;
       continuationPoints[rid] = cont;
       door.traverse(o => { if (o.isPointLight) doorLights.push(o); });
     });
 
     const back = RoomKit.doorway(0xffffff, 'conservatory');
-    back.position.set(0, 0, -(radius - 0.6));
+    const backSlot = layout && layout.conservatory;
+    if (backSlot) { back.position.set(backSlot.x || 0, backSlot.y || 0, backSlot.z || 0); back.rotation.y = backSlot.ry || 0; }
+    else back.position.set(0, 0, -(radius - 0.6));
     back.userData.portalTarget = 'conservatory';
     group.add(back);
     interactables.push(RoomKit.makeInteractable(back, 'door_conservatory', 'door', 'Conservatory', () => ctx.requestDoor('conservatory', back)));
-    entryPoints.conservatory = new THREE.Vector3(0, 0, -(radius - 1.6));
-    continuationPoints.conservatory = new THREE.Vector3(0, 0, 0.6);
+    entryPoints.conservatory = back.position.clone().multiplyScalar(0.7).setY(0);
+    continuationPoints.conservatory = back.position.clone().multiplyScalar(0.35).setY(0);
 
     const extra = expansion.hub.build(api) || {};
 
@@ -482,8 +546,11 @@
     global.ROOM_ORDER.push(def.id, ...roomIds);
     REGISTRY.expansions.push({ id: def.id, displayName: def.displayName, doorColor: def.doorColor, tagline: def.tagline || '' });
     REGISTRY.roomsByExpansion[def.id] = roomIds;
+    REGISTRY.transitions = REGISTRY.transitions || {};
+    if (def.transition) REGISTRY.transitions[def.id] = def.transition;
     return ROOMS[def.id];
   }
 
-  global.ExpansionKit = { registerExpansion, P, SPECIES, SPECIES_COLOR, SPECIES_ABILITY, circleSpots };
+  function expansionOf(roomId) { const d = ROOMS[roomId]; return d ? d.expansionId || null : null; }
+  global.ExpansionKit = { registerExpansion, regionApi, expansionOf, P, SPECIES, SPECIES_COLOR, SPECIES_ABILITY, circleSpots };
 })(window);

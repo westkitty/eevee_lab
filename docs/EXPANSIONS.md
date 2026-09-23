@@ -84,6 +84,45 @@ cushions, drifting islands. Hub setpiece: the Great Pillow.
 | Glaceon | Aurora Cathedral | Ice pillars under a sky of aurora | Ice altar — curtains billow, pillars ring |
 | Sylveon | Ribbon Bridge to Morning | A ribbon bridge toward a sunrise | The last knot — ribbons still, the sun rises |
 
+## Hubs are places, not rings
+Each hub's `doorLayout()` places the nine habitat doors according to the region's geography:
+- **Driftwood Harbor** — beach arc (tidepools, bonfire, mangroves), pier head over water (reef, iceberg, wreck), cliff foot (lighthouse, sea cave, tidal clock).
+- **The Pilgrim's Stair** — five terraces climbing north; low doors for the hut and springs, the caldera off the mid-terrace, aerie/glacier/sanctum at the summit gate.
+- **Lantern Alley** — vertical: street level (market, arcade, bar, platform), a mezzanine catwalk (karaoke, farm), rooftop line (substation, data spire), the rink behind the shutter at the alley's end.
+- **The Pillow Nebula** — no floor; every door stands on its own drifting fragment at its own height and tilt.
+
+## Cross-room consequences
+Each region keeps one bounded save record, `expeditions.<region>` = `{ flags, mementos, setpieces }`
+(≤24 flags, ≤12 memento ids, one counter per room). Rooms with a `consequence:` key set a flag
+when their setpiece fires; siblings and the hub read it on build. Currently wired:
+
+| Flag | Set by | Seen in |
+|---|---|---|
+| `lighthouseLit` | Tidewild Jolteon | beam sweeps past Umbreon's cave mouth; lamp on Glaceon's horizon; hub cliff lamp |
+| `bonfireLit` / `reefDived` | Tidewild Flareon / Vaporeon | smoke over the headland in Eevee's tidepools; boats moor at the pier |
+| `lanternsLit` | Emberpeak Umbreon | every lantern on the Stair, the far pagoda, and the ridge above Glacier Pass |
+| `springsWoken` / `spireStruck` | Emberpeak Vaporeon / Jolteon | steam on the hub's west flank; a scorch on the summit gate |
+| `lastTrainArrived` | Undercity Umbreon | the viaduct train in Lantern Alley becomes the lit last train and dwells overhead; it waits at the platform on return |
+| `gridSurged` / `songSung` | Undercity Jolteon / Sylveon | arcade strips & rink floodlights at full; the platform's tubes stop flickering |
+| `morningCame` / `isleLifted` / `clockWound` | Dreamway Sylveon / Leafeon / Espeon | dawn bleeds into the Nebula horizon; Leafeon's isle drifts through the hub |
+
+Mementos found in a region reappear in its hub (tide line, gate offerings, alley noticeboard, orbiting the Great Pillow).
+
+## Transitions
+Crossing a region boundary plays a full-screen veil in that region's language (`#region-veil`):
+Tidewild wave/spray, Emberpeak stone aperture + altitude cloud, Undercity shutter + streaking
+signage, Dreamway geometry inversion. Moves inside one region keep only the existing camera
+cinematic. Reduced-motion collapses the veil to a 0.3 s fade.
+
+## Dreamway rules (one learnable rule per room)
+Nursery: only one future glows, never the one nearest you · Sea of Glass: the world under the
+glass is one narrative stage ahead · Static Field: lightning is handwriting; each strike adds a
+stroke · Comet Garden: the small comets are falling toward the great one · Clocktower: down is
+toward the lean, cogs fall sideways, and the tower straightens as time runs · Library: floor
+shadows are one second ahead of the books · Sky-Isles: the isle you grow leaves the room ·
+Cathedral: the aurora is nearer than the ceiling · Ribbon Bridge: tying the knot brings morning
+everywhere.
+
 ## Architecture
 
 - `src/expansions/expansion-kit.js` — `ExpansionKit.registerExpansion(def)`. Builds the hub
@@ -110,8 +149,11 @@ Copy any `src/expansions/*.js`, change `id`, hub and the nine `rooms.<species>` 
 add one `<script>` tag before `room-manager.js`. Nothing else needs editing.
 
 ## Testing
-`node tools/test_expansions.js` loads the real vendored Three.js and every room definition,
-then builds, ticks, activates every interactable, applies all four narrative stages and
-disposes all 50 rooms, asserting the scene is empty afterwards. It also checks hub/door
-wiring, ability targets, registry integration with `HabitatWorldState` and the living-world
-weather picker.
+`node tools/test_expansions.js` uses the real vendored Three.js, `SaveManager`,
+`HabitatWorldState`, `DiscoveryLog` and `RoomManager` (no fakes for project code). Starting
+from a legacy pre-expansion save it walks Conservatory → each hub → each of its nine rooms →
+back, exclusively through door interactables; ticks every room; fires every setpiece, memento
+and hub curio; applies all four stages and an ability mutation; asserts region flags persisted,
+scene empty after dispose, identical resource counts across repeated rebuilds, and that the
+legacy save's keys survive under a bounded size. Browser/WebGL automation was not available in
+the sandbox (Chromium download blocked), so visual composition is unverified by automation.
