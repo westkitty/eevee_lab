@@ -7,12 +7,12 @@
   "project_name": "Eevee Lab",
   "project_root": "/",
   "artifact_path": "index.html",
-  "state_revision": 11,
-  "last_updated": "2026-09-22",
+  "state_revision": 12,
+  "last_updated": "2026-09-23",
   "current_baseline": {
-    "identity": "634f4df71e7ea3a0c5d8a9ee21b0026a94f35a67",
-    "state": "phase7.5-browser-verified",
-    "last_verified": "phase7.5-focused-broad-browser-and-manual-rendered-inspection"
+    "identity": "4d4c0ee9f08b5f612647d86e3f81490cf6e6dace",
+    "state": "expeditions-integrated-browser-verified",
+    "last_verified": "expansions-focused-contracts-plus-broad-browser-ci"
   },
   "scope_boundaries": [
     "The vanilla Three.js Habitat House browser project in westkitty/eevee_lab."
@@ -34,7 +34,7 @@
 
 ## 2. Current Baseline
 
-- **Primary artifact:** `634f4df71e7ea3a0c5d8a9ee21b0026a94f35a67`
+- **Primary artifact:** `4d4c0ee9f08b5f612647d86e3f81490cf6e6dace`
 - **Protected pre-Phase-0 runtime baseline:** `661a37bc7f86e5ff2b7da28d02e8c44ad696e007`.
 - **Protected pre-Phase-1 implementation baseline:** `0e31de1b392bb6cab1895818047ad45982a87a08`.
 - **Protected pre-Phase-2 implementation baseline:** `0c8f9adc9f251c044f4cb290cc6c6ec2f110c8cc`.
@@ -43,11 +43,11 @@
 - **Protected pre-Phase-5 implementation baseline:** `eb5d02152f7ed588c3ac3fc6d3d9c8613d15f44f`.
 - **Protected pre-Phase-6 implementation baseline:** `8ac85ce77defac04ce0a7dace0679793dadc5c59`.
 - **Protected pre-Phase-7 implementation baseline:** `6246e1ca3e453691b0ceaf474b01ef851ddca8eb`.
-- **Baseline state:** Phase 7.5 Browser Runtime Recovery is verified on a disposable current checkout. The missing RenderEffects binding is repaired; focused contracts pass; the full Playwright journey completes 86/86 with zero console/page errors; representative rendered desktop/mobile scenes were manually inspected without a blocking visual defect.
+- **Baseline state:** The four expedition regions are integrated on top of the verified Phase-7.5 runtime. The expansion lifecycle contract passes across all 50 registered rooms; all eight prior focused contracts still pass; and the full Playwright journey completes 86/86 with zero console/page errors on GitHub Actions. Expansion-room visual composition has not been manually inspected and remains explicitly unverified.
 - **Source/build/install identity:** Vanilla global-script Three.js r128; no bundler or framework.
 - **Active default user route:** `index.html` → Habitat House → Conservatory / habitat rooms.
-- **Delivery state:** Repository has GitHub Pages enabled; live Pages delivery of the Phase-7.5 repair is still unverified until the repaired commits are pushed/deployed and checked.
-- **Last verified baseline:** `634f4df71e7ea3a0c5d8a9ee21b0026a94f35a67` on the authorized Apple-silicon Mac disposable checkout.
+- **Delivery state:** The verified expansion integration is on `main`. GitHub Pages delivery of this new baseline remains unverified until the public route is checked after deployment.
+- **Last verified baseline:** `4d4c0ee9f08b5f612647d86e3f81490cf6e6dace` in GitHub Actions for focused contracts and the full Playwright journey; the earlier Phase-7.5 rendered desktop/mobile inspection remains valid only for the pre-expansion baseline.
 
 ## 3. Artifact Contract
 
@@ -64,6 +64,7 @@ The project remains a dependency-free static browser experience. Eevee and all e
 - **INV-007:** Preserve reduced-motion handling, keyboard access, focus visibility, mobile touch targets, and the center-clear creature-first UI.
 - **INV-008:** Preserve third-party model provenance and licensing records.
 - **INV-009:** Engine migration must remain isolated from creature-AI/gameplay feature work until parity is proven.
+- **INV-010:** Expansion regions are additive: they register through `ExpansionKit` / `EXPANSION_REGISTRY`; the original ten room ids, their order, and their save keys remain unchanged.
 
 ## 5. Verified Working Behavior
 
@@ -120,6 +121,10 @@ The project remains a dependency-free static browser experience. Eevee and all e
 - **VER-051:** The eight focused Node contracts for Phase 7, Phase 6, habitat state, room manager, creature manager, creature behavior, interaction system and creature actor all pass after the final browser-harness edits.
 - **VER-052:** Manual rendered inspection of controlled desktop/mobile captures found no Phase-7.5 visual blocker: cel treatment, native Vaporeon readability, vista/weather/ambient particles, Jolteon ability VFX, interaction popover, physical-evolution ready state and mobile UI remained usable/readable.
 - **VER-053:** Source inspection after the repair still shows one `animate()` owner, one `gltfLoader.load()` site and one AudioContext construction path. The second textual `requestAnimationFrame` occurrence is a one-shot evolution-flash opacity callback, not another simulation/render loop.
+- **VER-054:** The expansion integration is a descendant of both the prior `main` tip and `arena/01a0cbcd-eevee-lab`; `main` was advanced by non-forced fast-forward to the tested integration commit. Main-only Phase-7.5 state/report evidence was preserved rather than overwritten by the feature branch’s stale baseline.
+- **VER-055:** `tools/test_expansions.js` passes on GitHub Actions: all 50 rooms are registered and navigated through real doors/RoomManager; 36 setpieces, 36 mementos, and 4 hub curios execute; four regions persist their consequences; disposal leaves the scene empty; and a legacy pre-expansion save retains its keys.
+- **VER-056:** The final integration gate passes the expansion contract plus all eight pre-existing focused Phase-1–7 Node contracts on the merged application tree.
+- **VER-057:** The final GitHub Actions Playwright journey completes **86 passed, 0 failed** with **0 console/page errors**. The harness now waits for the existing loading overlay to finish intercepting input after reload and checks room-authored hemisphere colors rather than nondeterministic instantaneous intensity owned by the accelerated Phase-7 living-world clock.
 
 ## 6. Known Not Working
 
@@ -128,11 +133,12 @@ No confirmed baseline failure is recorded at initialization.
 ## 7. Implemented but Unverified
 
 - **UNV-003:** Umbreon's 2,192,044-byte GLB exceeds the connector's historical inline binary contents limit. Its repository identity, source armature, runtime normalization, and runtime bone/material lookup behavior are recorded, but its complete raw joint/clip/material inventory still needs regeneration by `tools/inspect_glb_manifest.py` in a normal checkout.
-- **UNV-018:** Live GitHub Pages delivery of the Phase-7.5 repair remains unverified until the repaired commits are pushed/deployed and the public route is checked.
+- **UNV-018:** Live GitHub Pages delivery of the current expansion baseline remains unverified until the public route is checked after deployment.
+- **UNV-019:** The 40 expansion habitats and four new hubs have strong headless construction/lifecycle coverage, but their rendered visual composition has not yet been manually inspected in a real browser.
 
 ## 8. Unknown or Evidence-Stale State
 
-- **UNK-001:** Public GitHub Pages delivery is not yet verified for the Phase-7.5 repair. Local current-browser behavior is verified.
+- **UNK-001:** Public GitHub Pages delivery is not yet verified for the expansion-integrated baseline. GitHub Actions browser behavior is verified.
 - **UNK-002:** Semantic meanings of the seven opaque primary-pack animation clips remain intentionally unclassified pending visual playback evidence.
 
 ## 9. Pending Work
@@ -140,8 +146,9 @@ No confirmed baseline failure is recorded at initialization.
 - **PND-001:** Regenerate `assets/models/rig-manifest.json` in a normal checkout so Umbreon's deep binary inventory replaces the partial evidence entry.
 - **PND-005:** Visually classify any embedded animation clip before mapping it to a semantic slot.
 - **PND-006:** Full limb IK remains deferred until rig-specific foot-chain behavior is visually proven; Phase 2 uses root-ground projection only.
-- **PND-016:** After pushing Phase-7.5, verify the live GitHub Pages route for startup, asset requests and a representative user journey.
-- **PND-017:** Phase 8 Observation & Media may begin from `634f4df71e7ea3a0c5d8a9ee21b0026a94f35a67`, preserving the now-green broad browser gate and all active invariants.
+- **PND-016:** Verify the live GitHub Pages route for the expansion-integrated baseline: startup, asset requests, expedition controls, and one representative original-room journey.
+- **PND-017:** Phase 8 Observation & Media may begin from `4d4c0ee9f08b5f612647d86e3f81490cf6e6dace`, preserving the now-green expansion/focused/browser gates and all active invariants.
+- **PND-018:** Perform manual rendered inspection of representative rooms from Tidewild Coast, Emberpeak Ruins, Neon Undercity, and Starfall Dreamway before making any claim that expansion visual composition is verified.
 
 ## 10. Active Decisions, Defaults, and Prohibitions
 
@@ -227,16 +234,20 @@ No confirmed baseline failure is recorded at initialization.
 | VAL-031 | Phase-7.5 broad browser gate | verified-browser | 86 passed, 0 failed; zero console/page errors from clean disposable current checkout | Playwright | 634f4df | 2026-09-22 | runtime/harness change |
 | VAL-032 | Phase-7 rendered composition | verified-manual | controlled desktop/mobile captures inspected for cel treatment, weather/ambient readability, ability VFX, interaction popover, evolution ready state and mobile usability | Rendered browser inspection | 634f4df | 2026-09-22 | visual/lighting/UI change |
 | VAL-033 | Phase-7.5 focused contracts | verified-focused | all eight focused Node contracts pass after final harness edits | Node contracts | 634f4df | 2026-09-22 | relevant source/test change |
+| VAL-034 | Expansion lifecycle contract | verified-focused | 50 rooms navigate/build/tick/activate/dispose; 36 setpieces, 36 mementos, 4 hub curios execute; legacy save preserved | GitHub Actions Node contract | 4d4c0ee | 2026-09-23 | expansion/room integration change |
+| VAL-035 | Expansion-integrated broad browser gate | verified-browser | 86 passed, 0 failed; zero console/page errors after deterministic overlay/lighting synchronization | GitHub Actions Playwright | 4d4c0ee | 2026-09-23 | runtime/harness integration change |
+| VAL-036 | Merge preservation and ancestry | verified | integration is ahead of prior main with zero behind; main-only Phase-7.5 report/state preserved; no force push used | GitHub compare/ref evidence | 4d4c0ee | 2026-09-23 | branch integration |
 
 ## 12. Current Change Scope and Impact Radius
 
-- **Phase-7.5 repair scope:** bind the already-loaded RenderEffects namespace before cel conversion; correct stale/timing-sensitive broad-regression assertions; record executable and rendered evidence.
+- **Expansion integration scope:** four additive expedition regions (hub + nine habitats each), expansion registry/kit, bounded world-state seams, expedition UI, region transitions, documentation, expansion regression coverage, and deterministic broad-harness synchronization.
 - **Protected and unchanged:** nine model binaries, Three.js r128, no-bundler/global-script architecture, save schema v3, one-heavy-room lifecycle, one GLB load path, existing audio architecture, creature ownership boundaries, photo/camera architecture and Stone Dash rules.
-- **Browser result:** 86 passed, 0 failed, zero console/page errors on a disposable current checkout.
-- **Focused result:** all eight Phase-1–7 focused Node contracts pass after the final harness edits.
-- **Rendered result:** representative desktop/mobile scenes manually inspected; no Phase-7.5 visual blocker.
-- **Remaining delivery unknown:** live GitHub Pages after the repair push.
-- **Next safe phase:** Phase 8 Observation & Media may begin after this state closure is pushed; do not regress the green browser gate.
+- **Expansion result:** `tools/test_expansions.js` passes across all 50 rooms, including real door traversal, lifecycle/disposal, setpieces, mementos, hub curios, cross-room consequences, and legacy-save preservation.
+- **Browser result:** 86 passed, 0 failed, zero console/page errors in the final GitHub Actions Playwright gate.
+- **Focused result:** expansion contract plus all eight pre-existing Phase-1–7 focused Node contracts pass.
+- **Evidence limit:** representative expansion-room visual composition has not yet been manually inspected; do not promote it to visually verified from headless lifecycle coverage alone.
+- **Remaining delivery unknown:** live GitHub Pages after the expansion merge.
+- **Next safe phase:** continue from `4d4c0ee9f08b5f612647d86e3f81490cf6e6dace`, preserving the green expansion/focused/browser gates.
 
 ## 13. Compact Revision Log
 
@@ -361,3 +372,15 @@ No confirmed baseline failure is recorded at initialization.
 - **Preservation:** one render loop owner, one GLB load site, one AudioContext construction path, one-heavy-room lifecycle and save-v3 semantics remain intact.
 - **Remaining unverified:** live GitHub Pages delivery of the repaired commit.
 - **Next safe phase:** Phase 8 Observation & Media.
+
+### Revision 12 — 2026-09-23
+
+- **Artifact/source identity:** `4d4c0ee9f08b5f612647d86e3f81490cf6e6dace`
+- **State delta:** Safely integrated `arena/01a0cbcd-eevee-lab` into current `main` through a two-parent integration commit plus bounded harness synchronization fixes; `main` advanced by non-forced fast-forward.
+- **New behavior:** four expedition regions add four hubs and 36 species habitats, cross-room consequences, region-specific transitions, expedition navigation, and additive expansion registry/world-state seams.
+- **Preservation evidence:** current Phase-7.5 RenderEffects boot repair, broad harness, operational-state authority, and `docs/PHASE7_5_REPORT.md` were preserved; the stale feature-branch state did not overwrite them.
+- **Focused validation:** expansion lifecycle contract plus all eight prior focused Node contracts pass in GitHub Actions. Expansion contract covers all 50 rooms, 36 setpieces, 36 mementos, 4 hub curios, disposal, consequences, and legacy-save preservation.
+- **Broad validation:** Playwright completes 86 passed / 0 failed with zero console/page errors after replacing two timing-sensitive assertions with deterministic synchronization consistent with existing Phase-7 behavior.
+- **Declared unverified:** live GitHub Pages delivery of this baseline and manual rendered composition of representative expansion rooms.
+- **Next safe action:** verify Pages and visually inspect representative rooms from all four expansion regions before claiming expansion visual QA closure.
+
