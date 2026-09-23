@@ -382,6 +382,423 @@
       .arcade-help-banner { bottom: 74px; font-size: 0.75rem; }
     }
 
+    /* ---------------------------------------------------------------
+       Adaptive viewport system (2026 responsive pass)
+       - Safe-area aware on notched/mobile browsers
+       - Dynamic viewport height for browser chrome
+       - Portrait phones use bottom sheets / thumb zones
+       - Short landscape uses side rails and narrow panes
+       - Tablets gain roomy, bounded drawers
+       - Desktop remains sparse and creature-first
+       --------------------------------------------------------------- */
+    :root {
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+      --edge-gap: clamp(10px, 1.6vw, 18px);
+      --hud-touch: 44px;
+      --drawer-max: 380px;
+    }
+
+    html, body { min-height: 100%; min-height: 100dvh; }
+    .hud { min-height: 100%; min-height: 100dvh; }
+
+    .corner.tl { top: calc(var(--edge-gap) + var(--safe-top)); left: calc(var(--edge-gap) + var(--safe-left)); }
+    .corner.tr { top: calc(var(--edge-gap) + var(--safe-top)); right: calc(var(--edge-gap) + var(--safe-right)); }
+    .corner.bl { bottom: calc(var(--edge-gap) + var(--safe-bottom)); left: calc(var(--edge-gap) + var(--safe-left)); }
+    .corner.br { bottom: calc(var(--edge-gap) + var(--safe-bottom)); right: calc(var(--edge-gap) + var(--safe-right)); }
+    .corner.bc { bottom: calc(var(--edge-gap) + var(--safe-bottom)); }
+    .corner.tc { top: calc(var(--edge-gap) + var(--safe-top)); }
+
+    #drawer-fab {
+      bottom: calc(var(--edge-gap) + var(--safe-bottom));
+      right: calc(var(--edge-gap) + var(--safe-right));
+    }
+    #interaction-fab {
+      bottom: calc(var(--edge-gap) + var(--safe-bottom));
+      left: calc(var(--edge-gap) + var(--safe-left));
+    }
+    #lore-fab { top: calc(var(--edge-gap) + var(--safe-top)); }
+
+    .icon-btn {
+      width: max(var(--touch-min), var(--hud-touch));
+      height: max(var(--touch-min), var(--hud-touch));
+      min-width: max(var(--touch-min), var(--hud-touch));
+      min-height: max(var(--touch-min), var(--hud-touch));
+    }
+
+    #control-drawer {
+      width: min(var(--drawer-max), calc(100vw - var(--safe-left) - var(--safe-right) - 24px));
+      height: 100%;
+      height: 100dvh;
+      padding:
+        calc(18px + var(--safe-top))
+        calc(18px + var(--safe-right))
+        calc(18px + var(--safe-bottom))
+        18px;
+      overscroll-behavior: contain;
+      scrollbar-gutter: stable;
+    }
+
+    #lore-drawer {
+      top: var(--safe-top);
+      max-height: min(72vh, calc(100dvh - var(--safe-top) - 18px));
+      padding-top: calc(20px + max(0px, var(--safe-top)));
+      overscroll-behavior: contain;
+    }
+
+    #settings-sheet {
+      max-height: min(82vh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 24px));
+      overscroll-behavior: contain;
+    }
+
+    #photo-mode-bar {
+      bottom: calc(var(--edge-gap) + var(--safe-bottom));
+      max-width: calc(100vw - var(--safe-left) - var(--safe-right) - 20px);
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    #room-toast {
+      max-width: min(680px, calc(100vw - var(--safe-left) - var(--safe-right) - 28px));
+    }
+
+    #discovery-toast,
+    #moment-toast {
+      max-width: min(420px, calc(100vw - var(--safe-left) - var(--safe-right) - 28px));
+    }
+
+    .gameover-modal {
+      width: min(520px, calc(100vw - var(--safe-left) - var(--safe-right) - 28px));
+      max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 28px);
+      overflow-y: auto;
+    }
+
+    /* Coarse-pointer ergonomics: comfortably above the WCAG minimum while
+       preserving the compact mouse/trackpad presentation. */
+    @media (pointer: coarse) {
+      :root { --hud-touch: 48px; }
+      .drawer-btn, .room-grid button, .lore-tab, #photo-mode-bar button, .btn-restart {
+        min-height: 48px;
+      }
+      .species-token {
+        width: 44px; height: 44px; min-width: 44px;
+      }
+      .wheel-btn {
+        width: 60px; height: 60px;
+      }
+    }
+
+    /* PHONE PORTRAIT -------------------------------------------------- */
+    @media (max-width: 600px) and (orientation: portrait) {
+      :root { --edge-gap: 10px; }
+
+      .corner.tr {
+        top: calc(10px + var(--safe-top));
+        right: calc(10px + var(--safe-right));
+        max-width: calc(100vw - 72px - var(--safe-left) - var(--safe-right));
+      }
+      .corner.tr .drawer-row { gap: 6px !important; }
+      .corner.tr .audio-prompt-banner {
+        max-width: min(220px, 62vw);
+        padding: 5px 10px;
+        font-size: 0.72rem;
+      }
+
+      .corner.tc {
+        top: calc(62px + var(--safe-top));
+        width: calc(100vw - var(--safe-left) - var(--safe-right) - 24px);
+      }
+      #room-toast {
+        width: min(94vw, 440px);
+        padding: 8px 14px;
+        border-radius: 18px;
+      }
+      #room-toast .room-name { font-size: 0.82rem; }
+      #room-toast .room-mood {
+        font-size: 0.7rem;
+        line-height: 1.25;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      .corner.bc {
+        left: 50%;
+        bottom: calc(72px + var(--safe-bottom));
+        width: calc(100vw - var(--safe-left) - var(--safe-right) - 24px);
+      }
+      #species-strip {
+        width: 100%;
+        max-width: 100%;
+        justify-content: flex-start;
+        padding: 7px 9px;
+        scroll-snap-type: x proximity;
+        -webkit-overflow-scrolling: touch;
+      }
+      .species-token { scroll-snap-align: center; }
+      #camera-hint {
+        max-width: 88vw;
+        text-align: center;
+        font-size: 0.72rem;
+        line-height: 1.25;
+      }
+
+      #control-drawer {
+        top: auto; right: 0; bottom: 0;
+        width: 100vw;
+        height: min(78dvh, 720px);
+        border-radius: 26px 26px 0 0;
+        padding:
+          18px
+          calc(16px + var(--safe-right))
+          calc(18px + var(--safe-bottom))
+          calc(16px + var(--safe-left));
+        transform: translateY(105%);
+        box-shadow: 0 -14px 44px rgba(0,0,0,0.22);
+      }
+      #control-drawer::before {
+        content: "";
+        width: 44px; height: 5px; border-radius: 999px;
+        background: rgba(70,50,30,0.22);
+        align-self: center;
+        flex: 0 0 auto;
+      }
+      #control-drawer.open { transform: translateY(0); }
+
+      #lore-drawer {
+        width: 100vw;
+        max-height: min(76dvh, 700px);
+        padding:
+          calc(18px + var(--safe-top))
+          calc(16px + var(--safe-right))
+          20px
+          calc(16px + var(--safe-left));
+        border-radius: 0 0 22px 22px;
+      }
+
+      #interaction-wheel {
+        left: calc(-1 * var(--safe-left));
+        bottom: 62px;
+        grid-template-columns: repeat(2, 60px);
+        max-height: min(72dvh, 420px);
+        overflow-y: auto;
+        border-radius: 20px;
+      }
+
+      #settings-sheet {
+        top: auto; bottom: 0; left: 0;
+        width: 100vw;
+        max-height: min(82dvh, 760px);
+        transform: translateY(105%);
+        border-radius: 26px 26px 0 0;
+        padding:
+          22px
+          calc(18px + var(--safe-right))
+          calc(22px + var(--safe-bottom))
+          calc(18px + var(--safe-left));
+      }
+      #settings-sheet.open { transform: translateY(0); }
+      .settings-row {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+      .settings-row select,
+      .settings-row input[type="range"] {
+        width: 100%;
+        max-width: none;
+        min-height: 44px;
+      }
+
+      #photo-mode-bar {
+        width: calc(100vw - var(--safe-left) - var(--safe-right) - 20px);
+        padding: 8px;
+        gap: 6px;
+      }
+      #photo-mode-bar button { flex: 1 1 42%; }
+
+      .speech-bubble {
+        bottom: calc(138px + var(--safe-bottom));
+        max-width: min(76vw, 280px);
+        font-size: 0.82rem;
+      }
+
+      .arcade-help-banner {
+        bottom: calc(74px + var(--safe-bottom));
+        width: min(92vw, 460px);
+        padding: 7px 12px;
+        white-space: normal;
+        text-align: center;
+        line-height: 1.25;
+      }
+
+      .gameover-modal {
+        padding: 22px 20px;
+        border-radius: 24px;
+        gap: 12px;
+      }
+      .gameover-title { font-size: clamp(1.25rem, 8vw, 1.8rem); }
+    }
+
+    /* SHORT / PHONE LANDSCAPE --------------------------------------- */
+    @media (orientation: landscape) and (max-height: 560px) {
+      :root { --edge-gap: 8px; --drawer-max: 360px; }
+
+      .corner.tc {
+        top: calc(8px + var(--safe-top));
+        width: min(56vw, 560px);
+      }
+      #room-toast {
+        max-width: 56vw;
+        padding: 6px 12px;
+      }
+      #room-toast .room-mood {
+        display: none;
+      }
+
+      .corner.tr {
+        top: calc(8px + var(--safe-top));
+        right: calc(8px + var(--safe-right));
+      }
+      .corner.tr .drawer-row { flex-wrap: nowrap; gap: 5px !important; }
+      .corner.tr .audio-prompt-banner {
+        display: none;
+      }
+
+      .corner.bc {
+        left: calc(8px + var(--safe-left));
+        bottom: auto;
+        top: 50%;
+        transform: translateY(-50%);
+        width: auto;
+        align-items: flex-start;
+      }
+      #species-strip {
+        flex-direction: column;
+        width: auto;
+        max-width: none;
+        max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 124px);
+        overflow-y: auto;
+        overflow-x: hidden;
+        border-radius: 24px;
+        padding: 7px;
+      }
+      .species-token .token-tip {
+        left: 50px; bottom: 50%; transform: translateY(50%) scale(0.85);
+      }
+      .species-token:hover .token-tip,
+      .species-token:focus-visible .token-tip {
+        transform: translateY(50%) scale(1);
+      }
+      #camera-hint { display: none; }
+
+      #interaction-fab {
+        bottom: calc(8px + var(--safe-bottom));
+        left: calc(8px + var(--safe-left));
+      }
+      #interaction-wheel {
+        bottom: 58px;
+        left: 0;
+        grid-template-columns: repeat(5, 56px);
+        max-width: min(72vw, 330px);
+        overflow-x: auto;
+      }
+
+      #drawer-fab {
+        bottom: calc(8px + var(--safe-bottom));
+        right: calc(8px + var(--safe-right));
+      }
+      #control-drawer {
+        width: min(360px, 46vw);
+        height: 100dvh;
+        padding:
+          calc(12px + var(--safe-top))
+          calc(14px + var(--safe-right))
+          calc(12px + var(--safe-bottom))
+          14px;
+        gap: 10px;
+      }
+      .drawer-section { gap: 5px; }
+      .drawer-btn { min-width: 104px; padding: 6px 9px; font-size: 0.76rem; }
+      .room-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+      #lore-drawer {
+        width: min(620px, 70vw);
+        max-height: calc(100dvh - var(--safe-top) - 10px);
+        padding: calc(12px + var(--safe-top)) 16px 14px;
+      }
+      #lore-fab { top: calc(8px + var(--safe-top)); }
+
+      #settings-sheet {
+        width: min(640px, 74vw);
+        max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 16px);
+        padding: 16px 20px;
+      }
+      .settings-row { padding: 5px 0; }
+
+      #photo-mode-bar {
+        bottom: calc(8px + var(--safe-bottom));
+        padding: 6px 10px;
+      }
+      #photo-mode-bar button { min-height: 40px; padding: 6px 10px; }
+
+      .speech-bubble {
+        bottom: calc(62px + var(--safe-bottom));
+        max-width: min(48vw, 320px);
+      }
+      .arcade-help-banner {
+        bottom: calc(58px + var(--safe-bottom));
+        max-width: 60vw;
+        font-size: 0.72rem;
+        padding: 6px 12px;
+        text-align: center;
+        white-space: normal;
+      }
+    }
+
+    /* TABLET PORTRAIT / LARGE MOBILE -------------------------------- */
+    @media (min-width: 601px) and (max-width: 1024px) {
+      :root { --drawer-max: 360px; }
+      #species-strip { max-width: min(78vw, 660px); }
+      #control-drawer { width: min(360px, 46vw); }
+      #lore-drawer { width: min(640px, 90vw); }
+      #settings-sheet { width: min(520px, 86vw); }
+      #room-toast { max-width: min(72vw, 620px); }
+      .room-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .drawer-btn { min-width: 108px; }
+    }
+
+    /* TABLET LANDSCAPE / SMALL DESKTOP ------------------------------ */
+    @media (min-width: 768px) and (max-width: 1199px) and (orientation: landscape) and (min-height: 561px) {
+      #control-drawer { width: min(380px, 38vw); }
+      #lore-drawer { width: min(680px, 68vw); }
+      #species-strip { max-width: min(64vw, 700px); }
+      .corner.bc { bottom: calc(16px + var(--safe-bottom)); }
+      #interaction-wheel { grid-template-columns: repeat(5, 56px); }
+      #room-toast { max-width: min(64vw, 700px); }
+    }
+
+    /* WIDE DESKTOP --------------------------------------------------- */
+    @media (min-width: 1200px) {
+      :root { --drawer-max: 400px; --edge-gap: 18px; }
+      #control-drawer { width: min(400px, 30vw); }
+      #lore-drawer { width: min(700px, 58vw); }
+      #species-strip { max-width: min(56vw, 720px); }
+      #room-toast { max-width: min(52vw, 760px); }
+      #interaction-wheel { grid-template-columns: repeat(5, 56px); }
+      .room-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    /* Very wide monitors: keep chrome anchored to comfortable visual rails
+       rather than drifting to the extreme edges of an ultrawide display. */
+    @media (min-width: 1800px) {
+      .corner.tl, #interaction-fab { left: max(calc(var(--safe-left) + 18px), calc((100vw - 1680px) / 2)); }
+      .corner.tr, #drawer-fab { right: max(calc(var(--safe-right) + 18px), calc((100vw - 1680px) / 2)); }
+      #control-drawer { right: max(0px, calc((100vw - 1760px) / 2)); }
+    }
+
     /* Density (UX-08): Minimal hides optional persistent chrome; Standard adds breadcrumb;
        Full keeps the lore drawer peeked open by default via JS. */
     html[data-density="minimal"] .req-standard { display: none !important; }
