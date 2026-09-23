@@ -105,6 +105,13 @@
     return ['ribbon', 'shell', 'tag'][idx % 3];
   }
 
+  function stagesFor(roomId) {
+    if (NARRATIVE_STAGES[roomId]) return NARRATIVE_STAGES[roomId];
+    const registry = global.EXPANSION_REGISTRY;
+    if (registry && registry.narrative && registry.narrative[roomId]) return registry.narrative[roomId];
+    return NARRATIVE_STAGES.conservatory;
+  }
+
   class HabitatWorldState {
     constructor(save) {
       if (!save) throw new Error('HabitatWorldState requires SaveManager');
@@ -192,7 +199,7 @@
     }
 
     _computeStageIndex(roomId, record) {
-      const stages = NARRATIVE_STAGES[roomId] || NARRATIVE_STAGES.conservatory;
+      const stages = stagesFor(roomId);
       if (roomId === 'conservatory') {
         const visited = HABITAT_ROOMS.filter(id => this._roomRecord(id).visits > 0).length;
         if (visited >= 9) return Math.min(stages.length - 1, 3);
@@ -206,7 +213,7 @@
     }
 
     getRoomState(roomId) {
-      const stages = NARRATIVE_STAGES[roomId] || NARRATIVE_STAGES.conservatory;
+      const stages = stagesFor(roomId);
       const record = this._roomRecord(roomId);
       const computed = this._computeStageIndex(roomId, record);
       if (record.stageIndex !== computed) {

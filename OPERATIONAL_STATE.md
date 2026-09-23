@@ -7,8 +7,8 @@
   "project_name": "Eevee Lab",
   "project_root": "/",
   "artifact_path": "index.html",
-  "state_revision": 10,
-  "last_updated": "2026-09-22",
+  "state_revision": 11,
+  "last_updated": "2026-09-23",
   "current_baseline": {
     "identity": "30715710146880400bc1dda3a479f2b7aa1e2643",
     "state": "phase7-implemented",
@@ -63,6 +63,7 @@ The project remains a dependency-free static browser experience. Eevee and all e
 - **INV-006:** Preserve versioned save migration and existing local save data.
 - **INV-007:** Preserve reduced-motion handling, keyboard access, focus visibility, mobile touch targets, and the center-clear creature-first UI.
 - **INV-008:** Preserve third-party model provenance and licensing records.
+- **INV-010:** Expansion regions are additive: they register through `ExpansionKit` and `EXPANSION_REGISTRY`; the original ten room ids, their order and their save keys are unchanged.
 - **INV-009:** Engine migration must remain isolated from creature-AI/gameplay feature work until parity is proven.
 
 ## 5. Verified Working Behavior

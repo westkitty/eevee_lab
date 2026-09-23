@@ -1045,30 +1045,36 @@
     const floor = built.group.children.find(obj => obj && obj.isMesh && obj.userData && obj.userData.walkable);
     const radius = floor && floor.userData ? Number(floor.userData.walkRadius) || 3.3 : 3.3;
 
-    let doorEntry = built.interactables.find(i => i.id === 'door_conservatory');
+    // Expansion regions route their return door to their own hub (EXP-01).
+    const hubId = def.hubId || 'conservatory';
+    const hubDef = global.ROOM_DEFINITIONS ? global.ROOM_DEFINITIONS[hubId] : null;
+    const hubLabel = hubDef ? hubDef.displayName.split(' — ')[0] : 'Conservatory';
+    const hubColor = hubDef && hubDef.doorColor != null && hubId !== 'conservatory' ? hubDef.doorColor : 0xffffff;
+
+    let doorEntry = built.interactables.find(i => i.id === 'door_' + hubId || i.id === 'door_conservatory');
     let door = doorEntry ? doorEntry.object3D : null;
     if (!door) {
-      door = commonReturnDoor(0xffffff);
+      door = RoomKit.doorway(hubColor, hubId);
       door.position.set(0, 0, -(radius + 0.2));
       built.group.add(door);
-      doorEntry = makeInteractable(door, 'door_conservatory', 'door', 'Conservatory', () => ctx.requestDoor('conservatory', door));
+      doorEntry = makeInteractable(door, 'door_' + hubId, 'door', hubLabel, () => ctx.requestDoor(hubId, door));
       built.interactables.push(doorEntry);
     } else {
-      const handler = () => ctx.requestDoor('conservatory', door);
+      const handler = () => ctx.requestDoor(hubId, door);
       doorEntry.onActivate = handler;
       if (door.userData && door.userData.interactable) door.userData.interactable.onActivate = handler;
     }
-    door.userData.portalTarget = 'conservatory';
+    door.userData.portalTarget = hubId;
 
     built.entryPoints = built.entryPoints || {};
     built.continuationPoints = built.continuationPoints || {};
-    built.entryPoints.conservatory = new THREE.Vector3(0, 0, -(radius - 0.75));
-    built.continuationPoints.conservatory = built.spawnPoint.clone();
+    built.entryPoints[hubId] = new THREE.Vector3(0, 0, -(radius - 0.75));
+    built.continuationPoints[hubId] = built.spawnPoint.clone();
 
     const rimLight = FX.createCinematicRimLight(def.doorColor || 0xffffff, 0.18);
     built.lights.push(rimLight);
 
-    const abilityType = ABILITY_TARGET_BY_ROOM[roomId] || null;
+    const abilityType = ABILITY_TARGET_BY_ROOM[roomId] || def.abilityType || null;
     const abilityEntry = abilityType ? built.interactables.find(i => i.kind === 'prop') : null;
     const abilityTarget = abilityEntry ? abilityEntry.object3D : null;
     if (abilityTarget) {
@@ -1203,7 +1209,7 @@
       sleepSpots: [furniture.position.clone().setY(0)],
       socialSpots: [new THREE.Vector3(0.7, 0, 0.45), new THREE.Vector3(-0.7, 0, 0.45)],
       propSockets: [furniture.position.clone(), new THREE.Vector3(-furniture.position.x, 0.12, furniture.position.z)],
-      portalAnchors: { conservatory: door.position.clone() }
+      portalAnchors: { [hubId]: door.position.clone() }
     }, built.topology || {});
 
     return built;
@@ -1217,6 +1223,12 @@
       return decorateHabitatRoom(roomId, def, originalBuild.call(def, ctx), ctx);
     };
   });
+
+  // Builders shared with the expansion regions (src/expansions/*).
+  RoomKit.lightingProfile = lightingProfile;
+  RoomKit.makeInteractable = makeInteractable;
+  RoomKit.decorateHabitatRoom = decorateHabitatRoom;
+  RoomKit.portalPreviewMaterial = portalPreviewMaterial;
 
   global.RoomKit = RoomKit;
   global.ROOM_DEFINITIONS = ROOMS;
