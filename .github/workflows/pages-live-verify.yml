@@ -1,0 +1,28 @@
+name: Pages live verification
+
+on:
+  push:
+    branches:
+      - ci/pages-live-verify
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Verify live Pages route
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://westkitty.github.io/eevee_lab"
+          curl --fail --silent --show-error --location --retry 3 --retry-delay 2 "$base/" -o /tmp/eevee-live.html
+          grep -F -- '--safe-top: env(safe-area-inset-top, 0px);' /tmp/eevee-live.html
+          grep -F -- 'src/expansions/expansion-kit.js' /tmp/eevee-live.html
+          curl --fail --silent --show-error --location --retry 3 "$base/src/ui-controller.js" -o /tmp/ui-controller.js
+          curl --fail --silent --show-error --location --retry 3 "$base/src/expansions/expansion-kit.js" -o /tmp/expansion-kit.js
+          test -s /tmp/ui-controller.js
+          test -s /tmp/expansion-kit.js
+          echo "LIVE_PAGES_OK"
