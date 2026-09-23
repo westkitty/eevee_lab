@@ -7,7 +7,7 @@
   "project_name": "Eevee Lab",
   "project_root": "/",
   "artifact_path": "index.html",
-  "state_revision": 13,
+  "state_revision": 14,
   "last_updated": "2026-09-23",
   "current_baseline": {
     "identity": "bdb4e8109fede35e0ac634be3089035cd9d40253",
@@ -46,7 +46,7 @@
 - **Baseline state:** The expedition-integrated runtime now has a viewport-adaptive HUD for phone portrait, phone landscape, tablet portrait, tablet landscape/small desktop, and wide desktop. Safe-area insets, dynamic viewport height, portrait bottom sheets, compact-landscape edge rails, bounded tablet/desktop panes, coarse-pointer target sizing, and ultrawide edge rails are implemented. The expanded Playwright journey completes 95/95 with zero console/page errors, and all focused Phase-1–7 plus expansion contracts remain green. Manual visual composition review of the new responsive layouts remains unverified.
 - **Source/build/install identity:** Vanilla global-script Three.js r128; no bundler or framework.
 - **Active default user route:** `index.html` → Habitat House → Conservatory / habitat rooms.
-- **Delivery state:** The adaptive responsive baseline is on `main`. GitHub Pages delivery of this baseline remains unverified until the public route is checked after deployment.
+- **Delivery state:** The adaptive responsive baseline is deployed on GitHub Pages and the public route has been verified against the current responsive/expansion build.
 - **Last verified baseline:** `bdb4e8109fede35e0ac634be3089035cd9d40253` in GitHub Actions for focused contracts and the expanded 95-check Playwright journey across five representative viewport classes; rendered visual review of the new adaptive layouts has not yet been performed.
 
 ## 3. Artifact Contract
@@ -137,13 +137,13 @@ No confirmed baseline failure is recorded at initialization.
 ## 7. Implemented but Unverified
 
 - **UNV-003:** Umbreon's 2,192,044-byte GLB exceeds the connector's historical inline binary contents limit. Its repository identity, source armature, runtime normalization, and runtime bone/material lookup behavior are recorded, but its complete raw joint/clip/material inventory still needs regeneration by `tools/inspect_glb_manifest.py` in a normal checkout.
-- **UNV-018:** Live GitHub Pages delivery of the current expansion baseline remains unverified until the public route is checked after deployment.
+- **UNV-018:** Superseded — live GitHub Pages delivery is now verified for the adaptive expansion-integrated baseline.
 - **UNV-019:** The 40 expansion habitats and four new hubs have strong headless construction/lifecycle coverage, but their rendered visual composition has not yet been manually inspected in a real browser.
 - **UNV-020:** The adaptive HUD has browser/geometry verification across five viewport classes, but the new responsive compositions have not yet received manual rendered visual QA.
 
 ## 8. Unknown or Evidence-Stale State
 
-- **UNK-001:** Public GitHub Pages delivery is not yet verified for the expansion-integrated baseline. GitHub Actions browser behavior is verified.
+- **UNK-001:** Superseded — public GitHub Pages delivery has been verified for the adaptive expansion-integrated baseline.
 - **UNK-002:** Semantic meanings of the seven opaque primary-pack animation clips remain intentionally unclassified pending visual playback evidence.
 
 ## 9. Pending Work
@@ -151,7 +151,7 @@ No confirmed baseline failure is recorded at initialization.
 - **PND-001:** Regenerate `assets/models/rig-manifest.json` in a normal checkout so Umbreon's deep binary inventory replaces the partial evidence entry.
 - **PND-005:** Visually classify any embedded animation clip before mapping it to a semantic slot.
 - **PND-006:** Full limb IK remains deferred until rig-specific foot-chain behavior is visually proven; Phase 2 uses root-ground projection only.
-- **PND-016:** Verify the live GitHub Pages route for the expansion-integrated baseline: startup, asset requests, expedition controls, and one representative original-room journey.
+- **PND-016:** Completed — GitHub Pages deployment for `ac53c13a15292a1ebf221060c6156804abc33c0f` succeeded, and an external GitHub Actions probe verified the public route plus live `src/ui-controller.js` and `src/expansions/expansion-kit.js` assets.
 - **PND-017:** Phase 8 Observation & Media may begin from `4d4c0ee9f08b5f612647d86e3f81490cf6e6dace`, preserving the now-green expansion/focused/browser gates and all active invariants.
 - **PND-018:** Perform manual rendered inspection of representative rooms from Tidewild Coast, Emberpeak Ruins, Neon Undercity, and Starfall Dreamway before making any claim that expansion visual composition is verified.
 - **PND-019:** Perform manual rendered inspection of phone portrait, phone landscape, tablet portrait, tablet landscape, and desktop adaptive HUD compositions before promoting responsive visual polish from browser-verified to visually verified.
@@ -245,6 +245,7 @@ No confirmed baseline failure is recorded at initialization.
 | VAL-036 | Merge preservation and ancestry | verified | integration is ahead of prior main with zero behind; main-only Phase-7.5 report/state preserved; no force push used | GitHub compare/ref evidence | 4d4c0ee | 2026-09-23 | branch integration |
 | VAL-037 | Adaptive viewport geometry | verified-browser | phone portrait, phone landscape, tablet portrait, tablet landscape and wide desktop all preserve center-clear closed state, bounded controls, no horizontal overflow, and in-viewport scrollable drawers | GitHub Actions Playwright | bdb4e81 | 2026-09-23 | responsive UI change |
 | VAL-038 | Adaptive broad regression | verified-browser | full browser journey plus responsive matrix: 95 passed, 0 failed, zero console/page errors; focused expansion and Phase-1–7 contracts also pass | GitHub Actions Node + Playwright | bdb4e81 | 2026-09-23 | responsive UI/harness change |
+| VAL-039 | Live GitHub Pages delivery | verified-live | Pages deployment for current main completed successfully; external runner fetched the public route, matched responsive safe-area CSS, and loaded live UI-controller and expansion-kit assets | GitHub Pages + external Actions curl probe | ac53c13 | 2026-09-23 | deployment change |
 
 ## 12. Current Change Scope and Impact Radius
 
@@ -403,4 +404,12 @@ No confirmed baseline failure is recorded at initialization.
 - **Broad validation:** full Playwright journey plus five viewport classes completes 95 passed / 0 failed with zero console/page errors.
 - **Declared unverified:** manual rendered visual QA of the new adaptive compositions and live GitHub Pages delivery.
 - **Next safe action:** visually inspect representative phone/tablet/desktop captures and verify the public Pages route before promoting visual/delivery claims.
+
+### Revision 14 — 2026-09-23
+
+- **Artifact/source identity:** `ac53c13a15292a1ebf221060c6156804abc33c0f`
+- **State delta:** Live GitHub Pages delivery promoted from unverified to verified.
+- **Deployment evidence:** GitHub's Pages build/deploy workflow completed successfully for the current `main` commit.
+- **Public-route evidence:** a separate GitHub Actions runner fetched `https://westkitty.github.io/eevee_lab/`, found the adaptive safe-area CSS in the served HTML, and successfully fetched the live `src/ui-controller.js` and `src/expansions/expansion-kit.js` assets.
+- **Remaining unverified:** manual rendered visual QA of the adaptive viewport compositions and representative expansion-room composition.
 
