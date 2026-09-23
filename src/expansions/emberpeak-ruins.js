@@ -32,16 +32,19 @@
       // aerie / sanctum / glacier at the top.
       doorLayout() {
         return {
-          eevee:    { x:  3.4, y: 0.0,  z:  4.6, ry: -0.6 },
-          vaporeon: { x: -3.6, y: 0.0,  z:  4.2, ry: 0.7 },
-          leafeon:  { x:  5.2, y: 0.44, z:  1.4, ry: -1.3, scale: 0.95 },
-          flareon:  { x: -5.4, y: 0.44, z:  0.8, ry: 1.4, scale: 0.95 },
-          umbreon:  { x:  4.6, y: 0.88, z: -2.2, ry: -1.9, scale: 0.9 },
-          espeon:   { x: -4.8, y: 0.88, z: -2.4, ry: 1.9, scale: 0.9 },
-          jolteon:  { x:  2.0, y: 1.32, z: -5.0, ry: -2.6, scale: 0.85 },
-          glaceon:  { x: -2.0, y: 1.32, z: -5.0, ry: 2.6, scale: 0.85 },
-          sylveon:  { x:  0.0, y: 1.76, z: -6.0, ry: Math.PI, scale: 0.85 },
-          conservatory: { x: 0, y: 0, z: 6.4, ry: Math.PI }
+          // The walk surface is the base-camp plateau (y=0). Doors sit at its edge,
+          // arranged south→north by the altitude of what they lead to; the terraced
+          // stair rises behind the northern doors as the visible ascent.
+          eevee:    { x:  3.6, y: 0, z:  4.4, ry: -0.7 },
+          vaporeon: { x: -3.8, y: 0, z:  4.0, ry: 0.75 },
+          leafeon:  { x:  5.6, y: 0, z:  1.2, ry: -1.35, scale: 0.95 },
+          flareon:  { x: -5.7, y: 0, z:  0.6, ry: 1.45, scale: 0.95 },
+          umbreon:  { x:  4.9, y: 0, z: -2.6, ry: -2.0, scale: 0.9 },
+          espeon:   { x: -5.0, y: 0, z: -2.8, ry: 2.05, scale: 0.9 },
+          jolteon:  { x:  2.4, y: 0, z: -5.0, ry: -2.7, scale: 0.85 },
+          glaceon:  { x: -2.4, y: 0, z: -5.0, ry: 2.7, scale: 0.85 },
+          sylveon:  { x:  0.0, y: 0, z: -5.6, ry: Math.PI, scale: 0.85 },
+          conservatory: { x: 0, y: 0, z: 6.3, ry: Math.PI }
         };
       },
       build(api) {
@@ -49,28 +52,28 @@
         const stone = api.FX.Materials.stone(0xb8a894);
         // Four terraces stepping north, each 0.44 higher. Walk surface stays the flat floor; the
         // terraces are dressing that reads as a climb from the camera.
-        const terraces = [[0, 0.0, 3.0, 7.0], [0, 0.44, 0.6, 5.6], [0, 0.88, -2.0, 4.6], [0, 1.32, -4.6, 3.4], [0, 1.76, -6.2, 2.0]];
+        const terraces = [[0, 0.0, 3.0, 7.0], [0, 0.44, -6.4, 4.2], [0, 0.88, -7.6, 3.4], [0, 1.32, -8.6, 2.6], [0, 1.76, -9.4, 1.8]];
         terraces.forEach(([x, y, z, w], i) => { const t = new THREE.Mesh(new THREE.CylinderGeometry(w, w + 0.3, 0.44, 24, 1, false, 0, Math.PI), stone); t.rotation.y = Math.PI; t.position.set(x, y - 0.22, z + w * 0.15); if (i > 0) api.add(P.shadowed(t)); for (let k = 0; k < 3; k++) { const step = P.slab(1.6, 0.12, 0.34, 0xc9baa2); step.position.set(0, y - 0.3 + k * 0.14, z + w * 0.15 + w - 0.2 + k * 0.34); if (i > 0) api.add(step); } });
-        const gate = P.arch(0xc2b19b, 2.4, 3.0); gate.position.set(0, 1.76, -7.2); api.add(gate);
-        if (region.get('spireStruck')) { const scorch = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.6, 0.05), api.FX.Materials.emissiveAccent(0xfff066, 0.5)); scorch.position.set(0.35, 3.0, -7.1); scorch.rotation.z = 0.25; api.add(scorch); }
+        const gate = P.arch(0xc2b19b, 2.4, 3.0); gate.position.set(0, 1.76, -10.2); api.add(gate);
+        if (region.get('spireStruck')) { const scorch = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.6, 0.05), api.FX.Materials.emissiveAccent(0xfff066, 0.5)); scorch.position.set(0.35, 3.0, -10.1); scorch.rotation.z = 0.25; api.add(scorch); }
         // Cairns line the switchbacks; prayer flags string between terraces.
-        const cairns = []; [[-2.2, 0, 3.6], [2.6, 0.44, 1.2], [-2.8, 0.88, -1.6], [2.9, 1.32, -4.2], [-1.4, 1.76, -5.8]].forEach(([x, y, z]) => { const g = new THREE.Group(); for (let k = 0; k < 4; k++) { const r = P.rock(0x8f857a, 0.26 - k * 0.05); r.position.y = k * 0.28 + 0.1; g.add(r); } g.position.set(x, y, z); api.add(g); cairns.push(g); });
+        const cairns = []; [[-2.2, 0, 3.6], [2.6, 0, 1.2], [-2.8, 0, -1.6], [1.6, 0.44, -6.8], [-1.0, 1.32, -9.0]].forEach(([x, y, z]) => { const g = new THREE.Group(); for (let k = 0; k < 4; k++) { const r = P.rock(0x8f857a, 0.26 - k * 0.05); r.position.y = k * 0.28 + 0.1; g.add(r); } g.position.set(x, y, z); api.add(g); cairns.push(g); });
         const flags = []; for (let i = 0; i < 26; i++) { const f = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.2), new THREE.MeshToonMaterial({ color: [0x3f7fd0, 0xf5f5f5, 0xd63c3c, 0x5fb85f, 0xf3c53d][i % 5], side: THREE.DoubleSide })); api.own(f.material); const k = i / 26; f.position.set(Math.sin(k * Math.PI * 4) * 4.2, 2.2 + k * 1.9 + Math.sin(i * 1.7) * 0.12, 5.5 - k * 12.5); api.add(f); flags.push(f); }
         // Lanterns along the stair: dark until Umbreon rings the monastery bell.
         const lanternsLit = region.get('lanternsLit', false);
-        const lanterns = []; [[1.6, 0, 4.0], [-1.8, 0.44, 1.4], [1.8, 0.88, -1.2], [-1.6, 1.32, -4.0], [0.9, 1.76, -6.0], [-0.9, 1.76, -6.0]].forEach(([x, y, z], i) => { const l = P.lantern(0xffb070); l.position.set(x, y, z); l.userData.glow.material = api.own(l.userData.glow.material.clone()); l.userData.glow.material.emissiveIntensity = lanternsLit ? 1.4 : 0.05; l.children.forEach(c => { if (c.isPointLight) { c.intensity = lanternsLit ? 0.55 : 0; l.userData.light = c; } }); l.userData.seed = i; api.add(l); lanterns.push(l); });
+        const lanterns = []; [[1.6, 0, 4.0], [-1.8, 0, 1.4], [1.8, 0, -1.2], [-1.4, 0.44, -6.6], [0.9, 1.32, -8.8], [-0.9, 1.32, -8.8]].forEach(([x, y, z], i) => { const l = P.lantern(0xffb070); l.position.set(x, y, z); l.userData.glow.material.emissiveIntensity = lanternsLit ? 1.4 : 0.05; l.children.forEach(c => { if (c.isPointLight) { c.intensity = lanternsLit ? 0.55 : 0; l.userData.light = c; } }); l.userData.seed = i; api.add(l); lanterns.push(l); });
         // Summit peaks + distant monastery silhouette that mirrors Umbreon's room.
         api.add(P.backdrop(7, 12, i => P.mountain(i % 2 ? 0x6f7f95 : 0x8a97a8, 5 + (i % 3) * 1.4, 3)));
         const farPagoda = new THREE.Group(); for (let i = 0; i < 3; i++) { const roof = new THREE.Mesh(new THREE.ConeGeometry(0.7 - i * 0.15, 0.3, 4), api.FX.Materials.stone(0x3a2f3a)); roof.position.y = 0.6 + i * 0.5; roof.rotation.y = Math.PI / 4; farPagoda.add(roof); } farPagoda.position.set(7.5, 3.4, -5.5); api.add(farPagoda);
         const farGlow = P.orb(0xffb070, 0.08, lanternsLit ? 1.6 : 0.05); farGlow.position.set(7.5, 3.9, -5.5); api.add(farGlow);
         // Offerings left at the gate: mementos found across the peak.
-        region.mementos().forEach((id, i) => { const m = api.RoomKit.memento(['tag', 'notebook', 'frame', 'shell'][i % 4], 0xd9c6a0); m.scale.setScalar(0.65); m.position.set(-0.9 + i * 0.45, 1.8, -6.7); api.add(m); });
+        region.mementos().forEach((id, i) => { const m = api.RoomKit.memento(['tag', 'notebook', 'frame', 'shell'][i % 4], 0xd9c6a0); m.scale.setScalar(0.65); m.position.set(-0.9 + i * 0.45, 1.8, -9.7); api.add(m); });
         // Steam from the hot springs drifts up the west flank once Vaporeon has woken them.
         if (region.get('springsWoken')) { const steam = api.particles(api.FX.VFX.dust({ area: [1.4, 3, 1.4], baseY: 0.5, count: 18, color: 0xffffff, size: 0.14, opacity: 0.3 })); steam.points.position.set(-5.2, 0, 3.6); }
 
         // Anchor: prayer wheel on the first landing.
-        const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.6, 12), api.FX.Materials.metal(0xd9a24a)); wheel.position.set(1.9, 1.34, 0.6);
-        const wheelPost = P.pillar(0x8f857a, 0.6, 0.06); wheelPost.position.set(1.9, 0.44, 0.6); api.add(wheelPost);
+        const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.6, 12), api.FX.Materials.metal(0xd9a24a)); wheel.position.set(1.9, 0.9, -0.4);
+        const wheelPost = P.pillar(0x8f857a, 0.6, 0.06); wheelPost.position.set(1.9, 0, -0.4); api.add(wheelPost);
         let spin = 0;
         api.curio(wheel, 'emberpeak_prayer_wheel', 'a prayer wheel', 'emberpeak_wheel_spun', 'Spun the prayer wheel — it went round nine times, then stopped exactly where it started.', () => { spin = 1; });
         api.particles(api.FX.VFX.dust({ area: [12, 5, 14], baseY: 0.4 }));

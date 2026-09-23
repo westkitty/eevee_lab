@@ -45,12 +45,15 @@
           flareon:  { x: -4.9, y: 0,   z:  1.2, ry: 1.35 },
           eevee:    { x:  4.9, y: 0,   z:  1.4, ry: -1.35 },
           vaporeon: { x: -4.6, y: 0,   z: -1.8, ry: 1.75 },
-          glaceon:  { x:  0,   y: 0,   z: -5.6, ry: 0 },
+          glaceon:  { x:  0,   y: 0,   z: -3.2, ry: 0, scale: 0.9 },
           umbreon:  { x:  4.4, y: 0,   z: -2.2, ry: -1.75 },
-          sylveon:  { x: -3.6, y: 2.3, z: -3.4, ry: 1.2, scale: 0.8 },
-          leafeon:  { x:  3.6, y: 2.3, z: -3.6, ry: -1.2, scale: 0.8 },
-          jolteon:  { x: -2.0, y: 4.5, z: -4.6, ry: 0.5, scale: 0.7 },
-          espeon:   { x:  2.0, y: 4.5, z: -4.6, ry: -0.5, scale: 0.7 },
+          // Upper-level habitats are entered at street level through their stairwell /
+          // ladder / service-lift doors under the catwalk; the catwalk, ladders and rooftop
+          // line above are the visible geography they lead up into.
+          sylveon:  { x: -2.6, y: 0, z: -4.4, ry: 0.35, scale: 0.85 },
+          leafeon:  { x:  2.6, y: 0, z: -4.4, ry: -0.35, scale: 0.85 },
+          jolteon:  { x: -1.0, y: 0, z: -5.2, ry: 0.1, scale: 0.75 },
+          espeon:   { x:  1.0, y: 0, z: -5.2, ry: -0.1, scale: 0.75 },
           conservatory: { x: 0, y: 0, z: 6.0, ry: Math.PI }
         };
       },
@@ -142,7 +145,7 @@
             cranes.forEach((c, i) => { c.userData.strip.material.emissiveIntensity = 0.7 + Math.sin(t * 3 + i) * 0.3; c.userData.prize.position.y = 0.85 + Math.sin(t * 2 + i) * 0.02; });
           });
           const surged = api.region.get('gridSurged', false);
-          api.onStage(stage => cranes.forEach((c, i) => { c.userData.prize.visible = i >= stage * 2; c.userData.strip.material = surged ? api.FX.Materials.emissiveAccent(K.SPECIES_COLOR[K.SPECIES[i]], 1.4) : c.userData.strip.material; }));
+          api.onStage(stage => cranes.forEach((c, i) => { c.userData.prize.visible = i >= stage * 2; if (surged) c.userData.strip.material.emissiveIntensity = 1.4; }));
           api.particles(api.FX.VFX.sparkles({ area: [6, 3, 6], baseY: 0.6, count: 18, color: 0xff9ad0 }));
           api.toy('ball', 0xff6b6b, new THREE.Vector3(1.4, 0.22, 1.4));
           api.memento('notebook', 0xe0b47a, new THREE.Vector3(-1.5, 0.1, 1.5), 'A capsule toy, still in its capsule. Inside: a tiny plastic Eevee. Meta.');
@@ -361,7 +364,7 @@
           const boards = new THREE.Mesh(new THREE.CylinderGeometry(3.8, 3.8, 0.7, 40, 1, true), api.FX.Materials.cloth(0xf4f4f4)); boards.material.side = THREE.DoubleSide; boards.position.y = 0.35; api.add(boards);
           const shelving = api.FX.Materials.metal(0x6d7480); for (let i = 0; i < 6; i++) { const s = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.6, 0.4), shelving); const a = i * 1.05 + 0.5; s.position.set(Math.cos(a) * 4.9, 1.3, Math.sin(a) * 4.9); s.lookAt(0, 1.3, 0); api.add(s); const crate = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.3), api.FX.Materials.wood(0x8a6a44)); crate.position.set(Math.cos(a) * 4.9, 2.0, Math.sin(a) * 4.9); api.add(crate); }
           const gridOn = api.region.get('gridSurged', false);
-          const flood = []; for (let i = 0; i < 4; i++) { const f = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.15, 0.4), api.own(api.FX.Materials.emissiveAccent(0xffffff, 0.6).clone())); f.material.emissiveIntensity = gridOn ? 1.6 : 0.3; const fl = new THREE.PointLight(0xffffff, gridOn ? 0.6 : 0, 6); f.add(fl); const a = i * 1.57 + 0.78; f.position.set(Math.cos(a) * 2.6, 3.6, Math.sin(a) * 2.6); api.add(f); flood.push(f); }
+          const flood = []; for (let i = 0; i < 4; i++) { const f = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.15, 0.4), api.FX.Materials.emissiveAccent(0xffffff, 0.6)); f.material.emissiveIntensity = gridOn ? 1.6 : 0.3; const fl = new THREE.PointLight(0xffffff, gridOn ? 0.6 : 0, 6); f.add(fl); const a = i * 1.57 + 0.78; f.position.set(Math.cos(a) * 2.6, 3.6, Math.sin(a) * 2.6); api.add(f); flood.push(f); }
           const ball = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 10), api.FX.Materials.metal(0xd9dde3)); ball.position.set(0, 3.4, 0); api.add(ball);
           const ballLight = new THREE.PointLight(0xff8ad0, 0, 8); ballLight.position.set(0, 3.0, 0); api.add(ballLight);
           const zam = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.4, 0.5), api.FX.Materials.metal(0x3fa9d6)); zam.position.set(1.4, 0.2, 1.0); zam.visible = false; api.add(zam);

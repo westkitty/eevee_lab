@@ -42,6 +42,18 @@
   /* --------------------------------------------------------------------
      Primitive library shared by every region. Small, cheap, toon-shaded.
      -------------------------------------------------------------------- */
+  /* FX.Materials.emissiveAccent is cached by colour. Expansion rooms animate
+     emissiveIntensity per-mesh constantly, so every emissive mesh a region
+     builds gets a private clone that is tracked and disposed with the room.
+     The active room's tracker is swapped in by buildHabitatRoom/buildHub. */
+  let activeOwned = null;
+  function emissive(color, intensity) {
+    const mat = FX.Materials.emissiveAccent(color, intensity).clone();
+    mat.emissiveIntensity = intensity;
+    if (activeOwned) activeOwned.push(mat);
+    return mat;
+  }
+
   const P = {
     shadowed(mesh) { mesh.castShadow = true; mesh.receiveShadow = true; return mesh; },
     rock(color = 0x8a8577, r = 0.4) {
@@ -52,7 +64,7 @@
       return P.shadowed(m);
     },
     crystal(color = 0x9be7ff, h = 0.8, r = 0.16) {
-      const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 6), FX.Materials.emissiveAccent(color, 0.55));
+      const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 6), emissive(color, 0.55));
       m.position.y = h / 2;
       return P.shadowed(m);
     },
@@ -92,12 +104,12 @@
       return P.shadowed(m);
     },
     ring(radius = 1, tube = 0.04, color = 0xffffff, intensity = 0.5) {
-      const m = new THREE.Mesh(new THREE.TorusGeometry(radius, tube, 8, 40), FX.Materials.emissiveAccent(color, intensity));
+      const m = new THREE.Mesh(new THREE.TorusGeometry(radius, tube, 8, 40), emissive(color, intensity));
       m.rotation.x = Math.PI / 2;
       return m;
     },
     orb(color = 0xffffff, r = 0.2, intensity = 1) {
-      const m = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 14), FX.Materials.emissiveAccent(color, intensity));
+      const m = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 14), emissive(color, intensity));
       m.castShadow = true;
       return m;
     },
@@ -107,7 +119,7 @@
       post.position.y = 0.7;
       const cage = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.26, 0.2), FX.Materials.metal(0x3a3f47));
       cage.position.y = 1.5;
-      const glow = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), FX.Materials.emissiveAccent(color, 1.4));
+      const glow = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), emissive(color, 1.4));
       glow.position.y = 1.5;
       const light = new THREE.PointLight(color, 0.55, 3.2);
       light.position.y = 1.5;
@@ -257,8 +269,10 @@
     const accent = SPECIES_COLOR[species];
 
     const region = regionApi(expansion.id, roomId);
+    activeOwned = ownedMaterials;
+    const roomFX = Object.assign({}, FX, { Materials: Object.assign(Object.create(FX.Materials), { emissiveAccent: (c, i) => emissive(c, i == null ? 1.2 : i) }) });
     const api = {
-      THREE, FX, P, RoomKit, accent, roomId, species, expansion, region,
+      THREE, FX: roomFX, P, RoomKit, accent, roomId, species, expansion, region,
       add(obj) { group.add(obj); return obj; },
       own(material) { if (material) ownedMaterials.push(material); return material; },
       particles(field) { particleFields.push(field); group.add(field.points); return field; },
@@ -308,6 +322,7 @@
     };
 
     const result = spec.build(api) || {};
+    activeOwned = null;
 
     const lights = RoomKit.lightingProfile(Object.assign({
       hemiSky: 0xf3ead8, hemiGround: 0x54607a, hemiIntensity: 0.5,
@@ -358,8 +373,10 @@
 
     const hubOwned = [];
     const region = regionApi(expansion.id, expansion.id);
+    activeOwned = hubOwned;
+    const hubFX = Object.assign({}, FX, { Materials: Object.assign(Object.create(FX.Materials), { emissiveAccent: (c, i) => emissive(c, i == null ? 1.2 : i) }) });
     const api = {
-      THREE, FX, P, RoomKit, expansion, region,
+      THREE, FX: hubFX, P, RoomKit, expansion, region,
       SPECIES, SPECIES_COLOR,
       add(obj) { group.add(obj); return obj; },
       own(material) { if (material) hubOwned.push(material); return material; },
@@ -415,6 +432,7 @@
     continuationPoints.conservatory = back.position.clone().multiplyScalar(0.35).setY(0);
 
     const extra = expansion.hub.build(api) || {};
+    activeOwned = null;
 
     const lights = RoomKit.lightingProfile(Object.assign({
       hemiSky: 0xf3ead8, hemiGround: 0x54607a, hemiIntensity: 0.55,
@@ -466,6 +484,9 @@
       if (!list.length) return built;
       const gateGroup = new THREE.Group();
       gateGroup.name = 'expedition_gates';
+      const gateOwned = []; activeOwned = gateOwned;
+      const priorDispose = built.disposeExtra ? built.disposeExtra.bind(built) : null;
+      built.disposeExtra = () => { gateOwned.forEach(m => m.dispose && m.dispose()); if (priorDispose) priorDispose(); };
       list.forEach((exp, i) => {
         // Inner ring, staggered between the original doors, facing centre.
         const a = Math.PI / 2 + ((i + 0.5) / list.length) * Math.PI * 2;
@@ -486,6 +507,7 @@
         built.continuationPoints[exp.id] = gate.position.clone().multiplyScalar(0.4).setY(0);
       });
       built.group.add(gateGroup);
+      activeOwned = null;
       return built;
     };
   }

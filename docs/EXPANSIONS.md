@@ -157,3 +157,9 @@ and hub curio; applies all four stages and an ability mutation; asserts region f
 scene empty after dispose, identical resource counts across repeated rebuilds, and that the
 legacy save's keys survive under a bounded size. Browser/WebGL automation was not available in
 the sandbox (Chromium download blocked), so visual composition is unverified by automation.
+
+## Reachability & material ownership (verification pass)
+
+- Creature navigation is a flat disc at `groundY` (`creature-actor.js` `_clampToNav`), so **every hub door must sit within `walkRadius` and at y≈0**. Terraces, catwalks, pier heads and drifting fragments are decorative; the door that leads "up" to them stands at ground level (Undercity rooftops are entered through stairwell/ladder doors on the street, Emberpeak terraces rise behind the plateau doors, Dreamway fragments float within reach of the island). `tools/test_expansions.js` asserts this for all 40 hub doors.
+- `FX.Materials.emissiveAccent` is a shared per-colour cache. Inside `build(api)` the kit swaps in a per-room `api.FX.Materials.emissiveAccent` that returns a private clone tracked in the room's owned-materials list, so animating `emissiveIntensity` never bleeds into the original habitats and is disposed on room exit. `P.orb / P.crystal / P.ring / P.lantern` use the same path.
+- The region veil is skipped in photo mode and outside sandbox mode.

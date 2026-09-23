@@ -37,9 +37,9 @@
           eevee:    { x:  4.6, z:  3.2, ry: -0.95 },
           flareon:  { x:  5.9, z:  0.4, ry: -1.5 },
           leafeon:  { x:  2.4, z:  5.4, ry: -0.4 },
-          vaporeon: { x: -1.3, y: 0.32, z: -5.9, ry: 0.2, scale: 0.9 },
-          glaceon:  { x:  1.3, y: 0.32, z: -5.9, ry: -0.2, scale: 0.9 },
-          sylveon:  { x:  0,   y: 0.32, z: -6.6, ry: 0, scale: 0.9 },
+          vaporeon: { x: -1.3, y: 0, z: -5.9, ry: 0.2, scale: 0.9 },
+          glaceon:  { x:  1.3, y: 0, z: -5.9, ry: -0.2, scale: 0.9 },
+          sylveon:  { x:  0,   y: 0, z: -6.4, ry: 0, scale: 0.9 },
           jolteon:  { x: -5.6, z: -1.6, ry: 1.85 },
           umbreon:  { x: -6.0, z:  1.2, ry: 1.4 },
           espeon:   { x: -4.4, z:  3.8, ry: 1.0 },
@@ -53,8 +53,8 @@
         const sand = new THREE.Mesh(new THREE.CircleGeometry(7.2, 48, Math.PI * 0.05, Math.PI * 1.05), api.FX.Materials.stone(0xd9c9a6));
         sand.rotation.x = -Math.PI / 2; sand.position.y = 0.0; api.add(sand);
         const pierMat = api.FX.Materials.wood(0x8a6a44);
-        for (let i = 0; i < 14; i++) { const plank = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.08, 0.36), pierMat); plank.position.set(0, 0.28, -1.6 - i * 0.4); api.add(P.shadowed(plank)); }
-        const pierHead = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.1, 2.0), pierMat); pierHead.position.set(0, 0.28, -6.2); api.add(P.shadowed(pierHead));
+        for (let i = 0; i < 14; i++) { const plank = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.08, 0.36), pierMat); plank.position.set(0, 0.04, -1.6 - i * 0.4); api.add(P.shadowed(plank)); }
+        const pierHead = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.1, 2.0), pierMat); pierHead.position.set(0, 0.04, -6.2); api.add(P.shadowed(pierHead));
         for (let i = 0; i < 8; i++) { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 1.3, 7), pierMat); post.position.set(i % 2 ? 1.4 : -1.4, 0.25, -2 - Math.floor(i / 2) * 1.5); api.add(P.shadowed(post)); const rope = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.025, 6, 12), api.FX.Materials.cloth(0xe6d7b4)); rope.position.set(post.position.x, 0.85, post.position.z); rope.rotation.x = Math.PI / 2; api.add(rope); }
         // Cliff to the west with the lighthouse silhouette above the Jolteon door.
         for (let i = 0; i < 5; i++) { const r = P.rock(0x5d6a70, 1.2 + (i % 2) * 0.5); r.position.set(-6.8 + (i % 2) * 0.6, 0.6 + i * 0.35, -3.5 + i * 1.6); api.add(r); }

@@ -2603,7 +2603,7 @@
       const regionId = def && def.expansionId ? def.expansionId : 'conservatory';
       const changed = lastRegionId !== null && regionId !== lastRegionId;
       lastRegionId = regionId;
-      if (!changed) return false;
+      if (!changed || isPhotoMode || activeGameMode !== 'sandbox') return false;
       const veil = document.getElementById('region-veil');
       if (!veil) return false;
       document.body.classList.toggle('reduced-motion', !!(uiChrome && uiChrome.reducedMotion));

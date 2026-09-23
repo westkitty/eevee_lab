@@ -30,7 +30,7 @@
 
     transition: 'dreamway',
     hub: {
-      radius: 6.4, floorColor: 0x2a2450, hideFloor: true, walkRadius: 4.2,
+      radius: 6.4, floorColor: 0x2a2450, hideFloor: true, walkRadius: 5.4,
       weather: ['clear', 'aurora', 'mist'], life: 'wisps',
       stages: [
         { id: 'drowsy', label: 'Drowsy' }, { id: 'dreaming', label: 'Dreaming' },
@@ -43,23 +43,26 @@
       // height; the void has no floor, only the Great Pillow's island.
       doorLayout() {
         return {
-          eevee:    { x:  0,    y: 0.0, z: -3.6, ry: 0 },
-          vaporeon: { x: -4.2,  y: -0.6, z: -1.6, ry: 1.2, scale: 0.9 },
-          jolteon:  { x:  4.4,  y: 1.2, z: -1.4, ry: -1.3, scale: 0.9 },
-          flareon:  { x: -3.2,  y: 1.8, z:  2.6, ry: 2.2, scale: 0.85 },
-          espeon:   { x:  3.4,  y: -0.9, z:  2.8, ry: -2.3, scale: 0.9 },
-          umbreon:  { x: -5.0,  y: 2.8, z: -3.6, ry: 0.9, scale: 0.75 },
-          leafeon:  { x:  5.2,  y: 3.0, z: -3.8, ry: -0.9, scale: 0.75 },
-          glaceon:  { x: -1.6,  y: 3.8, z: -5.6, ry: 0.3, scale: 0.7 },
-          sylveon:  { x:  1.6,  y: -1.8, z: -5.4, ry: -0.3, scale: 0.8 },
-          conservatory: { x: 0, y: 0, z: 5.2, ry: Math.PI }
+          // All fragments stay within the walk disc (r ≤ 4.4) and within a paw's
+          // reach vertically (|y| ≤ 0.5) so the creature can actually reach every door;
+          // the tilt, the drifting motion and the void underneath do the dream-work.
+          eevee:    { x:  0,    y: 0.0,  z: -3.4, ry: 0 },
+          vaporeon: { x: -3.6,  y: -0.3, z: -1.6, ry: 1.2, scale: 0.9 },
+          jolteon:  { x:  3.7,  y: 0.4,  z: -1.4, ry: -1.3, scale: 0.9 },
+          flareon:  { x: -3.0,  y: 0.5,  z:  2.4, ry: 2.2, scale: 0.85 },
+          espeon:   { x:  3.1,  y: -0.4, z:  2.6, ry: -2.3, scale: 0.9 },
+          umbreon:  { x: -3.4,  y: 0.3,  z: -3.0, ry: 0.85, scale: 0.85 },
+          leafeon:  { x:  3.4,  y: 0.2,  z: -3.1, ry: -0.85, scale: 0.85 },
+          glaceon:  { x: -1.5,  y: 0.45, z: -4.1, ry: 0.35, scale: 0.85 },
+          sylveon:  { x:  1.5,  y: -0.45, z: -4.0, ry: -0.35, scale: 0.85 },
+          conservatory: { x: 0, y: 0, z: 4.4, ry: Math.PI }
         };
       },
       build(api) {
         const region = api.region;
         // The only ground: the Pillow Island, a soft disc floating in the void.
         const isle = new THREE.Group();
-        const top = new THREE.Mesh(new THREE.CylinderGeometry(4.3, 3.9, 0.5, 40), api.FX.Materials.cloth(0xcdbdf5)); top.position.y = -0.25; isle.add(P.shadowed(top));
+        const top = new THREE.Mesh(new THREE.CylinderGeometry(5.2, 4.7, 0.5, 40), api.FX.Materials.cloth(0xcdbdf5)); top.position.y = -0.25; isle.add(P.shadowed(top));
         const under = new THREE.Mesh(new THREE.ConeGeometry(3.6, 4.5, 12), api.FX.Materials.stone(0x4a3f70)); under.rotation.x = Math.PI; under.position.y = -2.7; isle.add(under);
         api.add(isle);
         // Every door stands on its own fragment: a slab of *some other place* (each borrows the palette of its habitat).

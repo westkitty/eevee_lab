@@ -105,6 +105,14 @@ function activateAll(kinds) {
 function doorTo(target) {
   const entry = rm.getInteractables().find(i => i.kind === 'door' && i.object3D.userData.portalTarget === target);
   assert.ok(entry, `no door from ${rm.current.id} to ${target}`);
+  // The creature must be able to physically reach the door: within the walkable
+  // disc and at ground level (door-travel walks to ~0.72 inside the door).
+  const floor = rm.getWalkableMeshes()[0];
+  const walk = Number(floor.userData.walkRadius);
+  const pos = entry.object3D.getWorldPosition(new THREE.Vector3());
+  const r = Math.hypot(pos.x, pos.z);
+  assert.ok(r - 0.72 <= walk + 0.05, `door ${target} in ${rm.current.id} unreachable: r=${r.toFixed(2)} walk=${walk}`);
+  assert.ok(Math.abs(pos.y) <= 0.5, `door ${target} in ${rm.current.id} off the ground: y=${pos.y}`);
   entry.onActivate();
   assert.strictEqual(rm.current.id, target, `door led to ${rm.current.id} not ${target}`);
 }
