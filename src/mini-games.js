@@ -511,19 +511,25 @@
       this.onClose = this.options.onClose || function () {};
       this.filter = '';
       this._timing = null;
+      this.focusScope = global.UIChrome && global.UIChrome.ModalFocusManager && this.root
+        ? new global.UIChrome.ModalFocusManager(this.root)
+        : null;
       if (this.root) this.root.addEventListener('click', e => {
         if (e.target === this.root) this.close();
       });
     }
 
-    openCatalog() {
+    openCatalog(returnFocus) {
       if (!this.root) return;
       this.system.stop();
       this.root.hidden = false;
       this.root.setAttribute('aria-hidden', 'false');
       this.renderCatalog();
-      const first = this.root.querySelector('.mini-card button');
-      if (first) first.focus();
+      if (this.focusScope) this.focusScope.open('.mini-card button', returnFocus);
+      else {
+        const first = this.root.querySelector('.mini-card button');
+        if (first) first.focus();
+      }
     }
 
     renderCatalog() {
@@ -541,6 +547,7 @@
       const search = root.querySelector('#mini-search');
       search.addEventListener('input', () => { this.filter = search.value; this._populateCatalog(); });
       this._populateCatalog();
+      if (this.focusScope && this.focusScope.active) this.focusScope.focus('.mini-card button');
     }
 
     _populateCatalog() {
@@ -565,8 +572,7 @@
       const result = this.system.start(id);
       if (!result.ok) return;
       this.renderRun();
-      const close = this.root.querySelector('.feature-close');
-      if (close) close.focus();
+      this._focusRunControl();
     }
 
     renderRun() {
@@ -588,6 +594,18 @@
         this.root.querySelector('.mini-replay').onclick = () => this.start(game.id);
         this.root.querySelector('.mini-catalog').onclick = () => this.renderCatalog();
       }
+    }
+
+    _focusRunControl() {
+      const selectors = ['.mini-controls button', '.mini-replay', '.mini-catalog', '.feature-close'];
+      if (!this.focusScope) {
+        for (const selector of selectors) {
+          const target = this.root && this.root.querySelector(selector);
+          if (target && typeof target.focus === 'function') { target.focus(); return; }
+        }
+        return;
+      }
+      for (const selector of selectors) if (this.focusScope.focus(selector)) return;
     }
 
     _button(label, action, extra) {
@@ -712,8 +730,14 @@
     }
 
     _act(action) {
+      const controls = this.root ? Array.from(this.root.querySelectorAll('.mini-controls button')) : [];
+      const active = this.root && this.root.ownerDocument ? this.root.ownerDocument.activeElement : null;
+      const focusIndex = controls.indexOf(active);
       this.system.act(action);
       this.renderRun();
+      const nextControls = this.root ? this.root.querySelectorAll('.mini-controls button') : [];
+      if (focusIndex >= 0 && nextControls.length) nextControls[Math.min(focusIndex, nextControls.length - 1)].focus();
+      else this._focusRunControl();
     }
 
     update(dt) {
@@ -740,6 +764,7 @@
       this.root.hidden = false;
       this.root.setAttribute('aria-hidden', 'false');
       this.renderRun();
+      this._focusRunControl();
     }
 
     close() {
@@ -747,6 +772,7 @@
       this.root.hidden = true;
       this.root.setAttribute('aria-hidden', 'true');
       this.system.stop();
+      if (this.focusScope) this.focusScope.close();
       this.onClose();
     }
   }

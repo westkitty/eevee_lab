@@ -14,10 +14,10 @@ interaction, and small environmental story. The original petting/toybox sandbox 
 
 ## Running locally
 
-No build step, no dependencies to install. Serve the folder statically and open it:
+No build step or runtime packages to install. Serve the folder statically and open it; optional browser tests need Playwright as described below:
 
 ```bash
-cd EEvEE_Lab
+cd eevee_lab
 python3 -m http.server 8099
 ```
 
@@ -76,7 +76,8 @@ a few seconds of inactivity and return instantly on input.
 | `F` | Quick focus (portrait) |
 | `R` | Reset camera |
 | `Tab` or the ☰ button | Open/close the control drawer (rooms, camera, mode, settings) |
-| `Esc` | Close whatever's open, in order: interaction wheel → lore/settings → photo mode |
+| `E` / `M` / `G` | Open the interaction wheel / World Map / Habitat Arcade (remappable in Settings) |
+| `Esc` | Close the topmost open panel or mode first |
 | 🐾 button | Open the interaction wheel (pet, feed, disco, loaf, derp, call, brush, room action, Roomba) |
 | 📖 button | Lore & Journal drawer (facts + discovered behaviors/mementos) |
 | 📷 button | Photo/cinematic mode — hides all UI, lets you compose and capture (Esc to exit) |
@@ -99,6 +100,13 @@ Toggle **Stone Dash** from the control drawer. `A`/`D` or arrow keys (or drag) t
 power-up; dodge banana peels and Voltorbs. The track's palette reflects whichever habitat
 you launched it from. High score is versioned local storage (migrated automatically from the
 old `eevee_dash_highscore` key if present).
+
+## Habitat Arcade (20 short games)
+
+Open the Habitat Arcade from the control drawer or press `G` by default. Browse or search
+20 short, turn-based and timing games; play history, completion flags, high scores, and
+regional-cup progress are kept in the local habitat save. The original **Stone Dash** runner
+is a separate mode and remains available from the control drawer.
 
 ## Photo mode & Observation scoring
 
@@ -129,15 +137,18 @@ of inactivity. Respects Reduced Motion (see Settings).
 
 Settings (drawer → ⚙️) covers UI density (Minimal/Standard/Full — Minimal is default),
 Reduced Motion (also auto-detects `prefers-reduced-motion`), music/SFX, graphics quality,
-camera sensitivity, ambience level, and camera auto-follow. All interactive controls are
-keyboard-reachable with visible focus states; `Esc` follows a predictable, single-level
-dismissal order.
+camera sensitivity, ambience level, camera auto-follow, captions, and remappable `E`/`M`/`G`
+shortcuts. Shortcut capture accepts one letter or number, rejects conflicts, and can be
+cancelled with `Esc`. Settings, World Map, and Arcade dialogs contain keyboard focus and
+restore focus when closed. Interactive controls use visible focus styling; browser-level
+accessibility and viewport behavior should still be checked in the target browser.
 
 ## Persistence
 
 One versioned save (`eevee_habitat_save`) covers active form, shiny state, last room,
 discovered behaviors/mementos, bond/familiarity, resonance, unlocked atmosphere variants,
-room memory, UI density and accessibility settings, camera preferences, and high score. The
+room memory, UI/accessibility settings and shortcut bindings, camera preferences, photo
+metadata, mini-game results, and journey state (visits, favorites, and saved routines). The
 legacy `eevee_dash_highscore` key is migrated in automatically on first load and left alone
 afterward.
 
@@ -154,7 +165,10 @@ evolution sparkle…) are synthesized live with the Web Audio API.
 (GLTF loading, form switching, petting, the toybox gags, Stone Dash). The Habitat House
 itself is a set of plain, dependency-free scripts loaded before it:
 
-- `src/persistence.js` — versioned `SaveManager` + legacy high-score migration
+- `src/persistence.js` — versioned `SaveManager`, save import/export, and legacy high-score migration
+- `src/habitat-state.js` — bounded room narrative, placements, and cross-room traces
+- `src/experience-systems.js` — journey progress, favorites, saved visits, and collection/guide state
+- `src/mini-games.js` — the 20-game Habitat Arcade, Photo Safari flow, and local results
 - `src/render-effects.js` — shared toon material library, pooled particle VFX, two cheap
   custom shader accents (water ripple, fresnel rim), ground-contact helpers
 - `src/rooms.js` — the data-driven room definitions (Conservatory + 9 habitats) and the
@@ -168,8 +182,8 @@ itself is a set of plain, dependency-free scripts loaded before it:
 - `src/photo-system.js` — Moment scoring + bounded album metadata
 - `src/camera-controller.js` — wraps `OrbitControls`: auto-framing from live model bounds,
   presets, focus-on-raycast, cinematic room transitions, reduced-motion-aware tweening
-- `src/ui-controller.js` — auto-fade timer, the Escape/back stack, density + reduced-motion
-  application
+- `src/ui-controller.js` — auto-fade timer, the Escape/back stack, density/reduced-motion
+  application, modal focus containment/restoration, and single-active shortcut capture
 
 No bundler, no framework, no new runtime dependencies — the existing `<script>`-tag,
 global-namespace execution model is unchanged, and none of the nine character GLBs are
@@ -183,15 +197,18 @@ geometry built from primitives — nothing new was downloaded for this pass.
 
 ## Testing
 
-`tools/verify_all_gameplay.js` is a Playwright script (repo-relative paths, bundled
-Chromium — no machine-specific paths) that boots the app, waits for all nine GLBs, and
-exercises form switching, shiny, petting, feeding, loaf/derp/disco/Roomba, Stone Dash
-(steering, jumping, scoring), room navigation and disposal, camera zoom/reset, photo mode,
-and save-state persistence. Run it with:
+`tools/verify_all_gameplay.js` is a Playwright script with repo-relative paths. It needs an
+installed Playwright package and a matching Chromium (or an installed Chrome/Brave/Chromium
+fallback); it does not bundle a browser. The journey boots the app, waits for all nine GLBs,
+and exercises form switching, shiny, petting, feeding, loaf/derp/disco/Roomba, Stone Dash,
+room navigation/disposal, camera, photo mode, and save-state persistence. Run it with a
+static server and Playwright available in your environment:
 
 ```bash
-python3 -m http.server 8099 &
+python3 -m http.server 8099
+# In another terminal:
 node tools/verify_all_gameplay.js
 ```
 
-Screenshots land in `qa/` (git-ignored).
+Focused Node contracts are under `tools/test_*.js`; they do not replace the browser journey.
+Screenshots and Blender test exports land under `qa/` (git-ignored).

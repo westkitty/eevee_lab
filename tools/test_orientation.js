@@ -1,12 +1,11 @@
-const { chromium } = require('/opt/homebrew/lib/node_modules/playwright');
+const { chromium } = require('./playwright_support').resolvePlaywright();
+const baseUrl = (process.env.EEVEE_TEST_BASE_URL || 'http://localhost:8099').replace(/\/$/, '');
+let browser;
 
 async function testOrientation() {
-  const browser = await chromium.launch({
-    executablePath: '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
-    headless: true
-  });
+  browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
-  await page.goto('http://localhost:8099/test_gltf.html');
+  await page.goto(`${baseUrl}/test_gltf.html`);
   await page.waitForFunction(() => window.allDone === true, { timeout: 15000 });
   
   const orientationData = await page.evaluate(async () => {
@@ -72,4 +71,8 @@ async function testOrientation() {
   await browser.close();
 }
 
-testOrientation().catch(console.error);
+testOrientation().catch(async error => {
+  console.error(error);
+  if (browser) await browser.close().catch(() => {});
+  process.exitCode = 1;
+});

@@ -1,36 +1,31 @@
-const { chromium } = require('/opt/homebrew/lib/node_modules/playwright');
-const fs = require('fs');
-const path = require('path');
+const { chromium } = require('./playwright_support').resolvePlaywright();
 
 async function test() {
-  const browser = await chromium.launch({
-    executablePath: '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
-    headless: true
-  });
-  
-  const page = await browser.newPage();
-  page.on('console', msg => console.log(`[BROWSER CONSOLE ${msg.type()}]:`, msg.text()));
-  page.on('pageerror', err => console.log(`[BROWSER ERROR]:`, err.message));
-  page.on('response', resp => {
-    if (resp.status() >= 400) {
-      console.log(`[HTTP ${resp.status()}]:`, resp.url());
-    }
-  });
-  
-  await page.goto('http://localhost:8099/index.html');
-  await page.waitForTimeout(2000);
-  
-  // Test if THREE and GLTFLoader are available
-  const result = await page.evaluate(async () => {
-    return {
+  const baseUrl = (process.env.EEVEE_TEST_BASE_URL || 'http://localhost:8099').replace(/\/$/, '');
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('console', message => {
+      if (message.type() === 'error') errors.push(message.text());
+    });
+
+    await page.goto(`${baseUrl}/index.html`, { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => typeof THREE !== 'undefined' && typeof THREE.GLTFLoader === 'function');
+    const result = await page.evaluate(() => ({
       hasThree: typeof THREE !== 'undefined',
-      hasGLTFLoader: typeof THREE !== 'undefined' && typeof THREE.GLTFLoader === 'function',
-      errors: window.__errors || []
-    };
-  });
-  
-  console.log('Test result:', result);
-  await browser.close();
+      hasGLTFLoader: typeof THREE !== 'undefined' && typeof THREE.GLTFLoader === 'function'
+    }));
+    if (!result.hasThree || !result.hasGLTFLoader) throw new Error(`Three.js smoke check failed: ${JSON.stringify(result)}`);
+    if (errors.length) throw new Error(`Browser reported errors:\n${errors.join('\n')}`);
+    console.log('Three.js + GLTFLoader browser smoke test: PASS');
+  } finally {
+    await browser.close();
+  }
 }
 
-test().catch(console.error);
+test().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});

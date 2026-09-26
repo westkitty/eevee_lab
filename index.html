@@ -1072,7 +1072,7 @@
 
   <!-- Settings sheet -->
   <div id="settings-backdrop" onclick="closeSettings()"></div>
-  <div id="settings-sheet" role="dialog" aria-label="Settings">
+  <div id="settings-sheet" role="dialog" aria-modal="true" aria-label="Settings" aria-hidden="true" inert>
     <div class="fact-title" style="margin-bottom:10px;">Settings</div>
     <div class="settings-row"><label for="set-density">UI Density</label>
       <select id="set-density" onchange="onSetDensity(this.value)">
@@ -1534,6 +1534,9 @@
     const creatureMemory = new CreatureBehaviorSystem.CreatureMemory(save);
     const resonanceTracker = new DiscoverySystem.ResonanceTracker(save);
     let uiChrome; // needs window.matchMedia + save, created below
+    let worldConsoleFocus = null;
+    let settingsFocus = null;
+    let shortcutCapture = null;
     const discoveryLog = new DiscoverySystem.DiscoveryLog(save, (entry) => {
       experienceGuide.recordEvent('discovery', { roomId: roomManager && roomManager.current ? roomManager.current.id : 'conservatory', form: currentForm });
       showDiscoveryToast(entry);
@@ -3084,8 +3087,13 @@
     }
 
     function openSettings() {
+      const activeElement = document.activeElement;
+      const sheet = document.getElementById('settings-sheet');
+      sheet.inert = false;
+      sheet.removeAttribute('inert');
+      sheet.setAttribute('aria-hidden', 'false');
       document.getElementById('settings-backdrop').classList.add('open');
-      document.getElementById('settings-sheet').classList.add('open');
+      sheet.classList.add('open');
       document.getElementById('set-density').value = save.get('ui.density', 'minimal');
       document.getElementById('set-reduced-motion').checked = !!save.get('ui.reducedMotion', false);
       document.getElementById('set-music').checked = audio.isMusicPlaying;
@@ -3101,11 +3109,19 @@
       document.body.classList.toggle('captions-off', !save.get('ui.captions', true));
       renderShortcutButtons();
       uiChrome.pushEscape(closeSettings);
+      if (settingsFocus) settingsFocus.open('#set-density', activeElement);
+      else document.getElementById('set-density').focus();
     }
     function closeSettings() {
+      const sheet = document.getElementById('settings-sheet');
       document.getElementById('settings-backdrop').classList.remove('open');
-      document.getElementById('settings-sheet').classList.remove('open');
-      uiChrome.removeEscape(closeSettings);
+      sheet.classList.remove('open');
+      sheet.inert = true;
+      sheet.setAttribute('inert', '');
+      sheet.setAttribute('aria-hidden', 'true');
+      if (shortcutCapture) shortcutCapture.cancel();
+      if (settingsFocus) settingsFocus.close();
+      if (uiChrome) uiChrome.removeEscape(closeSettings);
     }
     function onSetDensity(v) { uiChrome.applyDensity(v); }
     function onSetReducedMotion(v) {
@@ -3181,6 +3197,22 @@
     function shortcutBindings() {
       return Object.assign({ wheel: 'e', map: 'm', games: 'g' }, save.get('ui.keyBindings', {}));
     }
+    function ensureShortcutCapture() {
+      if (shortcutCapture || !window.UIChrome || !window.UIChrome.ShortcutCapture) return shortcutCapture;
+      shortcutCapture = new UIChrome.ShortcutCapture({
+        target: window,
+        getBindings: shortcutBindings,
+        onStart: action => {
+          const id = ({ wheel: 'bind-wheel', map: 'bind-map', games: 'bind-games' })[action];
+          const button = id && document.getElementById(id); if (button) button.textContent = 'Press a key…';
+        },
+        onCancel: () => renderShortcutButtons(),
+        onInvalid: () => { renderShortcutButtons(); showSpeech('Choose one letter or number key.'); },
+        onConflict: () => { renderShortcutButtons(); showSpeech('That key is already assigned to another shortcut.'); },
+        onBind: bindings => { save.set('ui.keyBindings', bindings); renderShortcutButtons(); }
+      });
+      return shortcutCapture;
+    }
     function renderShortcutButtons() {
       const keys = shortcutBindings();
       [['wheel','bind-wheel','Paws'],['map','bind-map','Map'],['games','bind-games','Games']].forEach(([id, element, label]) => {
@@ -3188,19 +3220,8 @@
       });
     }
     function captureShortcut(action) {
-      const buttonId = ({ wheel: 'bind-wheel', map: 'bind-map', games: 'bind-games' })[action];
-      const button = document.getElementById(buttonId); if (button) button.textContent = 'Press a key…';
-      const handler = e => {
-        e.preventDefault(); e.stopImmediatePropagation();
-        if (e.key === 'Escape') { renderShortcutButtons(); return; }
-        if (!/^[a-z0-9]$/i.test(e.key)) { renderShortcutButtons(); showSpeech('Choose one letter or number key.'); return; }
-        const bindings = shortcutBindings();
-        if (Object.keys(bindings).some(k => k !== action && String(bindings[k]).toLowerCase() === e.key.toLowerCase())) {
-          renderShortcutButtons(); showSpeech('That key is already assigned to another shortcut.'); return;
-        }
-        bindings[action] = e.key.toLowerCase(); save.set('ui.keyBindings', bindings); renderShortcutButtons();
-      };
-      window.addEventListener('keydown', handler, { capture: true, once: true });
+      const capture = ensureShortcutCapture();
+      if (capture) capture.begin(action);
     }
 
     function renderSpeciesStrip() {
@@ -3300,13 +3321,18 @@
 
     function openWorldConsole(tab) {
       if (arcadeRunning) switchGameMode('sandbox');
+      const activeElement = document.activeElement;
+      const returnFocus = activeElement && activeElement.closest && activeElement.closest('#control-drawer')
+        ? document.getElementById('drawer-fab')
+        : activeElement;
       closeDrawer(); closeInteractionWheel();
       worldConsoleTab = tab || 'map'; isWorldConsoleOpen = true;
       const root = document.getElementById('world-console-overlay');
       root.hidden = false; root.setAttribute('aria-hidden', 'false');
       renderWorldConsole(worldConsoleTab);
       uiChrome.pushEscape(closeWorldConsole);
-      const close = root.querySelector('.feature-close'); if (close) close.focus();
+      if (worldConsoleFocus) worldConsoleFocus.open('.feature-close', returnFocus);
+      else { const close = root.querySelector('.feature-close'); if (close) close.focus(); }
     }
 
     function closeWorldConsole() {
@@ -3314,6 +3340,7 @@
       if (root) { root.hidden = true; root.setAttribute('aria-hidden', 'true'); }
       isWorldConsoleOpen = false;
       if (uiChrome) uiChrome.removeEscape(closeWorldConsole);
+      if (worldConsoleFocus) worldConsoleFocus.close();
     }
 
     function renderWorldConsole(tab) {
@@ -3330,7 +3357,11 @@
       tabs.forEach(([id, label]) => {
         const button = document.createElement('button'); button.type = 'button'; button.textContent = label;
         button.classList.toggle('active', worldConsoleTab === id); button.setAttribute('aria-pressed', String(worldConsoleTab === id));
-        button.onclick = () => renderWorldConsole(id); nav.appendChild(button);
+        button.onclick = () => {
+          renderWorldConsole(id);
+          if (worldConsoleFocus && worldConsoleFocus.active) worldConsoleFocus.focus('.world-tabs button.active');
+        };
+        nav.appendChild(button);
       });
       const body = root.querySelector('#world-body');
       if (worldConsoleTab === 'map') renderWorldMap(body);
@@ -3364,7 +3395,17 @@
         const fav = document.createElement('button'); fav.type = 'button'; fav.className = 'favorite';
         fav.textContent = experienceGuide.isFavorite(id) ? '★' : '☆'; fav.setAttribute('aria-label', experienceGuide.isFavorite(id) ? 'Remove favorite' : 'Add to favorites');
         fav.setAttribute('aria-pressed', String(experienceGuide.isFavorite(id)));
-        fav.onclick = () => { experienceGuide.toggleFavorite(id); renderWorldConsole('map'); };
+        fav.onclick = () => {
+          const query = search.value;
+          experienceGuide.toggleFavorite(id);
+          renderWorldConsole('map');
+          const nextSearch = document.getElementById('world-map-search');
+          if (nextSearch) {
+            nextSearch.value = query;
+            nextSearch.dispatchEvent(new Event('input'));
+          }
+          if (worldConsoleFocus) worldConsoleFocus.focus('#world-map-search');
+        };
         wrapper.append(go, fav); host.appendChild(wrapper);
       };
       sections.forEach(section => {
@@ -3414,9 +3455,19 @@
         `<article class="guide-card"><h3>Field notes</h3><p>${snapshot.visited.length} rooms visited · ${mementos.length} keepsakes · ${discoveryLog.count()} discoveries · ${snapshot.forms.length}/9 forms tried.</p><p>Fill each regional keepsake set at your own pace—there are no stat upgrades or missable rewards.</p></article>` +
         `<h3>Regional collections</h3>${collectionMarkup}` +
         `<h3>Achievements</h3><div class="map-room-list">${achievements.map(a => `<div class="guide-card"><strong>${a.unlocked ? '🏅' : '🔒'} ${uiEscape(a.title)}</strong></div>`).join('')}</div>`;
-      const start = body.querySelector('#tour-start'); if (start) start.onclick = () => { firstVisitTourStep = 0; renderWorldConsole('guide'); };
-      const next = body.querySelector('#tour-next'); if (next) next.onclick = () => { if (firstVisitTourStep >= tour.length - 1) firstVisitTourStep = -1; else firstVisitTourStep++; renderWorldConsole('guide'); };
-      const skip = body.querySelector('#tour-skip'); if (skip) skip.onclick = () => { firstVisitTourStep = -1; renderWorldConsole('guide'); };
+      const start = body.querySelector('#tour-start'); if (start) start.onclick = () => {
+        firstVisitTourStep = 0; renderWorldConsole('guide');
+        if (worldConsoleFocus) worldConsoleFocus.focus('#tour-next');
+      };
+      const next = body.querySelector('#tour-next'); if (next) next.onclick = () => {
+        if (firstVisitTourStep >= tour.length - 1) firstVisitTourStep = -1; else firstVisitTourStep++;
+        renderWorldConsole('guide');
+        if (worldConsoleFocus) worldConsoleFocus.focus(firstVisitTourStep >= 0 ? '#tour-next' : '#tour-start');
+      };
+      const skip = body.querySelector('#tour-skip'); if (skip) skip.onclick = () => {
+        firstVisitTourStep = -1; renderWorldConsole('guide');
+        if (worldConsoleFocus) worldConsoleFocus.focus('#tour-start');
+      };
     }
 
     function renderPhotoAlbum(body) {
@@ -3469,14 +3520,19 @@
         (routines.length ? routines.map(r => `<article class="guide-card routine-card"><span><strong>${uiEscape(r.name)}</strong><br><small>${uiEscape(roomLabelFor(r.roomId))} · ${uiEscape(EEVEELUTION_DATA[r.form] ? EEVEELUTION_DATA[r.form].name.split(' (')[0] : r.form)}</small></span><span><button class="feature-button routine-go" data-routine="${uiEscape(r.id)}">Visit</button> <button class="feature-button routine-remove" data-routine="${uiEscape(r.id)}" aria-label="Remove saved visit">Remove</button></span></article>`).join('') : '<p class="feature-empty">No saved visits yet. Save this room and form to make a shortcut.</p>');
       body.querySelector('#routine-save').onclick = () => {
         const name = body.querySelector('#routine-name').value.trim();
-        saveCurrentRoutine(name || undefined); renderWorldConsole('routines');
+        saveCurrentRoutine(name || undefined);
+        if (worldConsoleFocus) worldConsoleFocus.focus('#routine-name');
       };
       body.querySelectorAll('.routine-go').forEach(button => button.onclick = () => {
         const routine = routines.find(r => r.id === button.dataset.routine); if (!routine) return;
         if (EEVEELUTION_DATA[routine.form]) selectEeveelution(routine.form);
         goToRoomImmediate(routine.roomId); closeWorldConsole();
       });
-      body.querySelectorAll('.routine-remove').forEach(button => button.onclick = () => { experienceGuide.removeRoutine(button.dataset.routine); renderWorldConsole('routines'); });
+      body.querySelectorAll('.routine-remove').forEach(button => button.onclick = () => {
+        experienceGuide.removeRoutine(button.dataset.routine);
+        renderWorldConsole('routines');
+        if (worldConsoleFocus && !worldConsoleFocus.focus('.routine-remove')) worldConsoleFocus.focus('#routine-name');
+      });
     }
 
     function saveCurrentRoutine(name) {
@@ -3493,9 +3549,13 @@
       if (arcadeRunning) switchGameMode('sandbox');
       closeDrawer(); closeInteractionWheel(); closeWorldConsole();
       if (!miniGameUI) return false;
+      const activeElement = document.activeElement;
+      const returnFocus = activeElement && activeElement.closest && activeElement.closest('#control-drawer')
+        ? document.getElementById('drawer-fab')
+        : activeElement;
       isMiniGameOpen = true;
       if (controls) controls.enabled = false;
-      miniGameUI.openCatalog();
+      miniGameUI.openCatalog(returnFocus);
       uiChrome.pushEscape(closeMiniGames);
       return true;
     }
@@ -3793,6 +3853,11 @@
       onSetQuality(save.get('ui.quality', 'high'));
 
       uiChrome = new UIChrome({ save, fadeDelay: 3200 });
+      worldConsoleFocus = new UIChrome.ModalFocusManager(document.getElementById('world-console-overlay'));
+      settingsFocus = new UIChrome.ModalFocusManager(document.getElementById('settings-sheet'));
+      ensureShortcutCapture();
+      const worldRoot = document.getElementById('world-console-overlay');
+      if (worldRoot) worldRoot.addEventListener('click', event => { if (event.target === worldRoot) closeWorldConsole(); });
       document.documentElement.dataset.reducedMotion = uiChrome.reducedMotion ? 'true' : 'false';
       uiChrome.applyDensity(save.get('ui.density', 'minimal'));
       uiChrome.registerFadeTargets(Array.from(document.querySelectorAll('.fadeable')));

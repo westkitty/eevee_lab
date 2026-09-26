@@ -7,12 +7,12 @@
   "project_name": "Eevee Lab",
   "project_root": "/",
   "artifact_path": "index.html",
-  "state_revision": 14,
-  "last_updated": "2026-09-23",
+  "state_revision": 15,
+  "last_updated": "2026-09-26",
   "current_baseline": {
-    "identity": "bdb4e8109fede35e0ac634be3089035cd9d40253",
-    "state": "adaptive-hud-browser-verified",
-    "last_verified": "adaptive-five-viewport-browser-matrix-plus-focused-contracts"
+    "identity": "f606913a4bede2d90b9c6fb619e4f038cae29df4",
+    "state": "pre-quality-uplift-source-baseline-focused-contracts-pass-browser-unverified",
+    "last_verified": "12 focused Node contracts plus JavaScript/Python syntax checks; current browser binary unavailable"
   },
   "scope_boundaries": [
     "The vanilla Three.js Habitat House browser project in westkitty/eevee_lab."
@@ -34,7 +34,7 @@
 
 ## 2. Current Baseline
 
-- **Primary artifact:** `bdb4e8109fede35e0ac634be3089035cd9d40253`
+- **Pre-uplift source baseline:** `f606913a4bede2d90b9c6fb619e4f038cae29df4` (the checked-out parent of this quality-uplift working tree).
 - **Protected pre-Phase-0 runtime baseline:** `661a37bc7f86e5ff2b7da28d02e8c44ad696e007`.
 - **Protected pre-Phase-1 implementation baseline:** `0e31de1b392bb6cab1895818047ad45982a87a08`.
 - **Protected pre-Phase-2 implementation baseline:** `0c8f9adc9f251c044f4cb290cc6c6ec2f110c8cc`.
@@ -43,11 +43,13 @@
 - **Protected pre-Phase-5 implementation baseline:** `eb5d02152f7ed588c3ac3fc6d3d9c8613d15f44f`.
 - **Protected pre-Phase-6 implementation baseline:** `8ac85ce77defac04ce0a7dace0679793dadc5c59`.
 - **Protected pre-Phase-7 implementation baseline:** `6246e1ca3e453691b0ceaf474b01ef851ddca8eb`.
-- **Baseline state:** The expedition-integrated runtime now has a viewport-adaptive HUD for phone portrait, phone landscape, tablet portrait, tablet landscape/small desktop, and wide desktop. Safe-area insets, dynamic viewport height, portrait bottom sheets, compact-landscape edge rails, bounded tablet/desktop panes, coarse-pointer target sizing, and ultrawide edge rails are implemented. The expanded Playwright journey completes 95/95 with zero console/page errors, and all focused Phase-1–7 plus expansion contracts remain green. Manual visual composition review of the new responsive layouts remains unverified.
+- **Pre-uplift evidence:** 12 focused Node contracts, JavaScript syntax checks, Python tool compilation, and `git diff --check` passed before the uplift edits. Browser verification did not run in this environment.
+- **Recorded historical evidence (not rerun here):** The prior state record attributes a 95/95 Playwright journey and five-viewport checks to `bdb4e8109fede35e0ac634be3089035cd9d40253`, and a Pages deployment to `ac53c13a15292a1ebf221060c6156804abc33c0f`. Those commits are not available in this shallow checkout; treat these as historical records, not current-session verification.
 - **Source/build/install identity:** Vanilla global-script Three.js r128; no bundler or framework.
 - **Active default user route:** `index.html` → Habitat House → Conservatory / habitat rooms.
-- **Delivery state:** The adaptive responsive baseline is deployed on GitHub Pages and the public route has been verified against the current responsive/expansion build.
-- **Last verified baseline:** `bdb4e8109fede35e0ac634be3089035cd9d40253` in GitHub Actions for focused contracts and the expanded 95-check Playwright journey across five representative viewport classes; rendered visual review of the new adaptive layouts has not yet been performed.
+- **Current branch delivery:** No live-route or Pages deployment verification has been performed for the quality-uplift revision; the earlier deployment record is historical.
+- **Current visual status:** Browser rendering and manual visual composition review remain unverified.
+- **Detailed current quality assessment:** [`docs/QUALITY_UPLIFT_REPORT.md`](docs/QUALITY_UPLIFT_REPORT.md).
 
 ## 3. Artifact Contract
 

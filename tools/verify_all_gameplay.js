@@ -17,17 +17,7 @@
 const path = require('path');
 const fs = require('fs');
 
-function resolvePlaywright() {
-  try { return require('playwright'); } catch (e) { /* fall through */ }
-  const globalCandidates = [
-    '/opt/homebrew/lib/node_modules/playwright',
-    '/usr/local/lib/node_modules/playwright'
-  ];
-  for (const c of globalCandidates) {
-    if (fs.existsSync(c)) return require(c);
-  }
-  throw new Error('Playwright not found. Install it with: npm install -g playwright && npx playwright install chromium');
-}
+const { resolvePlaywright } = require('./playwright_support');
 const { chromium } = resolvePlaywright();
 
 const REPO_ROOT = path.resolve(__dirname, '..');

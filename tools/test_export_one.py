@@ -2,8 +2,13 @@ import bpy
 import os
 from mathutils import Vector, Matrix
 
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SOURCE_GLTF = os.path.join(REPO_ROOT, "assets/source/886732730f9048b990d4220ca01db24a_unpacked/scene.gltf")
+# Generated test exports belong in ignored QA output, not tracked runtime assets.
+OUTPUT_PATH = os.path.join(REPO_ROOT, "qa/asset-tests/umbreon_test.glb")
+
 bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.gltf(filepath="assets/source/886732730f9048b990d4220ca01db24a_unpacked/scene.gltf")
+bpy.ops.import_scene.gltf(filepath=SOURCE_GLTF)
 
 # Let's inspect GLTF_created_0 (Umbreon)
 arm = bpy.data.objects.get("GLTF_created_0")
@@ -96,8 +101,8 @@ for m in skinned_meshes:
     m.select_set(True)
 bpy.context.view_layer.objects.active = arm
 
-os.makedirs("assets/models", exist_ok=True)
-out_path = os.path.abspath("assets/models/umbreon_test.glb")
+os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
+out_path = OUTPUT_PATH
 bpy.ops.export_scene.gltf(
     filepath=out_path,
     use_selection=True,
