@@ -79,6 +79,10 @@ The patch does not replace or delete existing models, rooms, game content, audio
 - **Browser:** no Chromium/Chrome executable or cached Playwright browser is available. No screenshot, real focus/AT audit, gameplay browser run, or responsive visual assessment is claimed. Earlier Chromium download attempts failed with `ECONNRESET`; no retry was made.
 - **Build/CI:** no app build configuration or `.github/workflows` file was found in the inspected checkout; no build, CI, or deployment result is claimed.
 
+## Delivery and Git state
+
+The changes and this report are committed on `arena/01a0dee3-eevee-lab`, which tracks the same branch on `origin`; the working tree is clean at handoff. No pull request, deployment, or live-site verification is claimed.
+
 ## Remaining high-value work, ranked
 
 1. Obtain a compatible browser and run the full gameplay journey plus a five-viewport visual/focus audit; verify the new save status presentation and page lifecycle in a real browser.
