@@ -82,6 +82,20 @@
     return out;
   }
 
+  function readSaveVersion(raw) {
+    if (!raw || typeof raw !== 'object' || raw.version == null || raw.version === '') return 0;
+    const version = Number(raw.version);
+    if (!Number.isSafeInteger(version) || version < 0) throw new Error('That save has an invalid schema version.');
+    return version;
+  }
+
+  function assertSupportedVersion(version) {
+    if (version > SAVE_VERSION) {
+      throw new Error(`This save was created by a newer version (v${version}); update the app before importing it.`);
+    }
+    return version;
+  }
+
   function migrate(raw) {
     // No stored save yet: start fresh but pull the legacy high score in.
     if (!raw) {
@@ -91,6 +105,7 @@
       return state;
     }
 
+    const version = assertSupportedVersion(readSaveVersion(raw));
     const defaults = defaultState();
     let state = Object.assign({}, defaults, raw);
     state.ui = Object.assign({}, defaults.ui, raw.ui || {});
@@ -112,13 +127,13 @@
     state.journey.favorites = Array.isArray(raw.journey && raw.journey.favorites) ? raw.journey.favorites.slice(0, 20) : [];
     state.journey.visited = Array.isArray(raw.journey && raw.journey.visited) ? raw.journey.visited.slice(-100) : [];
 
-    if (!raw.version || raw.version < 2) {
+    if (version < 2) {
       state.roomNarrative = (raw.roomNarrative && typeof raw.roomNarrative === 'object') ? raw.roomNarrative : {};
       state.placedObjects = (raw.placedObjects && typeof raw.placedObjects === 'object') ? raw.placedObjects : {};
       state.crossContamination = normalizeLegacyCrossContamination(raw.crossContamination || {});
     }
 
-    if (!raw.version || raw.version < 3) {
+    if (version < 3) {
       state.abilityMutations = (raw.abilityMutations && typeof raw.abilityMutations === 'object' && !Array.isArray(raw.abilityMutations))
         ? raw.abilityMutations
         : {};
@@ -141,14 +156,25 @@
 
   class SaveManager {
     constructor() {
-      this.state = this._load();
+      this.readOnly = false;
+      this.unsupportedVersion = null;
+      this.lastPersistenceError = null;
       this._saveTimer = null;
+      this.state = this._load();
+      this._onPageHide = () => this.flush();
+      if (typeof global.addEventListener === 'function') global.addEventListener('pagehide', this._onPageHide);
     }
 
     _load() {
       try {
         const rawText = global.localStorage.getItem(SAVE_KEY);
         const raw = rawText ? JSON.parse(rawText) : null;
+        const version = readSaveVersion(raw);
+        if (version > SAVE_VERSION) {
+          this.readOnly = true;
+          this.unsupportedVersion = version;
+          return defaultState();
+        }
         return migrate(raw);
       } catch (err) {
         console.warn('[persistence] failed to load save, starting fresh:', err);
@@ -185,6 +211,7 @@
     }
 
     scheduleSave() {
+      if (this.readOnly) return;
       clearTimeout(this._saveTimer);
       this._saveTimer = setTimeout(() => this.flush(), 250);
     }
@@ -192,15 +219,21 @@
     flush() {
       clearTimeout(this._saveTimer);
       this._saveTimer = null;
+      if (this.readOnly) return false;
       try {
         global.localStorage.setItem(SAVE_KEY, JSON.stringify(this.state));
+        this.lastPersistenceError = null;
+        return true;
       } catch (err) {
+        this.lastPersistenceError = err;
         console.warn('[persistence] failed to persist save:', err);
+        return false;
       }
     }
 
     exportJSON() {
-      this.flush();
+      if (this.readOnly) throw new Error(`This save is from a newer version (v${this.unsupportedVersion}); it is read-only to protect your data.`);
+      if (!this.flush()) throw new Error('The habitat save could not be synchronized with browser storage.');
       return JSON.stringify({ format: 'eevee-habitat-save', version: SAVE_VERSION, exportedAt: new Date().toISOString(), data: this.state }, null, 2);
     }
 
@@ -208,13 +241,27 @@
       if (typeof text !== 'string' || text.length > 2 * 1024 * 1024) throw new Error('Save file is empty or too large.');
       let payload;
       try { payload = JSON.parse(text); } catch (_) { throw new Error('That file is not valid JSON.'); }
-      const raw = payload && payload.format === 'eevee-habitat-save' ? payload.data : payload;
+      const wrapped = payload && payload.format === 'eevee-habitat-save';
+      if (wrapped) assertSupportedVersion(readSaveVersion(payload));
+      const raw = wrapped ? payload.data : payload;
       if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('That file does not contain a habitat save.');
       if (raw.activeForm && !['eevee','vaporeon','jolteon','flareon','espeon','umbreon','leafeon','glaceon','sylveon'].includes(raw.activeForm)) {
         throw new Error('That save contains an unknown active form.');
       }
-      this.state = migrate(raw);
-      this.flush();
+
+      const imported = migrate(raw);
+      const previousState = this.state;
+      const wasReadOnly = this.readOnly;
+      const previousUnsupportedVersion = this.unsupportedVersion;
+      this.state = imported;
+      this.readOnly = false;
+      this.unsupportedVersion = null;
+      if (!this.flush()) {
+        this.state = previousState;
+        this.readOnly = wasReadOnly;
+        this.unsupportedVersion = previousUnsupportedVersion;
+        throw new Error('The imported save could not be written to browser storage. Your previous save was left unchanged.');
+      }
       return this.state;
     }
 

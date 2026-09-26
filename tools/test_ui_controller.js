@@ -14,7 +14,20 @@ const window = {
     listeners.set(type, (listeners.get(type) || []).filter(item => item !== handler));
   }
 };
-const document = { activeElement: null };
+const document = {
+  activeElement: null,
+  handlers: new Map(),
+  addEventListener(type, handler, capture) { this.handlers.set(`${type}:${!!capture}`, handler); },
+  removeEventListener(type, handler, capture) {
+    const key = `${type}:${!!capture}`;
+    if (this.handlers.get(key) === handler) this.handlers.delete(key);
+  },
+  dispatch(event) {
+    const handler = this.handlers.get('keydown:true');
+    if (handler) handler(event);
+  },
+  listenerCount() { return this.handlers.size; }
+};
 window.document = document;
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'src', 'ui-controller.js'), 'utf8'), {
   window, document, clearTimeout, setTimeout, Array, Set, Object, String, Math
@@ -60,16 +73,20 @@ assert.equal(document.activeElement, first, 'opening focuses the requested contr
 assert.equal(focus.focus('#missing'), false, 'an absent requested selector does not steal focus');
 assert.equal(document.activeElement, first);
 last.focus();
-let event = keyEvent('Tab'); root.dispatch(event);
+let event = keyEvent('Tab'); document.dispatch(event);
 assert(event.prevented && document.activeElement === first, 'Tab wraps from the last control to the first');
 first.focus();
-event = keyEvent('Tab', true); root.dispatch(event);
+event = keyEvent('Tab', true); document.dispatch(event);
 assert(event.prevented && document.activeElement === last, 'Shift+Tab wraps from the first control to the last');
 opener.focus();
-event = keyEvent('Tab'); root.dispatch(event);
+event = keyEvent('Tab'); document.dispatch(event);
 assert(event.prevented && document.activeElement === first, 'focus entering from outside is contained');
+opener.focus();
+event = keyEvent('Tab', true); document.dispatch(event);
+assert(event.prevented && document.activeElement === last, 'reverse focus entering from outside is contained');
 assert(focus.close());
 assert.equal(document.activeElement, opener, 'closing restores the original focus target');
+assert.equal(document.listenerCount(), 0, 'closing removes the document-wide focus trap');
 assert.equal(focus.close(), false, 'closing is idempotent');
 
 class EventTarget {

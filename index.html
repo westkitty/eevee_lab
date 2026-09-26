@@ -278,6 +278,8 @@
     }
     #settings-sheet.open { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
     .settings-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f1e6d3; }
+    .settings-row.save-compat-warning { display: block; padding: 10px 12px; border: 1px solid #e7c16c; border-radius: 10px; background: #fff4d7; color: #714911; font-size: 0.84rem; font-weight: 700; line-height: 1.4; }
+    .settings-row.save-compat-warning[hidden] { display: none; }
     .settings-row label { font-size: 0.85rem; font-weight: 700; color: #55341c; }
     .settings-row select, .settings-row input[type="range"] { max-width: 55%; }
 
@@ -1095,6 +1097,7 @@
     <div class="settings-row"><label for="set-control-scheme">Controls</label><select id="set-control-scheme" onchange="onSetControlScheme(this.value)"><option value="auto">Automatic</option><option value="keyboard">Keyboard & mouse</option><option value="touch">Touch-first</option></select></div>
     <div class="settings-row"><span>Keyboard shortcuts</span><div class="drawer-row"><button class="drawer-btn" id="bind-wheel" onclick="captureShortcut('wheel')">Paws · E</button><button class="drawer-btn" id="bind-map" onclick="captureShortcut('map')">Map · M</button><button class="drawer-btn" id="bind-games" onclick="captureShortcut('games')">Games · G</button></div></div>
     <div class="settings-row"><label for="set-captions">Interaction captions</label><input type="checkbox" id="set-captions" onchange="onSetCaptions(this.checked)"></div>
+    <div class="settings-row save-compat-warning" id="save-compat-warning" role="status" aria-live="polite" hidden></div>
     <div class="settings-row"><span>Local save</span><div class="drawer-row"><button class="drawer-btn" onclick="exportHabitatSave()">Export</button><button class="drawer-btn" onclick="document.getElementById('import-save-file').click()">Import</button></div></div>
     <input id="import-save-file" type="file" accept="application/json,.json" class="visually-hidden" onchange="importHabitatSave(this.files && this.files[0])">
     <div class="drawer-row" style="margin-top:14px;"><button class="drawer-btn active" onclick="closeSettings()">Done</button></div>
@@ -3094,6 +3097,13 @@
       sheet.setAttribute('aria-hidden', 'false');
       document.getElementById('settings-backdrop').classList.add('open');
       sheet.classList.add('open');
+      const saveWarning = document.getElementById('save-compat-warning');
+      if (saveWarning) {
+        saveWarning.hidden = !save.readOnly;
+        saveWarning.textContent = save.readOnly
+          ? `Your v${save.unsupportedVersion} save is preserved read-only by this older app version. Import a compatible backup to resume saving.`
+          : '';
+      }
       document.getElementById('set-density').value = save.get('ui.density', 'minimal');
       document.getElementById('set-reduced-motion').checked = !!save.get('ui.reducedMotion', false);
       document.getElementById('set-music').checked = audio.isMusicPlaying;
@@ -3807,6 +3817,7 @@
     }
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
+        save.flush();
         if (livingWorld) livingWorld.setSuspended(true);
         if (audio.ctx && audio.ctx.state === 'running') audio.ctx.suspend().catch(() => {});
       } else {
@@ -4563,6 +4574,7 @@
 
     function startApp() {
       if (eeveeRig) return;
+      if (save.readOnly) showSpeech(`A newer v${save.unsupportedVersion} habitat save is preserved read-only. Open Settings to import a compatible backup before saving again.`);
       initThreeScene();
       animate();
       updateFactSheet(currentForm);

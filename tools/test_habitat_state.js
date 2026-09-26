@@ -4,10 +4,28 @@ const vm = require('vm');
 const assert = require('assert');
 
 class FakeStorage {
-  constructor(seed) { this.map = new Map(Object.entries(seed || {})); }
+  constructor(seed) { this.map = new Map(Object.entries(seed || {})); this.failWrites = false; }
   getItem(k) { return this.map.has(k) ? this.map.get(k) : null; }
-  setItem(k, v) { this.map.set(k, String(v)); }
+  setItem(k, v) {
+    if (this.failWrites) throw new Error('storage quota exceeded');
+    this.map.set(k, String(v));
+  }
   removeItem(k) { this.map.delete(k); }
+}
+
+class FakeWindow {
+  constructor(localStorage) { this.localStorage = localStorage; this.listeners = new Map(); }
+  addEventListener(type, listener) {
+    if (!this.listeners.has(type)) this.listeners.set(type, new Set());
+    this.listeners.get(type).add(listener);
+  }
+  removeEventListener(type, listener) {
+    const listeners = this.listeners.get(type);
+    if (listeners) listeners.delete(listener);
+  }
+  dispatch(type) {
+    for (const listener of this.listeners.get(type) || []) listener({ type });
+  }
 }
 
 const legacy = {
@@ -24,7 +42,7 @@ const legacy = {
 const localStorage = new FakeStorage({
   eevee_habitat_save: JSON.stringify(legacy)
 });
-const window = { localStorage };
+const window = new FakeWindow(localStorage);
 const context = {
   window,
   console,
@@ -121,10 +139,42 @@ assert(world.getRoomState('conservatory').stageIndex >= 1);
 
 const backup = save.exportJSON();
 save.set('ui.musicVolume', 0.2);
-save.flush();
+window.dispatch('pagehide');
+assert.equal(JSON.parse(localStorage.getItem('eevee_habitat_save')).ui.musicVolume, 0.2, 'pagehide flushes a pending debounced save');
 save.importJSON(backup);
 assert.equal(save.get('ui.musicVolume'), 0.58, 'export/import should round-trip the complete save');
 assert.throws(() => save.importJSON('[]'), /habitat save/i, 'import should reject a non-save JSON array');
+
+const futureRaw = JSON.stringify({ version: 5, activeForm: 'sylveon', futureField: { preserve: true } });
+const futureStorage = new FakeStorage({ eevee_habitat_save: futureRaw });
+const futureWindow = new FakeWindow(futureStorage);
+const futureContext = Object.assign({}, context, { window: futureWindow });
+vm.runInNewContext(persistence, futureContext);
+const futureSave = new futureWindow.SaveManager();
+assert.equal(futureSave.readOnly, true, 'newer on-disk saves enter protected read-only mode');
+assert.equal(futureSave.unsupportedVersion, 5);
+futureSave.set('activeForm', 'flareon');
+assert.equal(futureSave.flush(), false);
+assert.equal(futureStorage.getItem('eevee_habitat_save'), futureRaw, 'mutations cannot downgrade the newer stored save');
+assert.throws(() => futureSave.exportJSON(), /newer version/i);
+assert.throws(() => futureSave.importJSON(JSON.stringify({
+  format: 'eevee-habitat-save', version: 5, data: { version: 5, activeForm: 'sylveon' }
+})), /newer version/i);
+assert.equal(futureStorage.getItem('eevee_habitat_save'), futureRaw, 'rejected imports preserve the original bytes');
+futureSave.importJSON(backup);
+assert.equal(futureSave.readOnly, false, 'a compatible backup restores writable mode');
+assert.equal(JSON.parse(futureStorage.getItem('eevee_habitat_save')).version, 4);
+
+const blockedStorage = new FakeStorage({ eevee_habitat_save: JSON.stringify({ version: 4 }) });
+const blockedWindow = new FakeWindow(blockedStorage);
+const blockedContext = Object.assign({}, context, { window: blockedWindow, console: { warn() {}, error: console.error } });
+vm.runInNewContext(persistence, blockedContext);
+const blockedSave = new blockedWindow.SaveManager();
+const originalBlockedState = blockedSave.state;
+blockedStorage.failWrites = true;
+assert.throws(() => blockedSave.importJSON(backup), /browser storage/i);
+assert.strictEqual(blockedSave.state, originalBlockedState, 'failed imports roll back in-memory state');
+assert.equal(JSON.parse(blockedStorage.getItem('eevee_habitat_save')).version, 4, 'failed imports leave the previous stored save unchanged');
 
 save.flush();
 const stored = JSON.parse(localStorage.getItem('eevee_habitat_save'));

@@ -19,6 +19,8 @@
       this.document = documentRef || global.document || null;
       this.active = false;
       this.returnFocus = null;
+      this._eventTarget = null;
+      this._eventCapture = false;
       this._onKeydown = this._onKeydown.bind(this);
     }
 
@@ -27,7 +29,15 @@
       if (!this.active) {
         this.returnFocus = returnFocus || (this.document && this.document.activeElement) || null;
         this.active = true;
-        this.root.addEventListener('keydown', this._onKeydown);
+        const documentSupportsEvents = this.document
+          && typeof this.document.addEventListener === 'function'
+          && typeof this.document.removeEventListener === 'function';
+        const target = documentSupportsEvents ? this.document : this.root;
+        if (target && typeof target.addEventListener === 'function' && typeof target.removeEventListener === 'function') {
+          this._eventTarget = target;
+          this._eventCapture = documentSupportsEvents;
+          target.addEventListener('keydown', this._onKeydown, this._eventCapture);
+        }
       }
       this.focus(initialFocus, true);
       return true;
@@ -49,7 +59,9 @@
     close() {
       if (!this.active) return false;
       this.active = false;
-      this.root.removeEventListener('keydown', this._onKeydown);
+      if (this._eventTarget) this._eventTarget.removeEventListener('keydown', this._onKeydown, this._eventCapture);
+      this._eventTarget = null;
+      this._eventCapture = false;
       const previous = this.returnFocus;
       this.returnFocus = null;
       if (previous && previous.isConnected !== false && typeof previous.focus === 'function') previous.focus();
