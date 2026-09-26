@@ -20,8 +20,11 @@ class FakeActor {
   placeAt(p){ this.root.position.copy(p); return true; }
   moveTo(p,opts){ this.moves.push({p:p.clone(),opts}); this.target=p.clone(); this.state='walk'; return true; }
   lookAtWorld(){}
+  setAutonomyEnabled(enabled){ this.autonomyEnabled=!!enabled; }
+  hold(){ this.target=null; this.state='idle'; }
+  stop(){ this.hold(); }
   setBehaviorState(s){ this.behaviorState=s; this.state=s; return true; }
-  clearBehaviorState(){ this.behaviorState=null; this.state='idle'; return true; }
+  clearBehaviorState(expected){ if(expected && this.behaviorState!==expected)return false; this.behaviorState=null; this.state='idle'; return true; }
   update(){ if(this.target){ this.root.position.copy(this.target); this.target=null; this.state='idle'; } }
 }
 const window={THREE:{Vector3,Group},CreatureActorSystem:{CreatureActor:FakeActor}};
@@ -87,5 +90,32 @@ manager.socialMode=null;
 manager.toyInterest=null;
 manager.update(0.1,0.2,{primary:{},companion:{},socialSuspended:false,reducedMotion:false,userActive:false});
 assert.equal(manager.getDebugState().socialMode,'nap-together');
+
+const commandManager = new CreatureManager({ scene:new Group(), random:()=>0 });
+const commandPrimary = new FakeActor({root:new Group(),species:'eevee'});
+const commandCompanionRoot = new Group(); commandCompanionRoot.position.x=-1;
+const commandCompanion = new FakeActor({root:commandCompanionRoot,species:'vaporeon'});
+commandManager.setPrimary(commandPrimary,{id:'primary',species:'eevee'});
+commandManager.registerCompanionActor({id:'vaporeon-companion',species:'vaporeon',actor:commandCompanion,root:commandCompanionRoot});
+commandManager.setRoom('conservatory',{});
+assert(commandManager.commandCompanion('stay'));
+assert.equal(commandManager.getDebugState().companions[0].command,'stay');
+commandPrimary.root.position.x=4;
+const stayMoveCount=commandCompanion.moves.length;
+commandManager.update(0.4,0,{primary:{},companion:{},socialSuspended:false,reducedMotion:false,userActive:false});
+assert.equal(commandCompanion.moves.length,stayMoveCount,'stay should prevent automatic separation and social movement');
+assert.equal(commandManager.notifyToyReleased(new Vector3(2,0,2),'ball',{}),false,'stay should also suppress unsolicited toy pursuit');
+assert(commandManager.commandCompanion('follow'));
+commandManager.update(0.4,0.4,{primary:{},companion:{},socialSuspended:false,reducedMotion:false,userActive:false});
+assert(commandCompanion.moves.some(m=>m.opts.source==='companion-follow'),'follow should track the primary instead of only issuing one move');
+assert(commandManager.commandCompanion('recall'));
+assert.equal(commandCompanion.moves[commandCompanion.moves.length-1].opts.source,'companion-follow');
+assert(commandManager.commandCompanion('play'));
+assert.equal(commandCompanion.behaviorState,'play');
+commandManager.update(3,3,{primary:{},companion:{},socialSuspended:false,reducedMotion:false,userActive:false});
+assert.equal(commandManager.getDebugState().companions[0].command,'autonomy','play should end and restore autonomous behavior');
+assert(commandManager.commandCompanion('stay'));
+commandManager.setRoom('vaporeon',{});
+assert.equal(commandManager.getDebugState().companions[0].command,'autonomy','room changes should clear temporary commands');
 
 console.log('creature manager unit test: PASS');

@@ -802,6 +802,92 @@
     /* Density (UX-08): Minimal hides optional persistent chrome; Standard adds breadcrumb;
        Full keeps the lore drawer peeked open by default via JS. */
     html[data-density="minimal"] .req-standard { display: none !important; }
+
+    /* New local exploration + mini-game panels; each is a single modal layer. */
+    body.captions-off .speech-bubble { display: none !important; }
+    #companion-commands[hidden] { display: none !important; }
+    .feature-backdrop[hidden] { display: none !important; }
+    .feature-backdrop {
+      position: fixed; inset: 0; z-index: 1200; display: flex; align-items: center; justify-content: center;
+      padding: max(14px, var(--safe-top)) max(14px, var(--safe-right)) max(14px, var(--safe-bottom)) max(14px);
+      background: rgba(24, 24, 40, 0.62); backdrop-filter: blur(5px); overflow: auto;
+    }
+    .feature-panel {
+      width: min(920px, 100%); max-height: min(88vh, 900px); max-height: min(88dvh, 900px); overflow: auto;
+      background: linear-gradient(145deg, #fffdf7, #fff3dc); color: #442f26; border: 2px solid rgba(255,255,255,.8);
+      border-radius: 24px; box-shadow: 0 24px 80px rgba(12, 17, 37, .38); padding: clamp(16px, 3vw, 28px);
+    }
+    .feature-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
+    .feature-head h2 { margin: 0; font: 1.35rem var(--font-display); color: #6e4624; }
+    .feature-head p { margin: 7px 0 0; color: #715d50; }
+    .feature-close { border: 0; border-radius: 50%; width: 44px; height: 44px; flex: 0 0 auto; font-size: 1.4rem; cursor: pointer; background: #f7e5c4; color: #573b2d; }
+    .mini-tools { display: flex; align-items: center; gap: 10px; margin: 12px 0; }
+    .mini-tools label { font-weight: 700; }
+    .mini-tools input, .map-search { min-height: 42px; padding: 8px 12px; border: 1px solid #dfcaa8; border-radius: 12px; background: white; color: #38291f; font: inherit; }
+    .mini-tools input { flex: 1; min-width: 100px; }
+    .mini-best { white-space: nowrap; font-size: .85rem; color: #6a5a4b; }
+    .mini-cups { display: flex; flex-wrap: wrap; gap: 7px; margin: 8px 0 14px; }
+    .mini-cup { display: inline-flex; align-items: center; min-height: 30px; padding: 5px 9px; border-radius: 99px; background: rgba(255,255,255,.76); border: 1px solid #ead7b7; color: #725640; font-size: .76rem; }
+    .mini-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .mini-card { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,.78); border: 1px solid #eedcbe; }
+    .mini-card-icon { font-size: 1.7rem; text-align: center; }
+    .mini-card-copy h3 { margin: 0; font-size: 1rem; color: #573b2d; }
+    .mini-card-copy p { margin: 4px 0; font-size: .82rem; line-height: 1.3; color: #756050; }
+    .mini-card-copy small { color: #88745f; }
+    .mini-card button, .mini-action, .feature-button { min-height: 44px; border: 0; border-radius: 12px; padding: 8px 14px; background: #f0dfbf; color: #513b2a; font: 700 .9rem 'Fredoka', sans-serif; cursor: pointer; }
+    .mini-card button:hover, .mini-action:hover, .feature-button:hover { filter: brightness(.97); transform: translateY(-1px); }
+    .mini-action.mini-primary, .feature-button.primary { background: linear-gradient(135deg, #ffb834, #ff8757); color: #fff; }
+    .mini-action.mini-token { min-width: 56px; font-size: 1.2rem; }
+    .mini-run-status { display: flex; justify-content: space-between; gap: 8px; font-size: .88rem; color: #6a5949; }
+    .mini-progress { height: 9px; border-radius: 10px; overflow: hidden; background: #eadcc5; margin: 10px 0 16px; }
+    .mini-progress span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #6bd2b4, #72b5ff); transition: width .2s; }
+    .mini-play-area { min-height: 150px; padding: clamp(14px, 3vw, 24px); border: 1px solid #ecd8b4; border-radius: 18px; background: radial-gradient(circle at 50% 0, #fff, #f8efd9); }
+    .mini-prompt { font-weight: 700; line-height: 1.55; text-align: center; min-height: 2.4em; }
+    .mini-controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; margin-top: 12px; }
+    .mini-feedback { min-height: 1.4em; text-align: center; color: #655546; font-weight: 600; }
+    .mini-result { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; padding-top: 10px; }
+    .mini-gear-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 8px 0; }
+    .mini-gear-row span { min-width: 75px; font-weight: 700; }
+    .makeover-grid { display: grid; grid-template-columns: repeat(3, 50px); gap: 7px; justify-content: center; margin: 8px auto; }
+    .makeover-grid button { min-height: 50px; font-size: 1.3rem; }
+    .makeover-grid button.selected { background: #a6d98c; outline: 2px solid #4b9b58; }
+    .timing-meter { height: 28px; position: relative; flex: 1 1 260px; max-width: 460px; border: 2px solid #a18769; border-radius: 99px; background: repeating-linear-gradient(90deg, #f4dfb7 0 12%, #f9edda 12% 24%); overflow: hidden; }
+    .timing-safe { position: absolute; top: 0; bottom: 0; background: rgba(99, 197, 112, .72); border-left: 2px solid #388b52; border-right: 2px solid #388b52; }
+    .timing-marker { position: absolute; left: 0; top: -2px; bottom: -2px; width: 5px; background: #402438; box-shadow: 0 0 7px white; }
+    .world-panel { width: min(1000px, 100%); }
+    .world-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 16px; }
+    .world-tabs button { min-height: 42px; border: 0; border-radius: 12px; padding: 8px 13px; background: #f0e1c8; color: #5c422f; font-weight: 700; cursor: pointer; }
+    .world-tabs button.active { background: #6e7ac7; color: white; }
+    .world-body { max-height: min(58vh, 560px); overflow: auto; padding-right: 4px; }
+    .map-search { width: 100%; margin: 2px 0 12px; }
+    .map-region { border: 1px solid #ecd8b4; border-radius: 16px; background: rgba(255,255,255,.58); padding: 12px; margin: 10px 0; }
+    .map-region h3 { margin: 0 0 9px; color: #6e4624; }
+    .map-room-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 7px; }
+    .map-room { display: flex; align-items: center; gap: 6px; min-height: 42px; padding: 6px 8px; border-radius: 11px; background: white; border: 1px solid #efe1ca; }
+    .map-room button { border: 0; background: transparent; color: #49372b; font: inherit; cursor: pointer; text-align: left; flex: 1; min-width: 0; }
+    .map-room button:first-child { overflow: hidden; text-overflow: ellipsis; }
+    .map-room .favorite { flex: 0 0 36px; text-align: center; color: #c98128; }
+    .guide-card { padding: 14px; background: rgba(255,255,255,.72); border: 1px solid #eddbbe; border-radius: 15px; margin: 9px 0; }
+    .guide-card h3 { margin: 0 0 5px; color: #60452f; }
+    .guide-card p { margin: 4px 0 10px; color: #746150; }
+    .guide-task { display: flex; gap: 8px; align-items: flex-start; padding: 4px 0; font-size: .93rem; }
+    .guide-task.complete { color: #367b55; }
+    .tour-callout { border-left: 4px solid #ffb834; padding: 12px; background: #fff9e9; border-radius: 0 12px 12px 0; margin: 10px 0; }
+    .routine-card { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: space-between; }
+    .album-card { display: flex; align-items: flex-start; gap: 12px; }
+    .album-rank { display: grid; place-items: center; width: 38px; height: 38px; flex: 0 0 auto; border-radius: 50%; background: #f2dfbb; color: #775636; font-weight: 800; }
+    .feature-empty { padding: 18px; text-align: center; color: #746150; }
+    .visually-hidden { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    @media (max-width: 640px) {
+      .feature-backdrop { align-items: flex-end; padding: 0; }
+      .feature-panel { max-height: min(92vh, 92dvh); width: 100%; border-radius: 22px 22px 0 0; padding: 16px; }
+      .mini-grid { grid-template-columns: 1fr; }
+      .mini-card { grid-template-columns: 38px minmax(0, 1fr) auto; }
+      .mini-run-status { font-size: .78rem; }
+      .world-body { max-height: 57dvh; }
+      .mini-tools { flex-wrap: wrap; }
+      .mini-tools input { order: 3; flex-basis: 100%; }
+    }
   </style>
 </head>
 <body>
@@ -901,6 +987,26 @@
         </div>
       </div>
       <div class="drawer-section">
+        <div class="drawer-title">Explore & play</div>
+        <div class="drawer-row">
+          <button class="drawer-btn" onclick="openWorldConsole('map')">🗺️ World Map</button>
+          <button class="drawer-btn" onclick="openWorldConsole('guide')">📜 Field Guide</button>
+          <button class="drawer-btn" onclick="openWorldConsole('today')">✨ Today</button>
+          <button class="drawer-btn" onclick="openWorldConsole('album')">📸 Photo Album</button>
+          <button class="drawer-btn" onclick="openMiniGames()">🕹️ Habitat Arcade</button>
+        </div>
+        <div class="drawer-row">
+          <button class="drawer-btn" onclick="saveCurrentRoutine()">💾 Save this visit</button>
+          <button class="drawer-btn" onclick="openWorldConsole('routines')">⭐ Favorite visits</button>
+        </div>
+        <div class="drawer-row" id="companion-commands">
+          <button class="drawer-btn" onclick="commandCompanion('follow')">🐾 Follow</button>
+          <button class="drawer-btn" onclick="commandCompanion('stay')">🪑 Stay</button>
+          <button class="drawer-btn" onclick="commandCompanion('play')">🎾 Play</button>
+          <button class="drawer-btn" onclick="commandCompanion('recall')">↩️ Come here</button>
+        </div>
+      </div>
+      <div class="drawer-section">
         <div class="drawer-title">Camera</div>
         <div class="drawer-row">
           <button class="drawer-btn" onclick="cameraController && cameraController.cyclePreset()">🎥 Cycle View (C)</button>
@@ -961,6 +1067,9 @@
 
   </div>
 
+  <div id="minigame-overlay" class="feature-backdrop interactive" role="presentation" hidden aria-hidden="true"></div>
+  <div id="world-console-overlay" class="feature-backdrop interactive" role="presentation" hidden aria-hidden="true"></div>
+
   <!-- Settings sheet -->
   <div id="settings-backdrop" onclick="closeSettings()"></div>
   <div id="settings-sheet" role="dialog" aria-label="Settings">
@@ -973,14 +1082,21 @@
     <div class="settings-row"><label for="set-reduced-motion">Reduced Motion</label><input type="checkbox" id="set-reduced-motion" onchange="onSetReducedMotion(this.checked)"></div>
     <div class="settings-row"><label for="set-music">Music</label><input type="checkbox" id="set-music" onchange="onSetMusic(this.checked)"></div>
     <div class="settings-row"><label for="set-sfx">Sound Effects</label><input type="checkbox" id="set-sfx" onchange="onSetSfx(this.checked)"></div>
+    <div class="settings-row"><label for="set-music-volume">Music Volume</label><input type="range" id="set-music-volume" min="0" max="1" step="0.05" oninput="onSetMusicVolume(this.value)"></div>
+    <div class="settings-row"><label for="set-sfx-volume">Effects Volume</label><input type="range" id="set-sfx-volume" min="0" max="1" step="0.05" oninput="onSetSfxVolume(this.value)"></div>
     <div class="settings-row"><label for="set-quality">Graphics Quality</label>
       <select id="set-quality" onchange="onSetQuality(this.value)">
-        <option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
+        <option value="auto">Auto</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
       </select>
     </div>
     <div class="settings-row"><label for="set-sensitivity">Camera Sensitivity</label><input type="range" id="set-sensitivity" min="0.3" max="2" step="0.1" oninput="onSetSensitivity(this.value)"></div>
     <div class="settings-row"><label for="set-ambience">Ambience Level</label><input type="range" id="set-ambience" min="0" max="1" step="0.05" oninput="onSetAmbience(this.value)"></div>
     <div class="settings-row"><label for="set-autofollow">Camera Auto-Follow</label><input type="checkbox" id="set-autofollow" onchange="onSetAutoFollow(this.checked)"></div>
+    <div class="settings-row"><label for="set-control-scheme">Controls</label><select id="set-control-scheme" onchange="onSetControlScheme(this.value)"><option value="auto">Automatic</option><option value="keyboard">Keyboard & mouse</option><option value="touch">Touch-first</option></select></div>
+    <div class="settings-row"><span>Keyboard shortcuts</span><div class="drawer-row"><button class="drawer-btn" id="bind-wheel" onclick="captureShortcut('wheel')">Paws · E</button><button class="drawer-btn" id="bind-map" onclick="captureShortcut('map')">Map · M</button><button class="drawer-btn" id="bind-games" onclick="captureShortcut('games')">Games · G</button></div></div>
+    <div class="settings-row"><label for="set-captions">Interaction captions</label><input type="checkbox" id="set-captions" onchange="onSetCaptions(this.checked)"></div>
+    <div class="settings-row"><span>Local save</span><div class="drawer-row"><button class="drawer-btn" onclick="exportHabitatSave()">Export</button><button class="drawer-btn" onclick="document.getElementById('import-save-file').click()">Import</button></div></div>
+    <input id="import-save-file" type="file" accept="application/json,.json" class="visually-hidden" onchange="importHabitatSave(this.files && this.files[0])">
     <div class="drawer-row" style="margin-top:14px;"><button class="drawer-btn active" onclick="closeSettings()">Done</button></div>
   </div>
 
@@ -1012,6 +1128,9 @@
   <script src="src/creature-manager.js"></script>
   <script src="src/interaction-system.js"></script>
   <script src="src/ui-controller.js"></script>
+  <script src="src/habitat-art.js"></script>
+  <script src="src/experience-systems.js"></script>
+  <script src="src/mini-games.js"></script>
 
   <!-- MAIN THREE.JS APPLICATION JAVASCRIPT -->
   <script>
@@ -1184,6 +1303,10 @@
         this.ctx = null;
         this.isMusicPlaying = false;
         this.isSFXEnabled = true;
+        this.musicLevel = 0.58;
+        this.sfxLevel = 0.78;
+        this.musicBus = null;
+        this.sfxBus = null;
         this.bgmTimer = null;
         this.step = 0;
         this.bassline = [130.81, 130.81, 164.81, 196.00, 174.61, 174.61, 196.00, 220.00];
@@ -1194,8 +1317,14 @@
           const AudioContextClass = window.AudioContext || window.webkitAudioContext;
           this.ctx = new AudioContextClass();
         }
+        if (!this.musicBus) {
+          this.musicBus = this.ctx.createGain(); this.musicBus.gain.value = this.musicLevel; this.musicBus.connect(this.ctx.destination);
+          this.sfxBus = this.ctx.createGain(); this.sfxBus.gain.value = this.sfxLevel; this.sfxBus.connect(this.ctx.destination);
+        }
         if (this.ctx.state === 'suspended') this.ctx.resume();
       }
+      setMusicLevel(value) { this.musicLevel = Math.max(0, Math.min(1, Number(value) || 0)); if (this.musicBus) this.musicBus.gain.setTargetAtTime(this.musicLevel, this.ctx.currentTime, 0.04); }
+      setSfxLevel(value) { this.sfxLevel = Math.max(0, Math.min(1, Number(value) || 0)); if (this.sfxBus) this.sfxBus.gain.setTargetAtTime(this.sfxLevel, this.ctx.currentTime, 0.04); }
       startBGM() {
         this.init();
         const banner = document.getElementById('audio-prompt');
@@ -1224,7 +1353,7 @@
           osc.frequency.exponentialRampToValueAtTime(32, now + 0.12);
           gain.gain.setValueAtTime(0.3, now);
           gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
-          osc.connect(gain); gain.connect(this.ctx.destination);
+          osc.connect(gain); gain.connect(this.musicBus || this.ctx.destination);
           osc.start(now); osc.stop(now + 0.15);
         }
         if (step % 8 === 4) this.playSnare(now);
@@ -1235,7 +1364,7 @@
           osc.type = 'triangle'; osc.frequency.setValueAtTime(bassFreq, now);
           filter.type = 'lowpass'; filter.frequency.setValueAtTime(450, now);
           gain.gain.setValueAtTime(0.18, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-          osc.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination);
+          osc.connect(filter); filter.connect(gain); gain.connect(this.musicBus || this.ctx.destination);
           osc.start(now); osc.stop(now + 0.2);
         }
         const noteFreq = this.melody[step % this.melody.length];
@@ -1243,7 +1372,7 @@
           const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
           osc.type = 'square'; osc.frequency.setValueAtTime(noteFreq, now);
           gain.gain.setValueAtTime(0.06, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
-          osc.connect(gain); gain.connect(this.ctx.destination);
+          osc.connect(gain); gain.connect(this.musicBus || this.ctx.destination);
           osc.start(now); osc.stop(now + 0.15);
         }
       }
@@ -1256,7 +1385,7 @@
         const noise = this.ctx.createBufferSource(); noise.buffer = buffer;
         const filter = this.ctx.createBiquadFilter(); filter.type = 'highpass'; filter.frequency.setValueAtTime(7000, t);
         const gain = this.ctx.createGain(); gain.gain.setValueAtTime(0.05, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
-        noise.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination);
+        noise.connect(filter); filter.connect(gain); gain.connect(this.musicBus || this.ctx.destination);
         noise.start(t);
       }
       playSnare(t) {
@@ -1268,7 +1397,7 @@
         const noise = this.ctx.createBufferSource(); noise.buffer = buffer;
         const filter = this.ctx.createBiquadFilter(); filter.type = 'bandpass'; filter.frequency.setValueAtTime(1200, t);
         const gain = this.ctx.createGain(); gain.gain.setValueAtTime(0.18, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-        noise.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination);
+        noise.connect(filter); filter.connect(gain); gain.connect(this.musicBus || this.ctx.destination);
         noise.start(t);
       }
       playBoing() {
@@ -1278,7 +1407,7 @@
         const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
         osc.type = 'sine'; osc.frequency.setValueAtTime(220, now); osc.frequency.exponentialRampToValueAtTime(750, now + 0.25);
         gain.gain.setValueAtTime(0.25, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
-        osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.3);
+        osc.connect(gain); gain.connect(this.sfxBus || this.ctx.destination); osc.start(now); osc.stop(now + 0.3);
       }
       playChomp() {
         if (!this.isSFXEnabled) return;
@@ -1287,7 +1416,7 @@
         const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
         osc.type = 'sawtooth'; osc.frequency.setValueAtTime(380, now); osc.frequency.exponentialRampToValueAtTime(140, now + 0.12);
         gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-        osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.16);
+        osc.connect(gain); gain.connect(this.sfxBus || this.ctx.destination); osc.start(now); osc.stop(now + 0.16);
       }
       playSparkle() {
         if (!this.isSFXEnabled) return;
@@ -1298,7 +1427,7 @@
           const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain(); const t = now + idx * 0.05;
           osc.type = 'sine'; osc.frequency.setValueAtTime(freq, t);
           gain.gain.setValueAtTime(0.2, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
-          osc.connect(gain); gain.connect(this.ctx.destination); osc.start(t); osc.stop(t + 0.25);
+          osc.connect(gain); gain.connect(this.sfxBus || this.ctx.destination); osc.start(t); osc.stop(t + 0.25);
         });
       }
       playPurr() {
@@ -1309,7 +1438,7 @@
         osc.type = 'triangle'; osc.frequency.setValueAtTime(60, now);
         osc.frequency.linearRampToValueAtTime(75, now + 0.1); osc.frequency.linearRampToValueAtTime(55, now + 0.2);
         gain.gain.setValueAtTime(0.18, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-        osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.26);
+        osc.connect(gain); gain.connect(this.sfxBus || this.ctx.destination); osc.start(now); osc.stop(now + 0.26);
       }
       playPanicVacuum() {
         if (!this.isSFXEnabled) return;
@@ -1318,7 +1447,7 @@
         const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
         osc.type = 'sawtooth'; osc.frequency.setValueAtTime(800, now); osc.frequency.linearRampToValueAtTime(260, now + 0.4);
         gain.gain.setValueAtTime(0.25, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-        osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.46);
+        osc.connect(gain); gain.connect(this.sfxBus || this.ctx.destination); osc.start(now); osc.stop(now + 0.46);
       }
       playZap() {
         if (!this.isSFXEnabled) return;
@@ -1327,7 +1456,7 @@
         const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
         osc.type = 'sawtooth'; osc.frequency.setValueAtTime(1400, now); osc.frequency.exponentialRampToValueAtTime(200, now + 0.18);
         gain.gain.setValueAtTime(0.28, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-        osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.21);
+        osc.connect(gain); gain.connect(this.sfxBus || this.ctx.destination); osc.start(now); osc.stop(now + 0.21);
       }
       playSplat() {
         if (!this.isSFXEnabled) return;
@@ -1336,7 +1465,28 @@
         const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
         osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(70, now + 0.3);
         gain.gain.setValueAtTime(0.35, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-        osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.36);
+        osc.connect(gain); gain.connect(this.sfxBus || this.ctx.destination); osc.start(now); osc.stop(now + 0.36);
+      }
+      playCreatureCall(form) {
+        if (!this.isSFXEnabled) return;
+        this.init();
+        const profiles = {
+          eevee: [520, 660, 'triangle'], vaporeon: [440, 590, 'sine'], jolteon: [760, 980, 'sawtooth'],
+          flareon: [330, 440, 'triangle'], espeon: [620, 820, 'sine'], umbreon: [260, 390, 'triangle'],
+          leafeon: [480, 610, 'sine'], glaceon: [700, 880, 'sine'], sylveon: [560, 740, 'triangle']
+        };
+        const [low, high, type] = profiles[form] || profiles.eevee;
+        const now = this.ctx.currentTime;
+        [low, high].forEach((freq, index) => {
+          const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+          osc.type = type; osc.frequency.setValueAtTime(freq, now + index * 0.085);
+          osc.frequency.linearRampToValueAtTime(freq * (index ? 0.82 : 1.08), now + index * 0.085 + 0.12);
+          gain.gain.setValueAtTime(0.0001, now + index * 0.085);
+          gain.gain.linearRampToValueAtTime(0.11, now + index * 0.085 + 0.025);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.085 + 0.2);
+          osc.connect(gain); gain.connect(this.sfxBus || this.ctx.destination);
+          osc.start(now + index * 0.085); osc.stop(now + index * 0.085 + 0.21);
+        });
       }
       playDerp() {
         if (!this.isSFXEnabled) return;
@@ -1346,7 +1496,7 @@
         osc.type = 'triangle'; osc.frequency.setValueAtTime(340, now);
         osc.frequency.linearRampToValueAtTime(620, now + 0.12); osc.frequency.linearRampToValueAtTime(210, now + 0.32);
         gain.gain.setValueAtTime(0.26, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
-        osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.35);
+        osc.connect(gain); gain.connect(this.sfxBus || this.ctx.destination); osc.start(now); osc.stop(now + 0.35);
       }
     }
     const audio = new RetroAudioEngine();
@@ -1355,6 +1505,25 @@
        3. HABITAT SYSTEM INSTANCES
        ========================================================================== */
     const save = new SaveManager();
+    audio.setMusicLevel(save.get('ui.musicVolume', 0.58));
+    audio.setSfxLevel(save.get('ui.sfxVolume', 0.78));
+    audio.isSFXEnabled = save.get('ui.sfxOn', true);
+    document.getElementById('btn-sound').textContent = audio.isSFXEnabled ? '🔊' : '🔇';
+    const experienceGuide = new HabitatExperience.HabitatGuide(save, { roomDefinitions: window.ROOM_DEFINITIONS });
+    const miniGameSystem = new MiniGameSuite.MiniGameSystem(save, {
+      onComplete: result => {
+        const definition = MiniGameSuite.GAMES.find(game => game.id === result.id);
+        const roomId = roomManager && roomManager.current ? roomManager.current.id : 'conservatory';
+        const activeDef = window.ROOM_DEFINITIONS[roomId];
+        const region = definition && definition.regionId && definition.regionId !== 'current'
+          ? definition.regionId
+          : (activeDef && activeDef.expansionId || 'home');
+        experienceGuide.recordEvent('minigame', { id: result.id, won: result.won, region, form: currentForm });
+        if (result.won) audio.playSparkle(); else audio.playBoing();
+        showSpeech(result.won ? `${result.title}: lovely work!` : `${result.title}: try another round whenever you like.`);
+        if (typeof showDiscoveryToast === 'function' && result.won) showDiscoveryToast({ type: 'arcade', label: `Arcade memory saved · ${result.title}` });
+      }
+    });
     const FX = window.RenderEffects;
     if (!FX) throw new Error("Eevee Lab requires RenderEffects");
 
@@ -1365,7 +1534,10 @@
     const creatureMemory = new CreatureBehaviorSystem.CreatureMemory(save);
     const resonanceTracker = new DiscoverySystem.ResonanceTracker(save);
     let uiChrome; // needs window.matchMedia + save, created below
-    const discoveryLog = new DiscoverySystem.DiscoveryLog(save, (entry) => showDiscoveryToast(entry));
+    const discoveryLog = new DiscoverySystem.DiscoveryLog(save, (entry) => {
+      experienceGuide.recordEvent('discovery', { roomId: roomManager && roomManager.current ? roomManager.current.id : 'conservatory', form: currentForm });
+      showDiscoveryToast(entry);
+    });
     const photoSystem = new PhotoSystem(save);
     let cameraController = null;
     let roomManager = null;
@@ -1390,15 +1562,27 @@
     let vacuumBot = null;
     let treats = [];
 
-    let currentForm = save.get('activeForm', 'eevee');
+    const storedForm = save.get('activeForm', 'eevee');
+    let currentForm = Object.prototype.hasOwnProperty.call(EEVEELUTION_DATA, storedForm) ? storedForm : 'eevee';
+    if (currentForm !== storedForm) save.set('activeForm', currentForm);
     let isShiny = save.get('isShiny', false);
+    experienceGuide.recordEvent('form', { form: currentForm, roomId: 'conservatory' });
     let activeGameMode = 'sandbox';
     let clock = new THREE.Clock();
     let isPhotoMode = false;
+    let photoSafariActive = false;
+    let photoSafariReturn = false;
     let isChillMode = false;
+    let isMiniGameOpen = false;
+    let isWorldConsoleOpen = false;
+    let miniGameUI = null;
+    let worldConsoleTab = 'map';
+    let firstVisitTourStep = -1;
     let lastActivityAt = performance.now();
 
     let currentEmotion = 'happy';
+    let blinkTimer = 2.8;
+    let blinkRemaining = 0;
     let isLoafMode = false;
     let isDiscoMode = false;
     let isVacuumPanicking = false;
@@ -1439,7 +1623,16 @@
       faceCtx.arc(372, 310, 36, 0, Math.PI * 2);
       faceCtx.fill();
 
-      if (emotion === 'happy') {
+      if (emotion === 'blink' || emotion === 'sleepy' || emotion === 'calm') {
+        drawClosedEye(170, 244, 48, pal);
+        drawClosedEye(342, 244, 48, pal);
+        faceCtx.strokeStyle = pal.mouth; faceCtx.lineWidth = 7; faceCtx.lineCap = 'round';
+        faceCtx.beginPath(); faceCtx.arc(256, 332, emotion === 'sleepy' ? 17 : 22, 0.2, Math.PI - 0.2); faceCtx.stroke();
+        if (emotion === 'sleepy') { faceCtx.fillStyle = pal.glow; faceCtx.font = 'bold 32px sans-serif'; faceCtx.fillText('z', 400, 170); }
+      } else if (emotion === 'curious') {
+        drawAnimeEye(170, 240, 57, pal); drawAnimeEye(342, 240, 45, pal);
+        faceCtx.strokeStyle = pal.mouth; faceCtx.lineWidth = 7; faceCtx.beginPath(); faceCtx.arc(256, 340, 13, 0, Math.PI * 2); faceCtx.stroke();
+      } else if (emotion === 'happy') {
         drawAnimeEye(170, 240, 50, pal);
         drawAnimeEye(342, 240, 50, pal);
         faceCtx.strokeStyle = pal.mouth; faceCtx.lineWidth = 8; faceCtx.lineCap = 'round';
@@ -1478,6 +1671,15 @@
       faceCtx.beginPath();
       faceCtx.moveTo(256, 298); faceCtx.lineTo(247, 287); faceCtx.lineTo(265, 287); faceCtx.closePath(); faceCtx.fill();
       faceTexture.needsUpdate = true;
+    }
+
+    function drawClosedEye(x, y, radius, pal) {
+      faceCtx.save();
+      faceCtx.strokeStyle = pal.iris; faceCtx.lineWidth = Math.max(7, radius * .17); faceCtx.lineCap = 'round';
+      faceCtx.beginPath(); faceCtx.moveTo(x - radius * .66, y); faceCtx.quadraticCurveTo(x, y + radius * .45, x + radius * .66, y); faceCtx.stroke();
+      faceCtx.strokeStyle = pal.mouth; faceCtx.lineWidth = 4;
+      faceCtx.beginPath(); faceCtx.moveTo(x - radius * .52, y + 8); faceCtx.quadraticCurveTo(x, y + radius * .48, x + radius * .52, y + 8); faceCtx.stroke();
+      faceCtx.restore();
     }
 
     function drawAnimeEye(x, y, radius, pal) {
@@ -1736,18 +1938,26 @@
     const PHASE4_COMPANION_ID = 'vaporeon-companion';
 
     function syncConservatoryCompanion() {
-      if (!creatureManager || !eeveeRig || !roomManager || !roomManager.current) return false;
+      const commandRow = document.getElementById('companion-commands');
+      if (!creatureManager || !eeveeRig || !roomManager || !roomManager.current) {
+        if (commandRow) commandRow.hidden = true;
+        return false;
+      }
       const shouldPair = activeGameMode === 'sandbox'
         && currentForm === 'eevee'
         && roomManager.current.id === 'conservatory';
 
       if (!shouldPair) {
         creatureManager.deactivateAllCompanions();
+        if (commandRow) commandRow.hidden = true;
         return false;
       }
 
       const wrapper = eeveeRig.userData.models && eeveeRig.userData.models.vaporeon;
-      if (!wrapper || !wrapper.userData || !wrapper.userData.isLoaded) return false;
+      if (!wrapper || !wrapper.userData || !wrapper.userData.isLoaded) {
+        if (commandRow) commandRow.hidden = true;
+        return false;
+      }
 
       if (!creatureManager.hasCompanion(PHASE4_COMPANION_ID)) {
         const spawn = roomManager.current.built && roomManager.current.built.spawnPoint
@@ -1767,6 +1977,7 @@
         });
       }
       creatureManager.enforceVisibility();
+      if (commandRow) commandRow.hidden = !creatureManager.hasCompanion(PHASE4_COMPANION_ID);
       return creatureManager.hasCompanion(PHASE4_COMPANION_ID);
     }
 
@@ -1871,6 +2082,7 @@
       save.set('activeForm', formKey);
       if (roomManager) roomManager.setActiveForm(formKey);
       if (behaviorScheduler) behaviorScheduler.setSpecies(formKey);
+      experienceGuide.recordEvent('form', { form: formKey, roomId: roomManager && roomManager.current ? roomManager.current.id : 'conservatory' });
       renderSpeciesStrip();
       updateFactSheet(formKey);
       if (bondBoost) bondTracker.bump(formKey, bondBoost);
@@ -1982,6 +2194,7 @@
       }
       const result = abilitySystem.performAbility(currentForm, target);
       if (!result.ok) return false;
+      experienceGuide.recordEvent('ability', { roomId: roomManager.current.id, form: currentForm });
       spawnAbilityBurst(def.color, target);
       audio.playSparkle();
       if (creatureActor) {
@@ -2204,7 +2417,8 @@
 
     /* New lightweight interactions (GAME-03 call, body-region-aware petting extension, brush) */
     function callEeveelution() {
-      audio.playBoing();
+      audio.playCreatureCall(currentForm);
+      experienceGuide.recordEvent('interaction', { roomId: roomManager && roomManager.current ? roomManager.current.id : 'conservatory', form: currentForm });
       updateFaceExpression('happy');
       bondTracker.bump(currentForm, 1);
       discoveryLog.checkCombo(roomManager ? roomManager.current?.id : null, currentForm, 'call');
@@ -2294,6 +2508,7 @@
       const weight = profile[region] || 1;
       const longBonus = summary.length === 'long' ? 1 : 0;
       bondTracker.bump(currentForm, Math.max(1, Math.round(weight + longBonus)));
+      experienceGuide.recordEvent('interaction', { roomId: roomManager && roomManager.current ? roomManager.current.id : 'conservatory', form: currentForm });
       discoveryLog.checkCombo(roomManager ? roomManager.current?.id : null, currentForm, tool === 'brush' ? 'brush' : 'pet');
       updateFaceExpression('hearts');
 
@@ -2479,6 +2694,7 @@
       link.download = `eevee_goofy_moment_${currentForm}.png`;
       link.href = dataURL;
       link.click();
+      experienceGuide.recordEvent('photo', { roomId: roomManager && roomManager.current ? roomManager.current.id : 'conservatory', form: currentForm });
       showSpeech("📸 Cheeeese! Goofy snapshot saved!");
     }
 
@@ -2492,14 +2708,33 @@
       isPhotoMode = false;
       document.body.classList.remove('photo-mode');
       uiChrome.removeEscape(exitPhotoMode);
+      if (photoSafariReturn && miniGameUI) {
+        photoSafariReturn = false;
+        isMiniGameOpen = true;
+        if (controls) controls.enabled = false;
+        miniGameUI.showAfterPhoto();
+      }
     }
     function capturePhotoModeShot() {
+      const activeModel = eeveeRig && eeveeRig.userData && eeveeRig.userData.models && eeveeRig.userData.models[currentForm];
+      if (!activeModel || !activeModel.userData || !activeModel.userData.isLoaded || !camera || !renderer || !renderer.domElement) {
+        showSpeech('The camera is ready as soon as this form finishes loading.'); return false;
+      }
       audio.playBoing();
-      const activeModel = eeveeRig.userData.models[currentForm];
       const activeBehavior = isDiscoMode || isLoafMode || isVacuumPanicking || currentEmotion !== 'happy';
       const roomDiscoveredThisVisit = roomManager && roomManager.current ? !!roomManager._justDiscovered : false;
       const scoreResult = photoSystem.score(activeModel, camera, { activeBehavior, roomDiscoveredThisVisit });
-      photoSystem.recordPhoto({ form: currentForm, room: roomManager && roomManager.current ? roomManager.current.id : 'conservatory', score: scoreResult });
+      const photoRoomId = roomManager && roomManager.current ? roomManager.current.id : 'conservatory';
+      photoSystem.recordPhoto({ form: currentForm, room: photoRoomId, score: scoreResult });
+      experienceGuide.recordEvent('photo', { roomId: photoRoomId, form: currentForm });
+      let safariFeedback = '';
+      if (photoSafariActive) {
+        const result = miniGameSystem.submitPhoto({ score: scoreResult.total, roomId: photoRoomId, form: currentForm });
+        if (result.ok) {
+          safariFeedback = result.state.done ? (result.state.won ? ' · Safari complete!' : ' · Safari ended') : ` · Need 65+ (${result.state.lives} tries left)`;
+          if (result.state.done) photoSafariActive = false;
+        }
+      }
 
       renderer.render(scene, camera);
       const dataURL = renderer.domElement.toDataURL('image/png');
@@ -2509,7 +2744,7 @@
       link.click();
 
       const toast = document.getElementById('moment-toast');
-      toast.textContent = `Moment: ${scoreResult.total}/100 — ${photoSystem.tierFor(scoreResult.total)}`;
+      toast.textContent = `Moment: ${scoreResult.total}/100 — ${photoSystem.tierFor(scoreResult.total)}${safariFeedback}`;
       toast.classList.add('visible');
       clearTimeout(toast.hideTimeout);
       toast.hideTimeout = setTimeout(() => toast.classList.remove('visible'), 3200);
@@ -2855,10 +3090,16 @@
       document.getElementById('set-reduced-motion').checked = !!save.get('ui.reducedMotion', false);
       document.getElementById('set-music').checked = audio.isMusicPlaying;
       document.getElementById('set-sfx').checked = audio.isSFXEnabled;
+      document.getElementById('set-music-volume').value = save.get('ui.musicVolume', 0.58);
+      document.getElementById('set-sfx-volume').value = save.get('ui.sfxVolume', 0.78);
       document.getElementById('set-quality').value = save.get('ui.quality', 'high');
       document.getElementById('set-sensitivity').value = save.get('ui.cameraSensitivity', 1.0);
       document.getElementById('set-ambience').value = save.get('ui.ambienceLevel', 0.8);
       document.getElementById('set-autofollow').checked = !!save.get('ui.cameraAutoFollow', false);
+      document.getElementById('set-control-scheme').value = save.get('ui.controlScheme', 'auto');
+      document.getElementById('set-captions').checked = save.get('ui.captions', true);
+      document.body.classList.toggle('captions-off', !save.get('ui.captions', true));
+      renderShortcutButtons();
       uiChrome.pushEscape(closeSettings);
     }
     function closeSettings() {
@@ -2880,12 +3121,35 @@
       if (v) syncLivingAudio();
     }
     function onSetSfx(v) { audio.isSFXEnabled = v; document.getElementById('btn-sound').textContent = v ? '🔊' : '🔇'; save.set('ui.sfxOn', v); }
+    function onSetMusicVolume(v) { const level = parseFloat(v); audio.setMusicLevel(level); save.set('ui.musicVolume', level); }
+    function onSetSfxVolume(v) { const level = parseFloat(v); audio.setSfxLevel(level); save.set('ui.sfxVolume', level); }
+    function applyGraphicsQuality(level) {
+      if (!renderer) return;
+      const dprMap = { high: Math.min(window.devicePixelRatio || 1, 2), medium: Math.min(window.devicePixelRatio || 1, 1.4), low: 1 };
+      const densityScale = { high: 1, medium: 0.7, low: 0.4 }[level] || 1;
+      renderer.setPixelRatio(dprMap[level] || 1);
+      renderer.shadowMap.enabled = level !== 'low';
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      if (roomManager && roomManager.current) roomManager.current.built.particleFields.forEach(pf => pf.setDensityScale(densityScale));
+    }
     function onSetQuality(v) {
       save.set('ui.quality', v);
-      const dprMap = { high: Math.min(window.devicePixelRatio, 2), medium: Math.min(window.devicePixelRatio, 1.4), low: 1 };
-      renderer.setPixelRatio(dprMap[v] || 1);
-      const densityScale = { high: 1, medium: 0.7, low: 0.4 }[v] || 1;
-      if (roomManager && roomManager.current) roomManager.current.built.particleFields.forEach(pf => pf.setDensityScale(densityScale));
+      applyGraphicsQuality(v === 'auto' ? 'high' : v);
+      qualityCooldown = 8;
+    }
+    let qualitySampleTime = 0; let qualityFrameTime = 0; let qualityFrames = 0; let qualityCooldown = 0;
+    function updateQualityGovernor(dt) {
+      if (save.get('ui.quality', 'high') !== 'auto') return;
+      qualitySampleTime += dt; qualityFrameTime += dt; qualityFrames++; qualityCooldown = Math.max(0, qualityCooldown - dt);
+      if (qualitySampleTime < 3 || qualityCooldown > 0) return;
+      const average = qualityFrameTime / Math.max(1, qualityFrames);
+      const pixelRatio = renderer.getPixelRatio();
+      if (average > 0.036 && pixelRatio > 1) {
+        renderer.setPixelRatio(Math.max(1, pixelRatio - 0.25)); qualityCooldown = 8;
+      } else if (average < 0.019 && pixelRatio < Math.min(window.devicePixelRatio || 1, 2)) {
+        renderer.setPixelRatio(Math.min(Math.min(window.devicePixelRatio || 1, 2), pixelRatio + 0.25)); qualityCooldown = 8;
+      }
+      qualitySampleTime = 0; qualityFrameTime = 0; qualityFrames = 0;
     }
     function onSetSensitivity(v) { save.set('ui.cameraSensitivity', parseFloat(v)); if (cameraController) cameraController.setSensitivity(parseFloat(v)); }
     function onSetAmbience(v) {
@@ -2897,6 +3161,47 @@
       }
     }
     function onSetAutoFollow(v) { save.set('ui.cameraAutoFollow', v); }
+    function onSetControlScheme(v) {
+      save.set('ui.controlScheme', ['auto','keyboard','touch'].includes(v) ? v : 'auto');
+      document.body.dataset.controlScheme = save.get('ui.controlScheme', 'auto');
+      updateControlHints();
+    }
+    function updateControlHints() {
+      const preference = save.get('ui.controlScheme', 'auto');
+      const touch = preference === 'touch' || (preference === 'auto' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+      const hint = document.getElementById('camera-hint');
+      if (hint) hint.textContent = touch
+        ? 'Drag to orbit · Pinch to zoom · Tap open floor to move'
+        : 'Drag to orbit · Scroll to zoom · Click open floor to move · 1–9 switch form';
+    }
+    function onSetCaptions(v) {
+      save.set('ui.captions', !!v);
+      document.body.classList.toggle('captions-off', !v);
+    }
+    function shortcutBindings() {
+      return Object.assign({ wheel: 'e', map: 'm', games: 'g' }, save.get('ui.keyBindings', {}));
+    }
+    function renderShortcutButtons() {
+      const keys = shortcutBindings();
+      [['wheel','bind-wheel','Paws'],['map','bind-map','Map'],['games','bind-games','Games']].forEach(([id, element, label]) => {
+        const button = document.getElementById(element); if (button) button.textContent = `${label} · ${String(keys[id] || '').toUpperCase()}`;
+      });
+    }
+    function captureShortcut(action) {
+      const buttonId = ({ wheel: 'bind-wheel', map: 'bind-map', games: 'bind-games' })[action];
+      const button = document.getElementById(buttonId); if (button) button.textContent = 'Press a key…';
+      const handler = e => {
+        e.preventDefault(); e.stopImmediatePropagation();
+        if (e.key === 'Escape') { renderShortcutButtons(); return; }
+        if (!/^[a-z0-9]$/i.test(e.key)) { renderShortcutButtons(); showSpeech('Choose one letter or number key.'); return; }
+        const bindings = shortcutBindings();
+        if (Object.keys(bindings).some(k => k !== action && String(bindings[k]).toLowerCase() === e.key.toLowerCase())) {
+          renderShortcutButtons(); showSpeech('That key is already assigned to another shortcut.'); return;
+        }
+        bindings[action] = e.key.toLowerCase(); save.set('ui.keyBindings', bindings); renderShortcutButtons();
+      };
+      window.addEventListener('keydown', handler, { capture: true, once: true });
+    }
 
     function renderSpeciesStrip() {
       const strip = document.getElementById('species-strip');
@@ -2981,12 +3286,260 @@
         btn.className = 'drawer-btn' + (idx === roomManager.current.atmosphereIndex ? ' active' : '');
         btn.textContent = isUnlocked ? v.label : '🔒 ' + v.label;
         btn.disabled = !isUnlocked;
-        btn.onclick = () => { roomManager.setAtmosphere(v.id); renderAtmosphereRow(); };
+        btn.onclick = () => {
+          const changed = idx !== roomManager.current.atmosphereIndex;
+          if (roomManager.setAtmosphere(v.id) && changed) experienceGuide.recordEvent('atmosphere', { roomId: roomManager.current.id, form: currentForm });
+          renderAtmosphereRow();
+        };
         row.appendChild(btn);
       });
     }
 
     function roomLabelFor(id) { return ROOM_DEFINITIONS[id] ? ROOM_DEFINITIONS[id].displayName : id; }
+    function uiEscape(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch])); }
+
+    function openWorldConsole(tab) {
+      if (arcadeRunning) switchGameMode('sandbox');
+      closeDrawer(); closeInteractionWheel();
+      worldConsoleTab = tab || 'map'; isWorldConsoleOpen = true;
+      const root = document.getElementById('world-console-overlay');
+      root.hidden = false; root.setAttribute('aria-hidden', 'false');
+      renderWorldConsole(worldConsoleTab);
+      uiChrome.pushEscape(closeWorldConsole);
+      const close = root.querySelector('.feature-close'); if (close) close.focus();
+    }
+
+    function closeWorldConsole() {
+      const root = document.getElementById('world-console-overlay');
+      if (root) { root.hidden = true; root.setAttribute('aria-hidden', 'true'); }
+      isWorldConsoleOpen = false;
+      if (uiChrome) uiChrome.removeEscape(closeWorldConsole);
+    }
+
+    function renderWorldConsole(tab) {
+      worldConsoleTab = tab || worldConsoleTab || 'map';
+      const root = document.getElementById('world-console-overlay');
+      if (!root) return;
+      const tabs = [['map','World Map'],['guide','Field Guide'],['today','Today'],['album','Photo Album'],['routines','Saved Visits']];
+      root.innerHTML = `<section class="feature-panel world-panel" role="dialog" aria-modal="true" aria-labelledby="world-title">
+        <header class="feature-head"><div><h2 id="world-title">Habitat House</h2><p>Explore at your own pace. Nothing here has a login streak or a failure penalty.</p></div><button class="feature-close" type="button" aria-label="Close habitat guide">×</button></header>
+        <nav class="world-tabs" aria-label="Habitat guide sections"></nav><div class="world-body" id="world-body"></div>
+      </section>`;
+      root.querySelector('.feature-close').onclick = closeWorldConsole;
+      const nav = root.querySelector('.world-tabs');
+      tabs.forEach(([id, label]) => {
+        const button = document.createElement('button'); button.type = 'button'; button.textContent = label;
+        button.classList.toggle('active', worldConsoleTab === id); button.setAttribute('aria-pressed', String(worldConsoleTab === id));
+        button.onclick = () => renderWorldConsole(id); nav.appendChild(button);
+      });
+      const body = root.querySelector('#world-body');
+      if (worldConsoleTab === 'map') renderWorldMap(body);
+      else if (worldConsoleTab === 'guide') renderFieldGuide(body);
+      else if (worldConsoleTab === 'today') renderTodayPanel(body);
+      else if (worldConsoleTab === 'album') renderPhotoAlbum(body);
+      else renderRoutinePanel(body);
+    }
+
+    function renderWorldMap(body) {
+      const registry = window.EXPANSION_REGISTRY || { expansions: [], roomsByExpansion: {} };
+      const favorites = experienceGuide.snapshot().favorites;
+      const sections = [{ id: 'home', title: 'The Conservatory & original habitats', ids: ROOM_ORDER.filter(id => !ROOM_DEFINITIONS[id].expansionId) }];
+      (registry.expansions || []).forEach(exp => sections.push({
+        id: exp.id, title: exp.displayName.split(' — ')[0],
+        ids: [exp.id].concat(registry.roomsByExpansion[exp.id] || [])
+      }));
+      body.innerHTML = `<label class="visually-hidden" for="world-map-search">Filter rooms</label><input id="world-map-search" class="map-search" type="search" placeholder="Find a room, region, or form…" autocomplete="off">` +
+        (favorites.length ? `<section class="map-region"><h3>⭐ Favorite rooms</h3><div class="map-room-list" data-map-favorites></div></section>` : '') +
+        sections.map(section => `<section class="map-region" data-map-region="${uiEscape(section.id)}"><h3>${uiEscape(section.title)}</h3><div class="map-room-list" data-map-list="${uiEscape(section.id)}"></div></section>`).join('');
+
+      const appendRoom = (host, id) => {
+        const def = ROOM_DEFINITIONS[id]; if (!def || !host) return;
+        const isCurrent = roomManager && roomManager.current && roomManager.current.id === id;
+        const wrapper = document.createElement('div'); wrapper.className = 'map-room';
+        wrapper.dataset.search = `${id} ${def.displayName} ${def.associatedForm || ''} ${def.mood || ''}`.toLowerCase();
+        const go = document.createElement('button'); go.type = 'button'; go.title = def.displayName;
+        go.textContent = (isCurrent ? '● ' : '') + def.displayName.split(' — ')[0];
+        go.setAttribute('aria-current', isCurrent ? 'location' : 'false');
+        go.onclick = () => { goToRoomImmediate(id); closeWorldConsole(); };
+        const fav = document.createElement('button'); fav.type = 'button'; fav.className = 'favorite';
+        fav.textContent = experienceGuide.isFavorite(id) ? '★' : '☆'; fav.setAttribute('aria-label', experienceGuide.isFavorite(id) ? 'Remove favorite' : 'Add to favorites');
+        fav.setAttribute('aria-pressed', String(experienceGuide.isFavorite(id)));
+        fav.onclick = () => { experienceGuide.toggleFavorite(id); renderWorldConsole('map'); };
+        wrapper.append(go, fav); host.appendChild(wrapper);
+      };
+      sections.forEach(section => {
+        const host = body.querySelector(`[data-map-list="${section.id}"]`);
+        section.ids.forEach(id => appendRoom(host, id));
+      });
+      if (favorites.length) {
+        const host = body.querySelector('[data-map-favorites]');
+        favorites.filter(id => ROOM_DEFINITIONS[id]).forEach(id => appendRoom(host, id));
+      }
+      const search = body.querySelector('#world-map-search');
+      search.addEventListener('input', () => {
+        const query = search.value.trim().toLowerCase();
+        body.querySelectorAll('.map-room').forEach(room => { room.style.display = !query || room.dataset.search.includes(query) ? 'flex' : 'none'; });
+        body.querySelectorAll('.map-region').forEach(section => {
+          section.style.display = section.querySelector('.map-room:not([style*="display: none"])') ? '' : 'none';
+        });
+      });
+    }
+
+    function renderFieldGuide(body) {
+      const snapshot = experienceGuide.snapshot();
+      const chapters = experienceGuide.chapters();
+      const achievements = experienceGuide.achievements();
+      const mementos = Object.keys(save.get('discovery.mementos', {})).filter(id => save.get(`discovery.mementos.${id}`, false));
+      const collectionGroups = [{ title: 'Conservatory keepsakes', roomIds: ROOM_ORDER.filter(id => id !== 'conservatory' && !ROOM_DEFINITIONS[id].expansionId) }]
+        .concat((window.EXPANSION_REGISTRY && window.EXPANSION_REGISTRY.expansions || []).map(exp => ({
+          title: `${exp.displayName.split(' — ')[0]} keepsakes`,
+          roomIds: window.EXPANSION_REGISTRY.roomsByExpansion[exp.id] || []
+        })));
+      const collectionMarkup = collectionGroups.map(group => {
+        const found = roomId => mementos.some(id => id === `memento_${roomId}` || id.startsWith(`memento_${roomId}_`));
+        const count = group.roomIds.filter(found).length;
+        return `<article class="guide-card"><h3>${count === group.roomIds.length ? '✓ ' : '○ '}${uiEscape(group.title)} · ${count}/${group.roomIds.length}</h3><div class="mini-progress" role="progressbar" aria-label="${uiEscape(group.title)}" aria-valuenow="${group.roomIds.length ? Math.round(count / group.roomIds.length * 100) : 0}" aria-valuemin="0" aria-valuemax="100"><span style="width:${group.roomIds.length ? Math.round(count / group.roomIds.length * 100) : 0}%"></span></div><div class="map-room-list">${group.roomIds.map(id => `<div class="guide-task ${found(id) ? 'complete' : ''}"><span aria-hidden="true">${found(id) ? '✓' : '○'}</span><span>${uiEscape(ROOM_DEFINITIONS[id] ? ROOM_DEFINITIONS[id].displayName.split(' — ')[0] : id)}</span></div>`).join('')}</div></article>`;
+      }).join('');
+      const tour = [
+        'Look around with a drag; the camera has several views and a quick reset.',
+        'Tap an open patch of floor to invite the creature over. You can also pet, brush, feed, or toss a toy.',
+        'Open the paw wheel for room actions and species abilities. The room reacts differently to different forms.',
+        'Use the map or glowing doors to visit another habitat. Discoveries and room changes are remembered.'
+      ];
+      const tourMarkup = firstVisitTourStep >= 0
+        ? `<div class="tour-callout"><strong>First visit · Step ${firstVisitTourStep + 1} of ${tour.length}</strong><p>${uiEscape(tour[firstVisitTourStep])}</p><div class="drawer-row"><button class="feature-button primary" id="tour-next">${firstVisitTourStep === tour.length - 1 ? 'Finish tour' : 'Next tip'}</button><button class="feature-button" id="tour-skip">Skip tour</button></div></div>`
+        : `<div class="tour-callout"><strong>New here?</strong><p>A four-step, skippable tour explains the room, interactions, abilities, and travel.</p><button class="feature-button primary" id="tour-start">Start first-visit tour</button></div>`;
+      body.innerHTML = tourMarkup +
+        `<h3>Story chapters</h3>` + chapters.map(chapter => `<article class="guide-card"><h3>${chapter.complete ? '✓ ' : '○ '}${uiEscape(chapter.title)}</h3><p>${uiEscape(chapter.description)} <span>${chapter.complete ? 'Chapter complete' : 'Optional story · ' + chapter.tasks.filter(t => t.complete).length + '/' + chapter.tasks.length}</span></p>${chapter.tasks.map(task => `<div class="guide-task ${task.complete ? 'complete' : ''}"><span aria-hidden="true">${task.complete ? '✓' : '○'}</span><span>${uiEscape(task.label)}</span></div>`).join('')}</article>`).join('') +
+        `<article class="guide-card"><h3>Field notes</h3><p>${snapshot.visited.length} rooms visited · ${mementos.length} keepsakes · ${discoveryLog.count()} discoveries · ${snapshot.forms.length}/9 forms tried.</p><p>Fill each regional keepsake set at your own pace—there are no stat upgrades or missable rewards.</p></article>` +
+        `<h3>Regional collections</h3>${collectionMarkup}` +
+        `<h3>Achievements</h3><div class="map-room-list">${achievements.map(a => `<div class="guide-card"><strong>${a.unlocked ? '🏅' : '🔒'} ${uiEscape(a.title)}</strong></div>`).join('')}</div>`;
+      const start = body.querySelector('#tour-start'); if (start) start.onclick = () => { firstVisitTourStep = 0; renderWorldConsole('guide'); };
+      const next = body.querySelector('#tour-next'); if (next) next.onclick = () => { if (firstVisitTourStep >= tour.length - 1) firstVisitTourStep = -1; else firstVisitTourStep++; renderWorldConsole('guide'); };
+      const skip = body.querySelector('#tour-skip'); if (skip) skip.onclick = () => { firstVisitTourStep = -1; renderWorldConsole('guide'); };
+    }
+
+    function renderPhotoAlbum(body) {
+      const album = Array.isArray(save.get('album', [])) ? save.get('album', []).slice(0, 12) : [];
+      body.innerHTML = `<article class="guide-card"><h3>Saved moments</h3><p>This on-device album keeps your best 12 scores and visit details. Each full-resolution PNG is downloaded to your device; image files are never uploaded or stored in the save.</p><button class="feature-button primary" id="album-capture">Take a photo</button></article>` +
+        (album.length ? album.map((record, index) => {
+          const photo = record && typeof record === 'object' ? record : {};
+          const species = EEVEELUTION_DATA[photo.form] ? EEVEELUTION_DATA[photo.form].name.split(' (')[0] : photo.form || 'Creature';
+          const room = photo.room && ROOM_DEFINITIONS[photo.room] ? roomLabelFor(photo.room) : photo.room || 'Habitat';
+          const date = new Date(Number(photo.timestamp) || 0);
+          return `<article class="guide-card album-card"><span class="album-rank">#${index + 1}</span><div><h3>${uiEscape(species)} in ${uiEscape(room)}</h3><p>${uiEscape(photo.tier || 'Moment')} · ${Math.max(0, Math.min(100, Number(photo.score) || 0))}/100 · ${date.toLocaleString()}</p></div></article>`;
+        }).join('') : '<p class="feature-empty">No moments yet. Take a photo to save a score and caption here.</p>');
+      body.querySelector('#album-capture').onclick = () => { closeWorldConsole(); enterPhotoMode(); };
+    }
+
+    function renderTodayPanel(body) {
+      const daily = experienceGuide.getDailyChallenge();
+      const event = experienceGuide.getLocalEvent();
+      const request = experienceGuide.getCreatureRequest(currentForm);
+      const requestProgress = Math.min(100, Math.round((request.progress / request.target) * 100));
+      const requestAction = { visit: 'Choose a destination', photo: 'Enter Photo Mode', minigame: 'Open Habitat Arcade', ability: 'Open paw wheel', atmosphere: 'Choose a room mood', interaction: 'Open interaction wheel' }[request.event] || 'Take a look';
+      const dailyActionLabel = { visit: 'Open World Map', photo: 'Enter Photo Mode', minigame: 'Open Habitat Arcade', ability: 'Open paw wheel', interaction: 'Open interaction wheel', discovery: 'Explore a room', atmosphere: 'Choose a room mood' }[daily.event] || 'Take a look';
+      const progress = Math.min(100, Math.round((daily.progress / daily.target) * 100));
+      body.innerHTML = `<article class="guide-card"><h3>✨ ${uiEscape(daily.title)}</h3><p>${uiEscape(daily.text)}</p><div class="mini-progress" role="progressbar" aria-label="Today’s optional activity" aria-valuenow="${progress}" aria-valuemin="0" aria-valuemax="100"><span style="width:${progress}%"></span></div><p>${daily.complete ? 'Complete—lovely, and no need to come back tomorrow.' : `${daily.progress}/${daily.target} · Optional · No streaks or deadlines`}</p><button class="feature-button primary" id="today-action">${dailyActionLabel}</button></article>` +
+        `<article class="guide-card"><h3>🐾 ${uiEscape(request.title)} · ${uiEscape(EEVEELUTION_DATA[currentForm] ? EEVEELUTION_DATA[currentForm].name.split(' (')[0] : currentForm)}</h3><p>${uiEscape(request.text)}</p><div class="mini-progress" role="progressbar" aria-label="Companion request" aria-valuenow="${requestProgress}" aria-valuemin="0" aria-valuemax="100"><span style="width:${requestProgress}%"></span></div><p>${request.complete ? 'Done—your companion is pleased. No reward, deadline, or streak to maintain.' : 'Optional · One small request, only for today’s selected companion.'}</p><button class="feature-button" id="request-action">${request.complete ? 'Choose another activity' : requestAction}</button></article>` +
+        `<article class="guide-card"><h3>🌤️ ${uiEscape(event.title)}</h3><p>${uiEscape(event.text)}</p><p>This local event rotates by calendar day and works offline.</p></article>`;
+      body.querySelector('#today-action').onclick = () => {
+        closeWorldConsole();
+        if (daily.event === 'minigame') openMiniGames();
+        else if (daily.event === 'photo') enterPhotoMode();
+        else if (daily.event === 'ability' || daily.event === 'interaction') toggleInteractionWheel();
+        else if (daily.event === 'atmosphere') toggleDrawer();
+        else openWorldConsole('map');
+      };
+      body.querySelector('#request-action').onclick = () => {
+        closeWorldConsole();
+        if (request.complete) showSpeech('Your companion is happy to explore at your pace.');
+        else if (request.event === 'visit') openWorldConsole('map');
+        else if (request.event === 'photo') enterPhotoMode();
+        else if (request.event === 'minigame') openMiniGames();
+        else if (request.event === 'ability') toggleInteractionWheel();
+        else if (request.event === 'atmosphere') toggleDrawer();
+        else showSpeech('Spend a little time together—pet, brush, feed, or call.');
+      };
+    }
+
+    function renderRoutinePanel(body) {
+      const routines = experienceGuide.routineList();
+      body.innerHTML = `<article class="guide-card"><h3>Save the current visit</h3><p>Save the current room and form as a private one-click route. Up to six visits are kept on this device.</p><div class="drawer-row"><label class="visually-hidden" for="routine-name">Visit name</label><input id="routine-name" class="map-search" maxlength="36" placeholder="A name for this visit"><button id="routine-save" class="feature-button primary">Save visit</button></div></article>` +
+        (routines.length ? routines.map(r => `<article class="guide-card routine-card"><span><strong>${uiEscape(r.name)}</strong><br><small>${uiEscape(roomLabelFor(r.roomId))} · ${uiEscape(EEVEELUTION_DATA[r.form] ? EEVEELUTION_DATA[r.form].name.split(' (')[0] : r.form)}</small></span><span><button class="feature-button routine-go" data-routine="${uiEscape(r.id)}">Visit</button> <button class="feature-button routine-remove" data-routine="${uiEscape(r.id)}" aria-label="Remove saved visit">Remove</button></span></article>`).join('') : '<p class="feature-empty">No saved visits yet. Save this room and form to make a shortcut.</p>');
+      body.querySelector('#routine-save').onclick = () => {
+        const name = body.querySelector('#routine-name').value.trim();
+        saveCurrentRoutine(name || undefined); renderWorldConsole('routines');
+      };
+      body.querySelectorAll('.routine-go').forEach(button => button.onclick = () => {
+        const routine = routines.find(r => r.id === button.dataset.routine); if (!routine) return;
+        if (EEVEELUTION_DATA[routine.form]) selectEeveelution(routine.form);
+        goToRoomImmediate(routine.roomId); closeWorldConsole();
+      });
+      body.querySelectorAll('.routine-remove').forEach(button => button.onclick = () => { experienceGuide.removeRoutine(button.dataset.routine); renderWorldConsole('routines'); });
+    }
+
+    function saveCurrentRoutine(name) {
+      if (!roomManager || !roomManager.current) return false;
+      const roomId = roomManager.current.id;
+      const defaultName = `${ROOM_DEFINITIONS[roomId].displayName.split(' — ')[0]} · ${currentForm}`;
+      experienceGuide.saveRoutine(name || defaultName, roomId, currentForm);
+      showSpeech('Saved this room and form as a visit shortcut.');
+      if (isWorldConsoleOpen) renderWorldConsole('routines');
+      return true;
+    }
+
+    function openMiniGames() {
+      if (arcadeRunning) switchGameMode('sandbox');
+      closeDrawer(); closeInteractionWheel(); closeWorldConsole();
+      if (!miniGameUI) return false;
+      isMiniGameOpen = true;
+      if (controls) controls.enabled = false;
+      miniGameUI.openCatalog();
+      uiChrome.pushEscape(closeMiniGames);
+      return true;
+    }
+
+    function closeMiniGames() {
+      if (miniGameUI && !document.getElementById('minigame-overlay').hidden) miniGameUI.close();
+      else {
+        isMiniGameOpen = false;
+        if (uiChrome) uiChrome.removeEscape(closeMiniGames);
+        if (controls) controls.enabled = !isPhotoMode && activeGameMode === 'sandbox';
+      }
+    }
+
+    function commandCompanion(command) {
+      if (!creatureManager || !creatureManager.commandCompanion) { showSpeech('A companion will be here soon.'); return false; }
+      const ok = creatureManager.commandCompanion(command);
+      if (ok) showSpeech(({ follow: 'Companion, this way!', stay: 'Take your time; I’ll be right here.', play: 'Playtime is officially approved.', recall: 'Come back over here, please.' })[command] || 'Companion command received.');
+      else showSpeech('There is no active companion in this room right now.');
+      return ok;
+    }
+
+    function exportHabitatSave() {
+      try {
+        const text = experienceGuide.exportSave();
+        const blob = new Blob([text], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a'); link.href = url; link.download = `eevee-habitat-save-${new Date().toISOString().slice(0,10)}.json`;
+        link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showSpeech('A backup copy of your habitat save was downloaded.');
+      } catch (err) { showSpeech(err.message || 'Could not export the save.'); }
+    }
+
+    function importHabitatSave(file) {
+      if (!file) return;
+      const input = document.getElementById('import-save-file');
+      const reader = new FileReader();
+      reader.onload = () => {
+        try { experienceGuide.importSave(String(reader.result || '')); location.reload(); }
+        catch (err) { showSpeech(err.message || 'That save could not be imported.'); }
+        if (input) input.value = '';
+      };
+      reader.onerror = () => { showSpeech('The save file could not be read.'); if (input) input.value = ''; };
+      reader.readAsText(file);
+    }
 
     function livingWorldLabel(state) {
       if (!state) return '';
@@ -3074,6 +3627,7 @@
        ========================================================================== */
     function initAudioUserGesture() {
       audio.init(); audio.startBGM();
+      save.set('ui.musicOn', true);
       syncLivingAudio();
       document.getElementById('audio-prompt').style.display = 'none';
       document.getElementById('btn-music').textContent = '⏸️';
@@ -3081,13 +3635,14 @@
     function toggleMusic() {
       audio.init();
       const btn = document.getElementById('btn-music');
-      if (audio.isMusicPlaying) { audio.stopBGM(); btn.textContent = '🎵'; }
-      else { audio.startBGM(); btn.textContent = '⏸️'; syncLivingAudio(); }
+      if (audio.isMusicPlaying) { audio.stopBGM(); btn.textContent = '🎵'; save.set('ui.musicOn', false); }
+      else { audio.startBGM(); btn.textContent = '⏸️'; syncLivingAudio(); save.set('ui.musicOn', true); }
       document.getElementById('audio-prompt').style.display = 'none';
     }
     function toggleSFX() {
       audio.isSFXEnabled = !audio.isSFXEnabled;
       document.getElementById('btn-sound').textContent = audio.isSFXEnabled ? '🔊' : '🔇';
+      save.set('ui.sfxOn', audio.isSFXEnabled);
     }
 
     let evolutionSpinTimer = 0;
@@ -3120,6 +3675,17 @@
        ========================================================================== */
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') { if (uiChrome.handleEscape()) e.preventDefault(); return; }
+      const target = e.target;
+      const targetIsElement = !!(target && typeof target.closest === 'function');
+      if (isMiniGameOpen || isWorldConsoleOpen || isPhotoMode ||
+          (target && typeof target.matches === 'function' && target.matches('input, textarea, select, [contenteditable="true"]')) ||
+          (targetIsElement && target.closest('#settings-sheet'))) return;
+
+      const keys = shortcutBindings();
+      const pressed = String(e.key || '').toLowerCase();
+      if (pressed === String(keys.wheel).toLowerCase()) { e.preventDefault(); toggleInteractionWheel(); return; }
+      if (pressed === String(keys.map).toLowerCase()) { e.preventDefault(); openWorldConsole('map'); return; }
+      if (pressed === String(keys.games).toLowerCase()) { e.preventDefault(); openMiniGames(); return; }
 
       const gameoverModal = document.getElementById('gameover-modal');
       if (gameoverModal && gameoverModal.style.display === 'flex') {
@@ -3133,7 +3699,7 @@
         return;
       }
 
-      if (e.key === 'Tab' && !e.target.closest('.interactive')) {
+      if (e.key === 'Tab' && !(targetIsElement && target.closest('.interactive'))) {
         e.preventDefault();
         toggleDrawer();
         return;
@@ -3159,6 +3725,36 @@
 
     let isMouseDown = false;
     let pointerStartY = 0;
+    let gamepadMoveCooldown = 0;
+    let gamepadPrimaryWasPressed = false;
+    function updateGamepad(dt) {
+      if (!navigator.getGamepads) return;
+      const pad = Array.from(navigator.getGamepads()).find(Boolean);
+      if (!pad) { gamepadPrimaryWasPressed = false; return; }
+      const x = Number(pad.axes[0]) || 0;
+      const y = Number(pad.axes[1]) || 0;
+      const primaryPressed = !!(pad.buttons[0] && pad.buttons[0].pressed);
+      if (arcadeRunning) {
+        arcadeTargetX = Math.max(-2.2, Math.min(2.2, arcadeTargetX + x * dt * 5));
+        if (primaryPressed && !gamepadPrimaryWasPressed && arcadeJumpY === 0) { arcadeJumpVel = 0.45; audio.playBoing(); }
+      } else if (activeGameMode === 'sandbox' && !isMiniGameOpen && !isWorldConsoleOpen && gamepadMoveCooldown <= 0 && Math.hypot(x, y) > .35 && creatureActor) {
+        const pos = creatureActor.root.position;
+        creatureActor.moveTo(new THREE.Vector3(pos.x + x * 1.1, 0, pos.z + y * 1.1), { manual: true });
+        gamepadMoveCooldown = .24;
+      }
+      gamepadPrimaryWasPressed = primaryPressed;
+      gamepadMoveCooldown = Math.max(0, gamepadMoveCooldown - dt);
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        if (livingWorld) livingWorld.setSuspended(true);
+        if (audio.ctx && audio.ctx.state === 'running') audio.ctx.suspend().catch(() => {});
+      } else {
+        clock.getDelta();
+        if (livingWorld) livingWorld.setSuspended(activeGameMode === 'arcade');
+        if (audio.ctx && audio.isMusicPlaying) audio.ctx.resume().catch(() => {});
+      }
+    });
     window.addEventListener('pointerdown', (e) => {
       if (e.target.closest('.interactive')) return;
       isMouseDown = true;
@@ -3191,11 +3787,31 @@
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      document.body.dataset.controlScheme = save.get('ui.controlScheme', 'auto');
+      updateControlHints();
+      document.body.classList.toggle('captions-off', !save.get('ui.captions', true));
+      onSetQuality(save.get('ui.quality', 'high'));
 
       uiChrome = new UIChrome({ save, fadeDelay: 3200 });
       document.documentElement.dataset.reducedMotion = uiChrome.reducedMotion ? 'true' : 'false';
       uiChrome.applyDensity(save.get('ui.density', 'minimal'));
       uiChrome.registerFadeTargets(Array.from(document.querySelectorAll('.fadeable')));
+      miniGameUI = new MiniGameSuite.MiniGameUI(miniGameSystem, document.getElementById('minigame-overlay'), {
+        onClose: () => {
+          isMiniGameOpen = false;
+          photoSafariActive = false; photoSafariReturn = false;
+          uiChrome.removeEscape(closeMiniGames);
+          if (controls) controls.enabled = !isPhotoMode && activeGameMode === 'sandbox';
+        },
+        onPhotoRequest: () => {
+          photoSafariActive = true; photoSafariReturn = true;
+          miniGameUI.hideForPhoto();
+          isMiniGameOpen = false;
+          if (controls) controls.enabled = true;
+          enterPhotoMode();
+          showSpeech('Photo Safari: frame a portrait with a Moment score of 65 or higher.');
+        }
+      });
 
       cameraController = new CameraController(camera, canvas, { reducedMotion: uiChrome.reducedMotion, sensitivity: save.get('ui.cameraSensitivity', 1.0) });
       controls = cameraController.controls;
@@ -3230,6 +3846,7 @@
             creatureActor.moveTo(entry.continuePoint, { source: 'door-exit' });
           }
           showRoomToast(roomId, built);
+          experienceGuide.recordEvent('visit', { roomId, form: currentForm, initial: !entry || !entry.fromRoomId });
           renderRoomGrid();
         }
       });
@@ -3300,6 +3917,10 @@
       setupPettingInteraction(canvas);
       window.addEventListener('resize', onWindowResize);
       window.addEventListener('pointerdown', () => { lastActivityAt = performance.now(); }, { passive: true });
+      window.addEventListener('pointermove', e => {
+        if (e.buttons || e.pointerType === 'touch') lastActivityAt = performance.now();
+      }, { passive: true });
+      window.addEventListener('wheel', () => { lastActivityAt = performance.now(); }, { passive: true });
       window.addEventListener('keydown', () => { lastActivityAt = performance.now(); }, { passive: true });
       uiChrome.reportActivity();
     }
@@ -3601,8 +4222,25 @@
     let idleCineTimer = 0;
     function animate() {
       requestAnimationFrame(animate);
+      if (document.hidden) { clock.getDelta(); return; }
       const dt = Math.min(clock.getDelta(), 0.1);
       const elapsed = clock.getElapsedTime();
+      updateQualityGovernor(dt);
+      updateGamepad(dt);
+      if (miniGameUI) miniGameUI.update(dt);
+      if (faceCtx && activeGameMode === 'sandbox') {
+        if (blinkRemaining > 0) {
+          blinkRemaining = Math.max(0, blinkRemaining - dt);
+          if (blinkRemaining === 0) updateFaceExpression(currentEmotion === 'blink' ? 'happy' : currentEmotion);
+        } else {
+          blinkTimer -= dt;
+          if (blinkTimer <= 0) {
+            const restoreEmotion = currentEmotion === 'blink' ? 'happy' : currentEmotion;
+            updateFaceExpression('blink'); currentEmotion = restoreEmotion;
+            blinkRemaining = 0.12; blinkTimer = 2.8 + Math.random() * 3.4;
+          }
+        }
+      }
 
       const targetSquish = isLoafMode ? 0.65 : 1.0;
       petSquishFactor += (targetSquish - petSquishFactor) * 0.12;
@@ -3679,7 +4317,7 @@
 
         if (interactionSystem) interactionSystem.update(dt);
 
-        const specialActionActive = evolutionSpinTimer > 0 || isDiscoMode || isLoafMode || isVacuumPanicking || treats.some(t => !t.userData.directManipulation) || treatHungerAngle > 0;
+        const specialActionActive = evolutionSpinTimer > 0 || isDiscoMode || isLoafMode || isVacuumPanicking || isMiniGameOpen || isWorldConsoleOpen || treats.some(t => !t.userData.directManipulation) || treatHungerAngle > 0;
         const doorTravelActive = !!doorTravel;
         const evolutionActive = !!(evolutionController && evolutionController.isActive());
         const evolutionMovementLocked = !!(evolutionController &&
@@ -3708,7 +4346,7 @@
               chillMode: isChillMode,
               cameraPosition: null
             },
-            socialSuspended: specialActionActive || doorTravelActive || evolutionActive || activeGameMode !== 'sandbox',
+            socialSuspended: specialActionActive || doorTravelActive || evolutionActive || isMiniGameOpen || isWorldConsoleOpen || activeGameMode !== 'sandbox',
             reducedMotion: !!(uiChrome && uiChrome.reducedMotion),
             userActive: userRecentlyActive
           });
@@ -3775,6 +4413,9 @@
 
         if (roomManager) roomManager.update(dt, elapsed);
         cameraController.update(dt);
+        if (save.get('ui.cameraAutoFollow', false) && !userRecentlyActive && !isChillMode && !isPhotoMode && !isMiniGameOpen && !isWorldConsoleOpen && !doorTravel && creatureActor) {
+          cameraController.followTarget(creatureActor.root.position, dt);
+        }
 
         // Idle cinematography (Chill Mode only; Part XVII). Respects reduced motion.
         if (isChillMode && !cameraController.isTransitioning && !uiChrome.reducedMotion) {
@@ -3826,6 +4467,10 @@
       get habitatState() { return worldState.getDebugState(roomManager && roomManager.current ? roomManager.current.id : 'conservatory'); },
       get doorTravelState() { return doorTravel ? { targetId: doorTravel.targetId, sourceRoomId: doorTravel.sourceRoomId, stage: doorTravel.stage } : null; },
       get save() { return save; },
+      get experienceGuide() { return experienceGuide; },
+      get miniGameSystem() { return miniGameSystem; },
+      get isMiniGameOpen() { return isMiniGameOpen; },
+      get isWorldConsoleOpen() { return isWorldConsoleOpen; },
       get isPhotoMode() { return isPhotoMode; },
       get isChillMode() { return isChillMode; },
       selectEeveelution, toggleShinyMode, updateFaceExpression, useSpeciesAbility,
@@ -3833,6 +4478,7 @@
       triggerLoafMode, triggerDerpMode, triggerDiscoDance, summonVacuum, feedTreat, placeTreatForInteraction, clearPlacedTreats, callEeveelution, brushEeveelution,
       startArcadeGame, stopArcadeGame, switchGameMode,
       enterPhotoMode, exitPhotoMode, capturePhotoModeShot,
+      openMiniGames, closeMiniGames, openWorldConsole, closeWorldConsole, saveCurrentRoutine, commandCompanion,
       goToRoom: goToRoomImmediate,
       travelThroughDoor: (targetId) => {
         if (!roomManager || !roomManager.current) return false;

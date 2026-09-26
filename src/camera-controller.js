@@ -41,6 +41,8 @@
       this.modelRadius = 1.0;
       this.modelHeight = 1.3;
       this.presetKey = 'fullbody';
+      this._followTarget = new THREE.Vector3();
+      this._followDelta = new THREE.Vector3();
 
       this._tween = null; // { fromPos, toPos, fromTarget, toTarget, fromFov, toFov, t, duration, onDone }
       this._roomBounds = null; // { minDistance, maxDistance, minPolar, maxPolar }
@@ -156,6 +158,18 @@
         t: 0,
         duration
       };
+    }
+
+    /** Gently pan the camera with the creature while preserving its current orbit and zoom. */
+    followTarget(point, dt) {
+      if (!point || this._tween || !this.camera || !this.controls) return false;
+      this._followTarget.set(point.x, point.y + 0.72, point.z);
+      this._followDelta.subVectors(this._followTarget, this.controls.target);
+      const blend = Math.min(1, Math.max(0, Number(dt) || 0) * 2.4);
+      this._followDelta.multiplyScalar(blend);
+      this.controls.target.add(this._followDelta);
+      this.camera.position.add(this._followDelta);
+      return true;
     }
 
     update(dt) {

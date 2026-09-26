@@ -17,7 +17,8 @@ const legacy = {
   ui: { density: 'full' },
   discovery: { behaviors: {}, mementos: { old_note: true }, rareMoments: {} },
   roomMemory: { jolteon: { charged: true } },
-  crossContamination: { vaporeon: ['trace_vaporeon'] }
+  crossContamination: { vaporeon: ['trace_vaporeon'] },
+  album: [null, 'malformed', { id: 'old-photo', score: 12 }]
 };
 
 const localStorage = new FakeStorage({
@@ -43,11 +44,24 @@ const persistence = fs.readFileSync(path.join(__dirname, '..', 'src', 'persisten
 vm.runInNewContext(persistence, context);
 const save = new window.SaveManager();
 
-assert.equal(save.state.version, 3);
+assert.equal(save.state.version, 4);
 assert.equal(save.state.activeForm, 'flareon');
 assert.equal(save.state.highScore, 4321);
 assert.equal(save.state.ui.density, 'full');
 assert.equal(save.state.ui.sfxOn, true);
+assert.equal(save.state.ui.musicVolume, 0.58);
+assert.equal(save.state.ui.sfxVolume, 0.78);
+assert.equal(save.state.ui.keyBindings.wheel, 'e');
+assert(save.state.minigames && save.state.journey);
+assert.equal(save.state.album.length, 1, 'migration should discard malformed album entries');
+assert.equal(save.state.album[0].id, 'old-photo');
+save.state.album.push(null);
+save.addPhoto({ id: 'new-photo', score: 90 });
+assert.equal(save.state.album.length, 2, 'adding a photo should recover from malformed album data');
+assert.equal(save.state.album[0].id, 'new-photo');
+for (let i = 0; i < 15; i++) save.addPhoto({ id: `extra-${i}`, score: i });
+assert.equal(save.state.album.length, 12, 'album remains bounded to twelve metadata entries');
+assert(save.state.album.every((entry, i, rows) => !i || rows[i - 1].score >= entry.score), 'album remains sorted by score');
 assert.deepEqual(save.state.roomMemory.jolteon, { charged: true });
 assert(save.state.roomNarrative && typeof save.state.roomNarrative === 'object');
 assert(save.state.placedObjects && typeof save.state.placedObjects === 'object');
@@ -105,9 +119,16 @@ assert(summary.mementoCount >= 1);
 assert(summary.traceCount >= 2);
 assert(world.getRoomState('conservatory').stageIndex >= 1);
 
+const backup = save.exportJSON();
+save.set('ui.musicVolume', 0.2);
+save.flush();
+save.importJSON(backup);
+assert.equal(save.get('ui.musicVolume'), 0.58, 'export/import should round-trip the complete save');
+assert.throws(() => save.importJSON('[]'), /habitat save/i, 'import should reject a non-save JSON array');
+
 save.flush();
 const stored = JSON.parse(localStorage.getItem('eevee_habitat_save'));
-assert.equal(stored.version, 3);
+assert.equal(stored.version, 4);
 assert(stored.placedObjects.jolteon.relay_cushion);
 assert(Array.isArray(stored.crossContamination[provenanceTrace.destinationRoom]));
 

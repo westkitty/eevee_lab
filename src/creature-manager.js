@@ -82,6 +82,12 @@
       this.socialTimer = 2.5;
       this.toyInterest = null;
       this.hasGreeted = false;
+      this.companions.forEach(entry => {
+        entry.command = null; entry.commandTimer = 0; entry.commandFollowTimer = 0;
+        entry.actor.clearBehaviorState(); entry.actor.setAutonomyEnabled(true);
+        if (Number.isFinite(entry.actor.holdTimer)) entry.actor.holdTimer = 0;
+        entry.actor.hold(0.6);
+      });
       return this.roomId;
     }
 
@@ -128,7 +134,11 @@
         ownedRoot: true,
         originalParent,
         originalTransform,
-        originalVisible
+        originalVisible,
+        command: null,
+        commandTimer: 0,
+        commandFollowTimer: 0,
+        followDistance: 1.25
       };
       this.companions.set(id, entry);
       this._emit('companion-joined', { companionId: id, species: options.species });
@@ -147,7 +157,11 @@
         ownedRoot: false,
         originalParent: null,
         originalTransform: null,
-        originalVisible: true
+        originalVisible: true,
+        command: null,
+        commandTimer: 0,
+        commandFollowTimer: 0,
+        followDistance: 1.25
       };
       this.companions.set(entry.id, entry);
       return entry;
@@ -215,6 +229,32 @@
       return this.companions.get(this.selectedId) || this.primary;
     }
 
+    commandCompanion(command, id) {
+      const entry = id ? this.companions.get(id) : this._firstCompanion();
+      if (!entry || !entry.actor || !this.primary || !this.primary.root) return false;
+      const actor = entry.actor;
+      if (!['follow', 'stay', 'play', 'recall'].includes(command)) return false;
+      this.socialMode = null; this.toyInterest = null; this.socialTimer = 4;
+      if (command === 'stay') {
+        entry.command = 'stay'; entry.commandTimer = 0;
+        actor.setAutonomyEnabled(false); actor.clearBehaviorState(); actor.hold(3600);
+        actor.lookAtWorld(this.primary.root.position, 1.4);
+      } else if (command === 'play') {
+        entry.command = 'play'; entry.commandTimer = 2.8;
+        actor.setAutonomyEnabled(false); actor.setBehaviorState('play', 2.5);
+      } else {
+        entry.command = 'follow'; entry.commandTimer = 0;
+        entry.followDistance = command === 'recall' ? 0.72 : 1.25;
+        entry.commandFollowTimer = 0;
+        actor.setAutonomyEnabled(false); actor.clearBehaviorState();
+        const p = this.primary.root.position;
+        actor.moveTo(new THREE.Vector3(p.x - entry.followDistance, 0, p.z + 0.55), { source: 'companion-follow' });
+        actor.lookAtWorld(p, 1.5);
+      }
+      this._emit('companion-command', { companionId: entry.id, species: entry.species, command });
+      return true;
+    }
+
     getSelectableObjects() {
       const out = [];
       this.companions.forEach(entry => { if (entry.wrapper) out.push(entry.wrapper); });
@@ -223,7 +263,7 @@
 
     notifyToyReleased(point, kind, object) {
       const companion = this._firstCompanion();
-      if (!companion || !point) return false;
+      if (!companion || !point || companion.command === 'stay') return false;
       companion.actor.clearBehaviorState('sleep');
       companion.actor.lookAtWorld(point, 1.5);
       companion.actor.moveTo(point, { source: 'toy-competition' });
@@ -248,17 +288,47 @@
 
       if (!this.primary || !this.companions.size) return;
       this.separationCooldown = Math.max(0, this.separationCooldown - dt);
+      this._updateCommands(dt);
       this._updateToyInterest(dt);
       this._updateNapTogether();
       this._updateSeparation(context);
       this._updateSocial(dt, context);
     }
 
+    _updateCommands(dt) {
+      this.companions.forEach(entry => {
+        const actor = entry.actor;
+        if (entry.command === 'stay') return;
+        if (entry.command === 'play') {
+          entry.commandTimer = Math.max(0, entry.commandTimer - dt);
+          if (entry.commandTimer === 0) {
+            actor.clearBehaviorState('play');
+            entry.command = null;
+            actor.setAutonomyEnabled(true);
+          }
+          return;
+        }
+        if (entry.command !== 'follow' || !this.primary) return;
+        entry.commandFollowTimer = Math.max(0, entry.commandFollowTimer - dt);
+        if (entry.commandFollowTimer > 0) return;
+        entry.commandFollowTimer = 0.35;
+        const target = this._nearPrimaryPoint(entry.followDistance, -0.75);
+        const distanceToPrimary = distance2D(actor.root.position, this.primary.root.position);
+        if (distanceToPrimary > entry.followDistance + 0.38) {
+          const targetChanged = !actor.target || actor.targetSource !== 'companion-follow' || distance2D(actor.target, target) > 0.45;
+          if (targetChanged) actor.moveTo(target, { source: 'companion-follow' });
+        } else if (actor.targetSource === 'companion-follow') {
+          actor.stop();
+        }
+        actor.lookAtWorld(this.primary.root.position, 1.2);
+      });
+    }
+
     _updateSeparation(context) {
       if (context.socialSuspended || this.separationCooldown > 0) return;
       const primary = this.primary;
       const companion = this._firstCompanion();
-      if (!primary || !companion) return;
+      if (!primary || !companion || companion.command) return;
 
       const p = primary.root.position;
       const c = companion.root.position;
@@ -287,6 +357,7 @@
       if (!this.toyInterest) return;
       this.toyInterest.timer -= dt;
       const companion = this.companions.get(this.toyInterest.companionId);
+      if (companion && companion.command === 'stay') { this.toyInterest = null; return; }
       if (!companion || this.toyInterest.timer <= 0) {
         this.toyInterest = null;
         return;
@@ -307,7 +378,7 @@
     _updateNapTogether() {
       const primary = this.primary;
       const companion = this._firstCompanion();
-      if (!primary || !companion) return;
+      if (!primary || !companion || companion.command) return;
       const primarySleeping = primary.actor.behaviorState === 'sleep';
 
       if (!primarySleeping && companion.actor.behaviorState === 'sleep' && this.socialMode && this.socialMode.type === 'nap-together') {
@@ -326,7 +397,7 @@
 
     _updateSocial(dt, context) {
       const companion = this._firstCompanion();
-      if (!companion) return;
+      if (!companion || companion.command) return;
 
       if (this.socialMode) {
         this.socialMode.timer = Math.max(0, this.socialMode.timer - dt);
@@ -504,6 +575,7 @@
           species: entry.species,
           state: entry.actor.state,
           behaviorState: entry.actor.behaviorState,
+          command: entry.command || 'autonomy',
           position: {
             x: entry.root.position.x,
             y: entry.root.position.y,

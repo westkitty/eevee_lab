@@ -400,7 +400,7 @@ async function main() {
       return !!(door && door.object3D.userData.glow && door.object3D.userData.glow.material.map);
     })()
   }));
-  record('phase5-save-current-schema', phase5Boot.version === 3, `saveVersion=${phase5Boot.version}`);
+  record('phase5-save-current-schema', phase5Boot.version === 4, `saveVersion=${phase5Boot.version}`);
   record('phase5-portal-preview', phase5Boot.portalPreview === true, JSON.stringify(phase5Boot));
   record('phase5-conservatory-world-state',
     phase5Boot.habitat && phase5Boot.habitat.room && phase5Boot.habitat.room.stageCount === 4,

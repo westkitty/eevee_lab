@@ -140,6 +140,9 @@
 
       const built = def.build(this._ctxFor(roomId));
       built.group.name = 'room_' + roomId;
+      if (global.HabitatArt && typeof global.HabitatArt.decorateRoom === 'function') {
+        global.HabitatArt.decorateRoom(roomId, built);
+      }
       this.scene.add(built.group);
       built.lights.forEach(l => this.scene.add(l));
 
