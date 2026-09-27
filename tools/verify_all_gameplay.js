@@ -1046,6 +1046,14 @@ async function main() {
 }
 
 main().catch(err => {
+  const message = err && err.stack ? err.stack : String(err);
   console.error('[TEST SUITE CRASHED]:', err);
+  if (process.env.GITHUB_ACTIONS === 'true') {
+    const annotation = message.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+    console.log(`::error title=Browser suite crashed::${annotation.slice(0, 3500)}`);
+    if (process.env.GITHUB_STEP_SUMMARY) {
+      fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Browser suite crashed\n\n\`\`\`text\n${message}\n\`\`\`\n`);
+    }
+  }
   process.exit(1);
 });
