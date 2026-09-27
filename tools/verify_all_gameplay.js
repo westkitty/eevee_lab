@@ -912,7 +912,9 @@ async function main() {
   // tablet portrait, tablet landscape/small desktop, and wide desktop.
   async function inspectAdaptiveViewport(name, width, height, expectedMode) {
     await page.setViewportSize({ width, height });
-    await page.waitForTimeout(250);
+    // Let breakpoint-driven drawer/sheet transforms finish before measuring the
+    // stable responsive layout; transitional offscreen sheets can affect scrollWidth.
+    await page.waitForTimeout(400);
 
     // Closed-state chrome must stay inside the viewport and keep the center clear.
     const closed = await page.evaluate(() => {
