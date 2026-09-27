@@ -361,6 +361,7 @@
     .btn-restart:hover { transform: scale(1.08); }
 
     .audio-prompt-banner {
+      appearance: none; -webkit-appearance: none; font-family: var(--font-body); text-align: left;
       background: #ffea79; border: 2px solid #d49800; color: #573e00; padding: 6px 16px; border-radius: 20px;
       font-weight: 700; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 8px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1); animation: pulse-glow 2s infinite alternate;
@@ -927,9 +928,9 @@
         <button class="icon-btn" id="btn-sound" title="Toggle sound effects" aria-label="Toggle sound effects" onclick="toggleSFX()">🔊</button>
         <button class="icon-btn" id="btn-photo-mode" title="Photo mode (hides UI)" aria-label="Enter photo mode" onclick="enterPhotoMode()">📷</button>
       </div>
-      <div class="audio-prompt-banner interactive" id="audio-prompt" onclick="initAudioUserGesture()" style="margin-top:8px;">
-        <span>🎵</span> Tap to enable music
-      </div>
+      <button type="button" class="audio-prompt-banner interactive" id="audio-prompt" onclick="initAudioUserGesture()" style="margin-top:8px;">
+        <span aria-hidden="true">🎵</span> Tap to enable music
+      </button>
     </div>
 
     <!-- Bottom-center: species strip + camera hint -->

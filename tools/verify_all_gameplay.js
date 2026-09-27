@@ -140,6 +140,8 @@ async function main() {
     return keys.every(k => models[k] && models[k].userData && models[k].userData.isLoaded);
   }, { timeout: 20000 });
   record('load-1', true, 'App loaded, all 9 GLBs report isLoaded');
+  const audioPromptButtons = await page.getByRole('button', { name: 'Tap to enable music' }).count();
+  record('audio-prompt-keyboard-button', audioPromptButtons === 1, `matching buttons=${audioPromptButtons}`);
   const actorBoot = await page.evaluate(() => ({
     actor: window.eeveeApp.creatureActorState,
     currentForm: window.eeveeApp.currentForm
