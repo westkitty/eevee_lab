@@ -217,11 +217,24 @@
       this._saveTimer = setTimeout(() => this.flush(), 250);
     }
 
-    flush() {
+    flush({ allowUnsupportedVersion = false } = {}) {
       clearTimeout(this._saveTimer);
       this._saveTimer = null;
       if (this.readOnly) return false;
       try {
+        // Another tab or a newer app version may have replaced the stored save
+        // while this older instance was open. Re-check before every write so a
+        // pagehide flush cannot silently downgrade that newer data.
+        const storedText = global.localStorage.getItem(SAVE_KEY);
+        if (storedText) {
+          const storedVersion = readSaveVersion(JSON.parse(storedText));
+          if (storedVersion > SAVE_VERSION && !allowUnsupportedVersion) {
+            this.readOnly = true;
+            this.unsupportedVersion = storedVersion;
+            this._notifyPersistenceStatus(null);
+            return false;
+          }
+        }
         global.localStorage.setItem(SAVE_KEY, JSON.stringify(this.state));
         const recovered = !!this.lastPersistenceError;
         this.lastPersistenceError = null;
@@ -271,7 +284,7 @@
       this.state = imported;
       this.readOnly = false;
       this.unsupportedVersion = null;
-      if (!this.flush()) {
+      if (!this.flush({ allowUnsupportedVersion: true })) {
         this.state = previousState;
         this.readOnly = wasReadOnly;
         this.unsupportedVersion = previousUnsupportedVersion;

@@ -165,6 +165,25 @@ futureSave.importJSON(backup);
 assert.equal(futureSave.readOnly, false, 'a compatible backup restores writable mode');
 assert.equal(JSON.parse(futureStorage.getItem('eevee_habitat_save')).version, 4);
 
+const concurrentStorage = new FakeStorage({ eevee_habitat_save: JSON.stringify({ version: 4, activeForm: 'eevee' }) });
+const concurrentWindow = new FakeWindow(concurrentStorage);
+const concurrentContext = Object.assign({}, context, { window: concurrentWindow });
+vm.runInNewContext(persistence, concurrentContext);
+const concurrentSave = new concurrentWindow.SaveManager();
+const newerConcurrentRaw = JSON.stringify({ version: 5, activeForm: 'sylveon', futureField: { preserve: true } });
+concurrentStorage.setItem('eevee_habitat_save', newerConcurrentRaw); // Simulate another tab writing a newer schema.
+let newerSaveNoticeCount = 0;
+concurrentSave.onPersistenceStatus = error => {
+  assert.equal(error, null, 'a future save is distinct from a browser storage failure');
+  newerSaveNoticeCount++;
+};
+concurrentSave.set('activeForm', 'flareon');
+concurrentWindow.dispatch('pagehide');
+assert.equal(concurrentSave.readOnly, true, 'an older open tab enters read-only mode before its next write');
+assert.equal(concurrentSave.unsupportedVersion, 5);
+assert.equal(newerSaveNoticeCount, 1, 'the UI is notified when a newer save appears');
+assert.equal(concurrentStorage.getItem('eevee_habitat_save'), newerConcurrentRaw, 'pagehide cannot downgrade a newer save written by another tab');
+
 const blockedStorage = new FakeStorage({ eevee_habitat_save: JSON.stringify({ version: 4 }) });
 const blockedWindow = new FakeWindow(blockedStorage);
 const blockedContext = Object.assign({}, context, { window: blockedWindow, console: { warn() {}, error: console.error } });
