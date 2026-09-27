@@ -148,6 +148,49 @@ async function main() {
     actorBoot.actor ? JSON.stringify(actorBoot.actor) : 'actor unavailable');
   await shot(page, '01_hub_conservatory');
 
+  // Modal focus contract in the real browser: entry, both wraps, outside-focus
+  // recovery, Escape close, and restoration to the invoking control.
+  const focusEntry = await page.evaluate(() => {
+    document.getElementById('drawer-fab').focus();
+    openSettings();
+    const sheet = document.getElementById('settings-sheet');
+    return {
+      activeId: document.activeElement.id,
+      dialogOpen: sheet.classList.contains('open') && sheet.getAttribute('aria-hidden') === 'false'
+    };
+  });
+  record('settings-focus-entry', focusEntry.activeId === 'set-density' && focusEntry.dialogOpen,
+    JSON.stringify(focusEntry));
+
+  await page.evaluate(() => {
+    const buttons = Array.from(document.querySelectorAll('#settings-sheet .drawer-row button'));
+    buttons[buttons.length - 1].focus();
+  });
+  await page.keyboard.press('Tab');
+  const forwardWrap = await page.evaluate(() => document.activeElement.id);
+  record('settings-tab-wrap', forwardWrap === 'set-density', `active=${forwardWrap}`);
+
+  await page.keyboard.press('Shift+Tab');
+  const reverseWrap = await page.evaluate(() => document.activeElement.textContent.trim());
+  record('settings-shift-tab-wrap', reverseWrap === 'Done', `active=${reverseWrap}`);
+
+  await page.evaluate(() => document.getElementById('drawer-fab').focus());
+  await page.keyboard.press('Tab');
+  const outsideForward = await page.evaluate(() => document.activeElement.id);
+  record('settings-outside-focus-contained', outsideForward === 'set-density', `active=${outsideForward}`);
+
+  await page.evaluate(() => document.getElementById('drawer-fab').focus());
+  await page.keyboard.press('Shift+Tab');
+  const outsideReverse = await page.evaluate(() => document.activeElement.textContent.trim());
+  record('settings-outside-reverse-contained', outsideReverse === 'Done', `active=${outsideReverse}`);
+
+  await page.keyboard.press('Escape');
+  const focusReturn = await page.evaluate(() => ({
+    id: document.activeElement.id,
+    ariaHidden: document.getElementById('settings-sheet').getAttribute('aria-hidden')
+  }));
+  record('settings-focus-return', focusReturn.id === 'drawer-fab' && focusReturn.ariaHidden === 'true', JSON.stringify(focusReturn));
+
   // 2. Initial species + form-switching (1-9).
   let state = await page.evaluate(() => ({ currentForm: window.eeveeApp.currentForm }));
   record('form-initial', state.currentForm === 'eevee' || SPECIES.includes(state.currentForm), `initial form=${state.currentForm}`);
@@ -936,6 +979,60 @@ async function main() {
   await shot(page, '17_desktop_wide');
 
   await page.setViewportSize({ width: 1280, height: 800 });
+
+  // Exercise the actual browser storage path for a newer save. The newer bytes
+  // must survive attempted edits, and Settings must explain how to recover.
+  const compatibleBackup = await page.evaluate(() => window.eeveeApp.save.exportJSON());
+  const futureRaw = JSON.stringify({ version: 5, activeForm: 'sylveon', futureField: { preserve: true } });
+  await page.evaluate(raw => localStorage.setItem('eevee_habitat_save', raw), futureRaw);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => window.eeveeApp && window.eeveeApp.save && window.eeveeApp.save.readOnly === true, { timeout: 15000 });
+  await page.waitForFunction(() => {
+    const models = window.eeveeApp && window.eeveeApp.eeveeRig && window.eeveeApp.eeveeRig.userData && window.eeveeApp.eeveeRig.userData.models;
+    const keys = ['eevee','vaporeon','jolteon','flareon','espeon','umbreon','leafeon','glaceon','sylveon'];
+    return !!models && keys.every(key => models[key] && models[key].userData && models[key].userData.isLoaded);
+  }, { timeout: 20000 });
+  await page.evaluate(() => openSettings());
+  const saveNotice = await page.evaluate(() => {
+    const notice = document.getElementById('save-status-notice');
+    return {
+      visible: !!notice && !notice.hidden && getComputedStyle(notice).display !== 'none',
+      role: notice && notice.getAttribute('role'),
+      live: notice && notice.getAttribute('aria-live'),
+      text: notice && notice.textContent
+    };
+  });
+  record('future-save-status', saveNotice.visible && saveNotice.role === 'status' && saveNotice.live === 'polite' && /v5/.test(saveNotice.text), JSON.stringify(saveNotice));
+  await shot(page, '18_future_save_notice');
+
+  const protectedSave = await page.evaluate(expectedRaw => {
+    const storedBefore = localStorage.getItem('eevee_habitat_save');
+    const save = window.eeveeApp.save;
+    save.set('activeForm', 'flareon');
+    const flushed = save.flush();
+    let exportBlocked = false;
+    try { save.exportJSON(); } catch (_) { exportBlocked = true; }
+    return {
+      originalBytesPreservedOnLoad: storedBefore === expectedRaw,
+      flushed,
+      storedUnchanged: localStorage.getItem('eevee_habitat_save') === storedBefore,
+      exportBlocked
+    };
+  }, futureRaw);
+  record('future-save-protected', protectedSave.originalBytesPreservedOnLoad && !protectedSave.flushed && protectedSave.storedUnchanged && protectedSave.exportBlocked, JSON.stringify(protectedSave));
+
+  const recoveredSave = await page.evaluate(backup => {
+    const save = window.eeveeApp.save;
+    save.importJSON(backup);
+    refreshSaveStatus();
+    return {
+      readOnly: save.readOnly,
+      storedVersion: JSON.parse(localStorage.getItem('eevee_habitat_save')).version,
+      noticeHidden: document.getElementById('save-status-notice').hidden
+    };
+  }, compatibleBackup);
+  record('future-save-compatible-recovery', !recoveredSave.readOnly && recoveredSave.storedVersion === 4 && recoveredSave.noticeHidden, JSON.stringify(recoveredSave));
+  await page.evaluate(() => closeSettings());
 
   console.log(`\n=== Console errors captured: ${consoleErrors.length} ===`);
   if (consoleErrors.length) consoleErrors.forEach(e => console.log('  [console.error]', e));

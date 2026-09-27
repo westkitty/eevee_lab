@@ -84,3 +84,54 @@ jobs:
           set -euo pipefail
           python3 -m py_compile tools/*.py
           python3 tools/validate_phase0.py assets/models/rig-manifest.json assets/models/animation-contract.json
+
+  browser:
+    name: Browser gameplay and responsive checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.11'
+
+      - name: Install pinned Playwright and Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y
+          npm install --save-dev --save-exact --no-audit --no-fund playwright@1.63.0
+          npx playwright install --with-deps chromium
+
+      - name: Run gameplay and responsive browser matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8099 --bind 127.0.0.1 >"$RUNNER_TEMP/eevee-http.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          node tools/verify_all_gameplay.js http://127.0.0.1:8099
+          EEVEE_TEST_BASE_URL=http://127.0.0.1:8099 node tools/capture_runtime_evidence.js
+
+      - name: Upload browser screenshots and results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: runtime-browser-evidence
+          path: |
+            qa/*.png
+            qa/results.json
+            qa/runtime/*.png
+          if-no-files-found: warn
+          retention-days: 7
