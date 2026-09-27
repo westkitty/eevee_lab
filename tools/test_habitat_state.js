@@ -171,10 +171,28 @@ const blockedContext = Object.assign({}, context, { window: blockedWindow, conso
 vm.runInNewContext(persistence, blockedContext);
 const blockedSave = new blockedWindow.SaveManager();
 const originalBlockedState = blockedSave.state;
+let persistenceNotices = 0;
+let persistenceRecoveries = 0;
+blockedSave.onPersistenceStatus = error => {
+  if (error) persistenceNotices++;
+  else persistenceRecoveries++;
+};
 blockedStorage.failWrites = true;
 assert.throws(() => blockedSave.importJSON(backup), /browser storage/i);
 assert.strictEqual(blockedSave.state, originalBlockedState, 'failed imports roll back in-memory state');
 assert.equal(JSON.parse(blockedStorage.getItem('eevee_habitat_save')).version, 4, 'failed imports leave the previous stored save unchanged');
+blockedSave.set('activeForm', 'flareon');
+const volatileBackup = JSON.parse(blockedSave.exportJSON());
+assert.equal(volatileBackup.data.activeForm, 'flareon', 'export still recovers current in-memory progress when storage is unavailable');
+assert(blockedSave.lastPersistenceError, 'the storage failure remains observable after backup export');
+assert.equal(persistenceNotices, 1, 'a continuous storage failure only notifies the app layer once');
+blockedStorage.failWrites = false;
+assert.equal(blockedSave.flush(), true, 'saving can recover when browser storage becomes writable again');
+assert.equal(blockedSave.lastPersistenceError, null, 'a successful write clears the prior storage error');
+assert.equal(persistenceRecoveries, 1, 'the app layer is told when storage recovery succeeds');
+blockedStorage.failWrites = true;
+assert.equal(blockedSave.flush(), false);
+assert.equal(persistenceNotices, 2, 'a later failure after recovery is announced again');
 
 save.flush();
 const stored = JSON.parse(localStorage.getItem('eevee_habitat_save'));

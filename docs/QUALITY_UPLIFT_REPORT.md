@@ -31,7 +31,7 @@ A browser-dependent visual/runtime claim is not upgraded on source inspection al
 | WOW | Surprise, Discovery & Intelligence | 3 · `STRONG_EVIDENCE` | 3 · `STRONG_EVIDENCE` | 0 | Discovery, memento, room-state, journey, and game logic have focused coverage; no user response/retention claim. |
 | WOW | Authorial Finish | 2 · `PARTIAL_EVIDENCE` | 2 · `PARTIAL_EVIDENCE` | 0 | Breadth and authored systems are evidenced in source/tests, but final visual/audio finish was not reviewed. |
 | **Backend** | Correctness & Integration | 3 · `VERIFIED` | 3 · `VERIFIED` | 0 | Focused state, manager, room, behavior, expansion, and game contracts passed before and after the changes. |
-| Backend | Reliability & Recovery | 2 · `PARTIAL_EVIDENCE` | 3 · `STRONG_EVIDENCE` | **+1** | Added future-schema read-only protection, compatible-backup recovery, import rollback when storage fails, and pagehide flushing; new fake-storage contracts pass. |
+| Backend | Reliability & Recovery | 2 · `PARTIAL_EVIDENCE` | 3 · `VERIFIED` | **+1** | Future-schema read-only protection, compatible-backup recovery, import rollback, pagehide flush, and recovery export when storage writes fail are exercised by fake-storage contracts. |
 | Backend | Performance & Lifecycle | 2 · `PARTIAL_EVIDENCE` | 2 · `PARTIAL_EVIDENCE` | 0 | Existing disposal/lifecycle contracts pass and saves now flush on hide, but no startup, frame-time, storage-cost, or network performance measurement was made. |
 | Backend | Architecture & Maintainability | 2 · `PARTIAL_EVIDENCE` | 2 · `PARTIAL_EVIDENCE` | 0 | Focused source modules and tests coexist with substantial inline application code; this pass did not restructure the app. |
 | Backend | Build, Security & Observability | 2 · `PARTIAL_EVIDENCE` | 2 · `PARTIAL_EVIDENCE` | 0 | Import size/form/version validation and focused test tools exist; there is no discovered CI workflow or browser-runner evidence for this checkout. |
@@ -42,7 +42,7 @@ A browser-dependent visual/runtime claim is not upgraded on source inspection al
 | Assets | Reuse, Provenance & Accessibility | 3 · `PARTIAL_EVIDENCE` | 3 · `PARTIAL_EVIDENCE` | 0 | Third-party source/license records and rig/animation manifests exist; provenance was not externally audited and visual alternatives were not reviewed. |
 | **UX** | Efficiency | 2 · `PARTIAL_EVIDENCE` | 2 · `PARTIAL_EVIDENCE` | 0 | Shortcuts, settings, map, and interaction routes exist; no observed task-time or user-path study. |
 | UX | Discoverability | 2 · `PARTIAL_EVIDENCE` | 2 · `PARTIAL_EVIDENCE` | 0 | Tour/guide/map affordances are in source; first-run and recovery discoverability were not browser/user tested. |
-| UX | Feedback & Recovery | 2 · `PARTIAL_EVIDENCE` | 3 · `STRONG_EVIDENCE` | **+1** | Newer saves now get a startup notice and persistent accessible Settings status; export/import errors are surfaced, and save-recovery contracts pass. UI presentation remains unverified. |
+| UX | Feedback & Recovery | 2 · `PARTIAL_EVIDENCE` | 3 · `STRONG_EVIDENCE` | **+1** | Newer-save and storage-failure states now have a startup/speech cue plus persistent Settings status; exports remain available for current in-memory data after storage-write failure. Recovery contracts pass; rendered UI remains unverified. |
 | UX | Accessibility & Inclusivity | 2 · `PARTIAL_EVIDENCE` | 2 · `PARTIAL_EVIDENCE` | 0 | Modal Tab/Shift+Tab containment now listens at document capture and is directly contract-tested, including focus outside the modal; no real browser/AT audit. |
 | UX | Predictability & Persistence | 3 · `STRONG_EVIDENCE` | 3 · `STRONG_EVIDENCE` | 0 | Versioned local save/migration remains; tests now verify non-destructive handling of future saves, compatible import, storage-failure rollback, and hide flush. |
 
@@ -57,11 +57,11 @@ A browser-dependent visual/runtime claim is not upgraded on source inspection al
 | UX | 11/20 | 12/20 | +1 |
 | **Total** | **57/100** | **59/100** | **+2/100** |
 
-No 4s were awarded. The uplift is narrow and risk-focused; no score was raised for unobserved visual quality. **The requested 15/20 category aim is not met** (all domains remain below 15), so this report does not claim the quality gate is fully satisfied. A real browser/runtime and visual assessment is the main blocker to defensible UI/WOW/asset gains.
+No 4s were awarded. The follow-on recovery-export change strengthens the existing reliability/recovery improvement but does not justify another integer score point; the overall delta remains **+2/100**. No score was raised for unobserved visual quality. **The requested 15/20 category aim is not met** (all domains remain below 15), so this report does not claim the quality gate is fully satisfied. A real browser/runtime and visual assessment is the main blocker to defensible UI/WOW/asset gains.
 
 ## Interventions
 
-1. **Protect saves across schema upgrades.** `src/persistence.js` now detects a stored schema newer than this app and stays read-only rather than normalizing/writing over it. Export is blocked in that state; a compatible import restores writable mode. A failed import write rolls back in-memory state and reports that the stored save was left unchanged. `index.html` provides a startup cue and a persistent `role="status"` Settings notice with the recovery action.
+1. **Protect saves and preserve recovery options.** `src/persistence.js` detects a stored schema newer than this app and stays read-only rather than normalizing/writing over it. Export is blocked in that state; a compatible import restores writable mode. A failed import write rolls back in-memory state. If a local write fails for a writable save, the current in-memory state can still be exported as a recovery backup. The save-status callback announces the first failure and later recovery (without repeating the same failure toast), and `index.html` keeps a persistent `role="status"` Settings notice synchronized.
 2. **Flush debounced saves when leaving or backgrounding.** `SaveManager` flushes on `pagehide`; the existing `visibilitychange` handler also flushes when hidden. This closes the 250 ms debounce loss window at those lifecycle boundaries.
 3. **Contain modal focus at document scope.** `ModalFocusManager` now observes Tab at document capture (with a root-level fallback for limited event targets), so focus moved outside the dialog is redirected as well as normal forward/reverse wrap. It removes the exact listener on close.
 
@@ -73,7 +73,7 @@ The patch does not replace or delete existing models, rooms, game content, audio
 
 ## Validation record
 
-- **Passed after edits:** JavaScript syntax checks for every `src/` and `tools/` `.js` file and both inline `index.html` scripts; all 13 focused Node contracts; `python3 -m py_compile tools/*.py`; `python3 tools/validate_phase0.py assets/models/rig-manifest.json assets/models/animation-contract.json`; and `git diff --check`.
+- **Passed after edits:** JavaScript syntax checks for every `src/` and `tools/` `.js` file and both inline `index.html` scripts; all 13 focused Node contracts, including future-schema preservation, failed-write rollback, volatile backup export, pagehide flushing, and document-level focus containment; `python3 -m py_compile tools/*.py`; the asset manifest validator; and `git diff --check`.
 - **Asset contract:** The manifest/animation-contract validator passed. Asset inventory was measured from repository files; it is not a performance measurement.
 - **Python/exporter:** Tool compilation passed. Export execution was not attempted because Blender is unavailable.
 - **Browser:** no Chromium/Chrome executable or cached Playwright browser is available. No screenshot, real focus/AT audit, gameplay browser run, or responsive visual assessment is claimed. Earlier Chromium download attempts failed with `ECONNRESET`; no retry was made.
@@ -92,4 +92,4 @@ The changes and this report are committed on `arena/01a0dee3-eevee-lab`, which t
 
 ## Verdict
 
-This patch improves save safety/recovery and modal keyboard containment with direct contracts and no new runtime dependency. It preserves the existing product and demonstrates a **+2/100** exact-rubric delta. It is **not a complete quality-gate pass**: UI/WOW/asset presentation remains unverified, and every domain is below the 15/20 aim. Do not infer deployment or broad visual polish from these code/test changes.
+This patch improves save safety/recovery—including downloadable in-memory recovery when local writes fail—and modal keyboard containment with direct contracts and no new runtime dependency. It preserves the existing product and demonstrates a **+2/100** exact-rubric delta; the follow-on recovery path stays within that same score bin. It is **not a complete quality-gate pass**: UI/WOW/asset presentation remains unverified, and every domain is below the 15/20 aim. Do not infer deployment or broad visual polish from these code/test changes.

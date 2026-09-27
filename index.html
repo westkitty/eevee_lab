@@ -278,8 +278,8 @@
     }
     #settings-sheet.open { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
     .settings-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f1e6d3; }
-    .settings-row.save-compat-warning { display: block; padding: 10px 12px; border: 1px solid #e7c16c; border-radius: 10px; background: #fff4d7; color: #714911; font-size: 0.84rem; font-weight: 700; line-height: 1.4; }
-    .settings-row.save-compat-warning[hidden] { display: none; }
+    .settings-row.save-status-notice { display: block; padding: 10px 12px; border: 1px solid #e7c16c; border-radius: 10px; background: #fff4d7; color: #714911; font-size: 0.84rem; font-weight: 700; line-height: 1.4; }
+    .settings-row.save-status-notice[hidden] { display: none; }
     .settings-row label { font-size: 0.85rem; font-weight: 700; color: #55341c; }
     .settings-row select, .settings-row input[type="range"] { max-width: 55%; }
 
@@ -1097,7 +1097,7 @@
     <div class="settings-row"><label for="set-control-scheme">Controls</label><select id="set-control-scheme" onchange="onSetControlScheme(this.value)"><option value="auto">Automatic</option><option value="keyboard">Keyboard & mouse</option><option value="touch">Touch-first</option></select></div>
     <div class="settings-row"><span>Keyboard shortcuts</span><div class="drawer-row"><button class="drawer-btn" id="bind-wheel" onclick="captureShortcut('wheel')">Paws · E</button><button class="drawer-btn" id="bind-map" onclick="captureShortcut('map')">Map · M</button><button class="drawer-btn" id="bind-games" onclick="captureShortcut('games')">Games · G</button></div></div>
     <div class="settings-row"><label for="set-captions">Interaction captions</label><input type="checkbox" id="set-captions" onchange="onSetCaptions(this.checked)"></div>
-    <div class="settings-row save-compat-warning" id="save-compat-warning" role="status" aria-live="polite" hidden></div>
+    <div class="settings-row save-status-notice" id="save-status-notice" role="status" aria-live="polite" hidden></div>
     <div class="settings-row"><span>Local save</span><div class="drawer-row"><button class="drawer-btn" onclick="exportHabitatSave()">Export</button><button class="drawer-btn" onclick="document.getElementById('import-save-file').click()">Import</button></div></div>
     <input id="import-save-file" type="file" accept="application/json,.json" class="visually-hidden" onchange="importHabitatSave(this.files && this.files[0])">
     <div class="drawer-row" style="margin-top:14px;"><button class="drawer-btn active" onclick="closeSettings()">Done</button></div>
@@ -1508,6 +1508,10 @@
        3. HABITAT SYSTEM INSTANCES
        ========================================================================== */
     const save = new SaveManager();
+    save.onPersistenceStatus = error => {
+      refreshSaveStatus();
+      if (error) showSpeech('Your habitat changes could not be saved in this browser. Download a JSON backup before leaving.');
+    };
     audio.setMusicLevel(save.get('ui.musicVolume', 0.58));
     audio.setSfxLevel(save.get('ui.sfxVolume', 0.78));
     audio.isSFXEnabled = save.get('ui.sfxOn', true);
@@ -3089,6 +3093,20 @@
       panel.innerHTML = entries.map(e => `<div class="journal-entry">${e.label}</div>`).join('');
     }
 
+    function refreshSaveStatus() {
+      const notice = document.getElementById('save-status-notice');
+      if (!notice) return;
+      const messages = [];
+      if (save.readOnly) {
+        messages.push(`Your v${save.unsupportedVersion} save is preserved read-only by this older app version. Import a compatible backup to resume saving.`);
+      }
+      if (save.lastPersistenceError) {
+        messages.push('Browser storage rejected a recent save. Download a JSON backup of your current in-memory progress before leaving, then free storage or allow site data to resume local saving.');
+      }
+      notice.hidden = messages.length === 0;
+      notice.textContent = messages.join(' ');
+    }
+
     function openSettings() {
       const activeElement = document.activeElement;
       const sheet = document.getElementById('settings-sheet');
@@ -3097,13 +3115,7 @@
       sheet.setAttribute('aria-hidden', 'false');
       document.getElementById('settings-backdrop').classList.add('open');
       sheet.classList.add('open');
-      const saveWarning = document.getElementById('save-compat-warning');
-      if (saveWarning) {
-        saveWarning.hidden = !save.readOnly;
-        saveWarning.textContent = save.readOnly
-          ? `Your v${save.unsupportedVersion} save is preserved read-only by this older app version. Import a compatible backup to resume saving.`
-          : '';
-      }
+      refreshSaveStatus();
       document.getElementById('set-density').value = save.get('ui.density', 'minimal');
       document.getElementById('set-reduced-motion').checked = !!save.get('ui.reducedMotion', false);
       document.getElementById('set-music').checked = audio.isMusicPlaying;
@@ -3594,7 +3606,10 @@
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a'); link.href = url; link.download = `eevee-habitat-save-${new Date().toISOString().slice(0,10)}.json`;
         link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-        showSpeech('A backup copy of your habitat save was downloaded.');
+        refreshSaveStatus();
+        showSpeech(save.lastPersistenceError
+          ? 'A backup of your current in-memory progress was downloaded, but browser storage could not save it.'
+          : 'A backup copy of your habitat save was downloaded.');
       } catch (err) { showSpeech(err.message || 'Could not export the save.'); }
     }
 

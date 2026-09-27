@@ -159,6 +159,7 @@
       this.readOnly = false;
       this.unsupportedVersion = null;
       this.lastPersistenceError = null;
+      this.onPersistenceStatus = null;
       this._saveTimer = null;
       this.state = this._load();
       this._onPageHide = () => this.flush();
@@ -222,18 +223,32 @@
       if (this.readOnly) return false;
       try {
         global.localStorage.setItem(SAVE_KEY, JSON.stringify(this.state));
+        const recovered = !!this.lastPersistenceError;
         this.lastPersistenceError = null;
+        if (recovered) this._notifyPersistenceStatus(null);
         return true;
       } catch (err) {
+        const wasAlreadyFailing = !!this.lastPersistenceError;
         this.lastPersistenceError = err;
-        console.warn('[persistence] failed to persist save:', err);
+        if (!wasAlreadyFailing) {
+          console.warn('[persistence] failed to persist save:', err);
+          this._notifyPersistenceStatus(err);
+        }
         return false;
       }
     }
 
+    _notifyPersistenceStatus(error) {
+      if (typeof this.onPersistenceStatus !== 'function') return;
+      try { this.onPersistenceStatus(error); }
+      catch (notifyError) { console.warn('[persistence] save status notification failed:', notifyError); }
+    }
+
     exportJSON() {
       if (this.readOnly) throw new Error(`This save is from a newer version (v${this.unsupportedVersion}); it is read-only to protect your data.`);
-      if (!this.flush()) throw new Error('The habitat save could not be synchronized with browser storage.');
+      // A failed local write must not prevent the user from downloading the
+      // current in-memory state as a recovery backup.
+      this.flush();
       return JSON.stringify({ format: 'eevee-habitat-save', version: SAVE_VERSION, exportedAt: new Date().toISOString(), data: this.state }, null, 2);
     }
 
