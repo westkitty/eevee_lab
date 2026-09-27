@@ -166,6 +166,11 @@ jobs:
               detail = workflow_escape(item.get('detail', ''))
               print(f'::error title=Browser contract failed ({name})::{detail[:1500]}')
               summary.append(f"- **{item.get('id', 'unknown')}** — {item.get('detail', '')}")
+          portrait = next((item for item in data.get('results', []) if item.get('id') == 'responsive-phone-portrait-closed'), None)
+          if portrait:
+              detail = workflow_escape(portrait.get('detail', ''))
+              print(f'::notice title=Phone portrait responsive metrics::{detail[:1500]}')
+              summary.append(f"Phone portrait geometry: {portrait.get('detail', '')}")
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as output:
               output.write(chr(10).join(summary) + chr(10))
           PY
