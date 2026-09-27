@@ -941,6 +941,7 @@ async function main() {
         bodyWidth: document.body.scrollWidth,
         centerId: center ? center.id : null,
         overflowCandidates,
+        roomToast: rect(document.getElementById('room-toast')),
         species: rect(document.getElementById('species-strip')),
         drawerFab: rect(document.getElementById('drawer-fab')),
         interactionFab: rect(document.getElementById('interaction-fab'))
@@ -950,7 +951,7 @@ async function main() {
     const inside = r => r.left >= -1 && r.top >= -1 && r.right <= width + 1 && r.bottom <= height + 1;
     record(`responsive-${name}-closed`,
       closed.overflowX <= 1 && closed.centerId === 'webgl-canvas' &&
-      inside(closed.species) && inside(closed.drawerFab) && inside(closed.interactionFab),
+      inside(closed.roomToast) && inside(closed.species) && inside(closed.drawerFab) && inside(closed.interactionFab),
       JSON.stringify(closed));
 
     // Open the main controls: it must become a bottom sheet in portrait phones,

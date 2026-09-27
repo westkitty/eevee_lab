@@ -91,11 +91,11 @@
     #room-toast {
       background: var(--glass-bg); backdrop-filter: blur(14px); border: 2px solid var(--glass-border);
       border-radius: 22px; padding: 10px 22px; box-shadow: var(--shadow-soft); text-align: center;
-      opacity: 0; transform: translateX(-50%) translateY(-10px) scale(0.96);
+      opacity: 0; transform: translateY(-10px) scale(0.96);
       transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.34,1.56,0.64,1);
       max-width: 80vw;
     }
-    #room-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    #room-toast.visible { opacity: 1; transform: translateY(0) scale(1); }
     #room-toast .room-name { font-family: var(--font-display); font-size: 0.95rem; color: #6e4624; }
     #room-toast .room-mood { font-size: 0.75rem; color: #7a5a3a; margin-top: 2px; }
 
