@@ -559,7 +559,7 @@ async function main() {
       rimCount
     };
   });
-  record('phase6-save-v3', phase6Visual.saveVersion === 3, JSON.stringify(phase6Visual));
+  record('phase6-save-v4', phase6Visual.saveVersion === 4, JSON.stringify(phase6Visual));
   record('phase6-cel-models', phase6Visual.allCel === true, JSON.stringify(phase6Visual));
   record('phase6-cinematic-rim', phase6Visual.rimCount >= 1, JSON.stringify(phase6Visual));
 
