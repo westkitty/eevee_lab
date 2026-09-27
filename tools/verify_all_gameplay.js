@@ -927,24 +927,25 @@ async function main() {
         const left = Math.max(0, -r.left);
         const right = Math.max(0, r.right - innerWidth);
         if ((!left && !right) || style.display === 'none' || style.visibility === 'hidden' || (!r.width && !r.height)) return null;
+        if (el.closest('#control-drawer, #lore-drawer')) return null;
         return {
           tag: el.tagName.toLowerCase(), id: el.id, className: String(el.className || '').slice(0, 80),
           left: Number(r.left.toFixed(2)), right: Number(r.right.toFixed(2)),
           overflowLeft: Number(left.toFixed(2)), overflowRight: Number(right.toFixed(2)),
           position: style.position, opacity: style.opacity, transform: style.transform
         };
-      }).filter(Boolean).sort((a, b) => Math.max(b.overflowLeft, b.overflowRight) - Math.max(a.overflowLeft, a.overflowRight)).slice(0, 8);
+      }).filter(Boolean).sort((a, b) => Math.max(b.overflowLeft, b.overflowRight) - Math.max(a.overflowLeft, a.overflowRight)).slice(0, 4);
       return {
         viewport: { width: innerWidth, height: innerHeight },
         overflowX: document.documentElement.scrollWidth - innerWidth,
         documentWidth: document.documentElement.scrollWidth,
         bodyWidth: document.body.scrollWidth,
         centerId: center ? center.id : null,
-        overflowCandidates,
         roomToast: rect(document.getElementById('room-toast')),
         species: rect(document.getElementById('species-strip')),
         drawerFab: rect(document.getElementById('drawer-fab')),
-        interactionFab: rect(document.getElementById('interaction-fab'))
+        interactionFab: rect(document.getElementById('interaction-fab')),
+        overflowCandidates
       };
     });
 
@@ -986,6 +987,8 @@ async function main() {
     return { closed, open };
   }
 
+  await page.evaluate(() => document.getElementById('room-toast').classList.add('visible'));
+  await page.waitForTimeout(500);
   await inspectAdaptiveViewport('phone-portrait', 390, 844, 'bottom-sheet');
   await shot(page, '13_phone_portrait');
   await inspectAdaptiveViewport('phone-landscape', 844, 390, 'side-pane');
@@ -996,6 +999,7 @@ async function main() {
   await shot(page, '16_tablet_landscape');
   await inspectAdaptiveViewport('desktop-wide', 1440, 900, 'side-pane');
   await shot(page, '17_desktop_wide');
+  await page.evaluate(() => document.getElementById('room-toast').classList.remove('visible'));
 
   await page.setViewportSize({ width: 1280, height: 800 });
 
