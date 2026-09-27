@@ -921,10 +921,26 @@ async function main() {
         return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
       };
       const center = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+      const overflowCandidates = Array.from(document.body.querySelectorAll('*')).map(el => {
+        const r = el.getBoundingClientRect();
+        const style = getComputedStyle(el);
+        const left = Math.max(0, -r.left);
+        const right = Math.max(0, r.right - innerWidth);
+        if ((!left && !right) || style.display === 'none' || style.visibility === 'hidden' || (!r.width && !r.height)) return null;
+        return {
+          tag: el.tagName.toLowerCase(), id: el.id, className: String(el.className || '').slice(0, 80),
+          left: Number(r.left.toFixed(2)), right: Number(r.right.toFixed(2)),
+          overflowLeft: Number(left.toFixed(2)), overflowRight: Number(right.toFixed(2)),
+          position: style.position, opacity: style.opacity, transform: style.transform
+        };
+      }).filter(Boolean).sort((a, b) => Math.max(b.overflowLeft, b.overflowRight) - Math.max(a.overflowLeft, a.overflowRight)).slice(0, 8);
       return {
         viewport: { width: innerWidth, height: innerHeight },
         overflowX: document.documentElement.scrollWidth - innerWidth,
+        documentWidth: document.documentElement.scrollWidth,
+        bodyWidth: document.body.scrollWidth,
         centerId: center ? center.id : null,
+        overflowCandidates,
         species: rect(document.getElementById('species-strip')),
         drawerFab: rect(document.getElementById('drawer-fab')),
         interactionFab: rect(document.getElementById('interaction-fab'))
