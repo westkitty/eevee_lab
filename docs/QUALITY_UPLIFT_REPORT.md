@@ -34,7 +34,7 @@ A browser-dependent visual/runtime claim is not upgraded on source inspection al
 | Backend | Reliability & Recovery | 2 · `PARTIAL_EVIDENCE` | 3 · `VERIFIED` | **+1** | Future-schema read-only protection, compatible-backup recovery, import rollback, pagehide flush, and recovery export when storage writes fail are exercised by fake-storage contracts. |
 | Backend | Performance & Lifecycle | 2 · `PARTIAL_EVIDENCE` | 2 · `PARTIAL_EVIDENCE` | 0 | Existing disposal/lifecycle contracts pass and saves now flush on hide, but no startup, frame-time, storage-cost, or network performance measurement was made. |
 | Backend | Architecture & Maintainability | 2 · `PARTIAL_EVIDENCE` | 2 · `PARTIAL_EVIDENCE` | 0 | Focused source modules and tests coexist with substantial inline application code; this pass did not restructure the app. |
-| Backend | Build, Security & Observability | 2 · `PARTIAL_EVIDENCE` | 2 · `PARTIAL_EVIDENCE` | 0 | Import size/form/version validation and focused test tools exist; there is no discovered CI workflow or browser-runner evidence for this checkout. |
+| Backend | Build, Security & Observability | 2 · `PARTIAL_EVIDENCE` | 3 · `VERIFIED` | **+1** | Added a least-privilege, SHA-pinned non-browser workflow for syntax, focused contracts, Python, and asset-manifest validation; GitHub Actions run [36286939734](https://github.com/westkitty/eevee_lab/actions/runs/36286939734) passed on the pinned `ubuntu-24.04` runner. It is not browser/build assurance. |
 | **Assets** | Completeness & Coverage | 3 · `STRONG_EVIDENCE` | 3 · `STRONG_EVIDENCE` | 0 | Nine runtime species GLBs and broad procedural-room coverage are source-visible; the expansion contract exercised 50 rooms and related systems. |
 | Assets | Cohesion & Art Direction | 2 · `UNVERIFIED` | 2 · `UNVERIFIED` | 0 | Asset families/procedural art are present, but character framing, material match, and room composition were not visually inspected. |
 | Assets | Technical Quality & Optimization | 2 · `PARTIAL_EVIDENCE` | 2 · `PARTIAL_EVIDENCE` | 0 | Inventory is 64 files / 28.570 MiB (nine runtime species GLBs total 6.377 MiB); no network waterfall, GPU, or load-time measurement. |
@@ -52,20 +52,21 @@ A browser-dependent visual/runtime claim is not upgraded on source inspection al
 |---|---:|---:|---:|
 | UI | 10/20 | 10/20 | 0 |
 | WOW | 13/20 | 13/20 | 0 |
-| Backend | 11/20 | 12/20 | +1 |
+| Backend | 11/20 | 13/20 | +2 |
 | Assets | 12/20 | 12/20 | 0 |
 | UX | 11/20 | 12/20 | +1 |
-| **Total** | **57/100** | **59/100** | **+2/100** |
+| **Total** | **57/100** | **60/100** | **+3/100** |
 
-No 4s were awarded. The follow-on recovery-export change strengthens the existing reliability/recovery improvement but does not justify another integer score point; the overall delta remains **+2/100**. No score was raised for unobserved visual quality. **The requested 15/20 category aim is not met** (all domains remain below 15), so this report does not claim the quality gate is fully satisfied. A real browser/runtime and visual assessment is the main blocker to defensible UI/WOW/asset gains.
+No 4s were awarded. The recovery-export follow-on strengthens the existing reliability/recovery score without another point; the focused CI gate supports one point in Build, Security & Observability. No score was raised for unobserved visual quality. **The requested 15/20 category aim is not met** (all domains remain below 15), so this report does not claim the quality gate is fully satisfied. A real browser/runtime and visual assessment is the main blocker to defensible UI/WOW/asset gains.
 
 ## Interventions
 
 1. **Protect saves and preserve recovery options.** `src/persistence.js` detects a stored schema newer than this app and stays read-only rather than normalizing/writing over it. Export is blocked in that state; a compatible import restores writable mode. A failed import write rolls back in-memory state. If a local write fails for a writable save, the current in-memory state can still be exported as a recovery backup. The save-status callback announces the first failure and later recovery (without repeating the same failure toast), and `index.html` keeps a persistent `role="status"` Settings notice synchronized.
 2. **Flush debounced saves when leaving or backgrounding.** `SaveManager` flushes on `pagehide`; the existing `visibilitychange` handler also flushes when hidden. This closes the 250 ms debounce loss window at those lifecycle boundaries.
 3. **Contain modal focus at document scope.** `ModalFocusManager` now observes Tab at document capture (with a root-level fallback for limited event targets), so focus moved outside the dialog is redirected as well as normal forward/reverse wrap. It removes the exact listener on close.
+4. **Make core verification repeatable in CI.** `.github/workflows/quality.yml` runs the project's 13 dependency-free Node contracts, source/inline syntax checks, Python compilation, and asset-manifest contract on pushes/PRs. Its three official actions are pinned to full commit SHAs, the runner is pinned to `ubuntu-24.04`, and the workflow grants only `contents: read`. The successful GitHub Actions run verifies this non-browser gate; it does not replace Playwright or visual review.
 
-These interventions were selected for data-loss risk and keyboard containment, not feature or file counts. No new dependency, service, fake telemetry, model asset, or unrelated gameplay change was introduced.
+These interventions were selected for data-loss risk, keyboard containment, and repeatable verification—not feature or file counts. No new application runtime dependency, service, fake telemetry, model asset, or unrelated gameplay change was introduced.
 
 ## Protected capability status
 
@@ -77,7 +78,7 @@ The patch does not replace or delete existing models, rooms, game content, audio
 - **Asset contract:** The manifest/animation-contract validator passed. Asset inventory was measured from repository files; it is not a performance measurement.
 - **Python/exporter:** Tool compilation passed. Export execution was not attempted because Blender is unavailable.
 - **Browser:** no Chromium/Chrome executable or cached Playwright browser is available. No screenshot, real focus/AT audit, gameplay browser run, or responsive visual assessment is claimed. Earlier Chromium download attempts failed with `ECONNRESET`; no retry was made.
-- **Build/CI:** no app build configuration or `.github/workflows` file was found in the inspected checkout; no build, CI, or deployment result is claimed.
+- **Build/CI:** No app build configuration exists in the inspected tree. The new focused, non-browser workflow passed on GitHub Actions run [36286939734](https://github.com/westkitty/eevee_lab/actions/runs/36286939734) using the pinned `ubuntu-24.04` runner. This is not a browser/gameplay or deployment result.
 
 ## Delivery and Git state
 
@@ -87,9 +88,9 @@ The changes and this report are committed on `arena/01a0dee3-eevee-lab`, which t
 
 1. Obtain a compatible browser and run the full gameplay journey plus a five-viewport visual/focus audit; verify the new save status presentation and page lifecycle in a real browser.
 2. Inspect the nine runtime models and representative procedural rooms at runtime; measure network, load, and GPU costs before changing asset formats or loading strategy. Preserve the unused tracked test GLB unless a separate authorized cleanup is justified.
-3. Add a reproducible CI gate only after selecting a supported browser runner and a project-appropriate command set; do not treat syntax/unit-only CI as browser assurance.
+3. Add a separate browser CI job only after selecting a supported Playwright/browser installation strategy; keep it distinct from the current non-browser workflow and do not treat unit CI as browser assurance.
 4. Reassess all 25 scores after runtime evidence; keep the current below-target category verdict until a defensible uplift is demonstrated.
 
 ## Verdict
 
-This patch improves save safety/recovery—including downloadable in-memory recovery when local writes fail—and modal keyboard containment with direct contracts and no new runtime dependency. It preserves the existing product and demonstrates a **+2/100** exact-rubric delta; the follow-on recovery path stays within that same score bin. It is **not a complete quality-gate pass**: UI/WOW/asset presentation remains unverified, and every domain is below the 15/20 aim. Do not infer deployment or broad visual polish from these code/test changes.
+This patch improves save safety/recovery—including downloadable in-memory recovery when local writes fail—modal keyboard containment, and a reproducible non-browser CI gate. It preserves the existing product and demonstrates a **+3/100** exact-rubric delta from the recorded baseline. It is **not a complete quality-gate pass**: UI/WOW/asset presentation remains unverified, and every domain is below the 15/20 aim. Do not infer browser assurance, deployment, or broad visual polish from this CI result.
