@@ -1,0 +1,86 @@
+name: Focused non-browser quality checks
+
+on:
+  push:
+    branches:
+      - main
+      - arena/01a0dee3-eevee-lab
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused-non-browser:
+    name: Focused contracts (no browser)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.11'
+
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          find src tools -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          html = Path('index.html').read_text()
+          scripts = re.findall(r'<script\b(?![^>]*\bsrc=)[^>]*>(.*?)</script\s*>', html, re.I | re.S)
+          if len(scripts) != 2:
+              raise SystemExit(f'expected 2 inline scripts, found {len(scripts)}')
+          for index, script in enumerate(scripts):
+              (Path(os.environ['RUNNER_TEMP']) / f'eevee-inline-{index}.js').write_text(script)
+          print(f'checked syntax targets for {len(scripts)} inline scripts')
+          PY
+          for script in "$RUNNER_TEMP"/eevee-inline-*.js; do node --check "$script"; done
+
+      - name: Run focused Node contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test in \
+            test_camera_controller \
+            test_creature_actor \
+            test_creature_behavior \
+            test_creature_manager \
+            test_expansions \
+            test_experience_systems \
+            test_habitat_state \
+            test_interaction_system \
+            test_mini_games \
+            test_phase6_system \
+            test_phase7_living_world \
+            test_room_manager_phase5 \
+            test_ui_controller; do
+            node "tools/${test}.js"
+          done
+
+      - name: Validate Python tools and asset manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/*.py
+          python3 tools/validate_phase0.py assets/models/rig-manifest.json assets/models/animation-contract.json
