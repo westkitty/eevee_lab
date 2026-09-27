@@ -1099,6 +1099,7 @@
     <div class="settings-row"><label for="set-captions">Interaction captions</label><input type="checkbox" id="set-captions" onchange="onSetCaptions(this.checked)"></div>
     <div class="settings-row save-status-notice" id="save-status-notice" role="status" aria-live="polite" hidden></div>
     <div class="settings-row"><span>Local save</span><div class="drawer-row"><button class="drawer-btn" onclick="exportHabitatSave()">Export</button><button class="drawer-btn" onclick="document.getElementById('import-save-file').click()">Import</button></div></div>
+    <label for="import-save-file" class="visually-hidden">Habitat save file to import</label>
     <input id="import-save-file" type="file" accept="application/json,.json" class="visually-hidden" onchange="importHabitatSave(this.files && this.files[0])">
     <div class="drawer-row" style="margin-top:14px;"><button class="drawer-btn active" onclick="closeSettings()">Done</button></div>
   </div>

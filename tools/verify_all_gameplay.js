@@ -161,6 +161,8 @@ async function main() {
   });
   record('settings-focus-entry', focusEntry.activeId === 'set-density' && focusEntry.dialogOpen,
     JSON.stringify(focusEntry));
+  const saveImportByLabel = await page.getByLabel('Habitat save file to import').count();
+  record('settings-save-import-accessible-name', saveImportByLabel === 1, `matching labelled inputs=${saveImportByLabel}`);
 
   await page.evaluate(() => {
     const buttons = Array.from(document.querySelectorAll('#settings-sheet .drawer-row button'));
